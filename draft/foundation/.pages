@@ -1,0 +1,8 @@
+title: 📚 Foundation
+arrange:
+  - introduction.md
+  - development-environment.md
+  - git-workflow.md
+  - semantic-versioning.md
+  - repository-standard.md
+  - documentation-standard.md

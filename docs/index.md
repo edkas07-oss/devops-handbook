@@ -1,17 +1,29 @@
-# Welcome to MkDocs
+# 🏠 Home
 
-For full documentation visit [mkdocs.org](https://www.mkdocs.org).
+Selamat datang di **DevOps Engineering Handbook**. Dokumentasi ini disusun sebagai *personal knowledge base* yang merekam seluruh implementasi, eksperimen, dan keputusan *engineering* di lingkungan DevOps Lab.
 
-## Commands
+## 🎯 Tujuan Pembuatan
 
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
+- **Knowledge Management**: Membangun basis pengetahuan pribadi yang terstruktur dan mudah diakses.
+- **Real-World Testing**: Mendokumentasikan konfigurasi dan implementasi yang benar-benar telah diuji di lapangan.
+- **Troubleshooting Archive**: Menyimpan catatan pemecahan masalah (*troubleshooting*) dan *lessons learned*.
+- **Daily Reference**: Menjadi referensi praktis untuk kebutuhan pekerjaan sehari-hari maupun pengembangan keterampilan.
 
-## Project layout
+## 📦 Ruang Lingkup Utama
 
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.
+Dokumentasi dalam handbook ini mencakup beberapa domain utama:
+
+- **Container Images** (Ubuntu Base, SSH, NGINX, dll.)
+- **Container Engine** (Podman)
+- **Automation & Scripting** (Ansible, Gitea, Jenkins, dll.)
+- **CI/CD Pipeline**
+- **Orchestration** (OpenShift)
+- **Observability & Monitoring**
+- **Security Best Practices**
+- **Architecture Decision Records (ADR)**
+
+## 💡 Prinsip Dasar
+
+> **Experience → Implementation → Documentation**
+
+Setiap materi dan panduan yang disajikan di dalam handbook ini bersumber dari implementasi nyata (*hands-on*) serta eksperimen yang telah diuji langsung di lab.

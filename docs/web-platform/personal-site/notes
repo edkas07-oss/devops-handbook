@@ -1,0 +1,59 @@
+🌐 Personal Site (Hugo)
+
+Target pembaca:
+
+Recruiter
+Client
+Community
+Engineer lain
+
+Isinya:
+
+Blog
+Portfolio
+About Me
+Project Highlight
+Speaking
+Experience
+
+Karakternya:
+
+Menarik secara visual
+Story telling
+SEO
+Mudah dibaca publik
+
+======
+
+🌐 Personal Site
+├── overview.md
+├── objectives.md
+├── requirements.md
+├── architecture.md
+├── repository-structure.md
+├── technology-stack.md
+├── implementation/
+│   ├── environment-preparation.md
+│   ├── repository-initialization.md
+│   ├── create-hugo-project.md
+│   ├── install-theme.md
+│   ├── create-initial-content.md
+│   ├── container-integration.md
+│   ├── deployment.md
+│   └── validation.md
+├── deployment.md
+├── backup-and-recovery.md
+├── lessons-learned.md
+└── references.md
+
+Halaman	Pertanyaan yang dijawab
+Overview	Apa yang dibangun?
+Objectives	Mengapa project ini dibuat?
+Requirements	Apa yang dibutuhkan?
+Architecture	Bagaimana desain solusi ini?
+Repository Structure	Bagaimana source code diorganisasikan?
+Technology Stack	Teknologi apa yang digunakan dan apa perannya?
+Implementation	Bagaimana solusi ini diimplementasikan?
+Deployment	Bagaimana solusi dipublikasikan?
+Backup and Recovery	Bagaimana menjaga dan memulihkannya?
+Lessons Learned	Apa pelajaran yang didapat?

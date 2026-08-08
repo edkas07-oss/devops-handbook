@@ -1,1 +1,86 @@
-site_name: My Docs
+site_name: DevOps Engineering Handbook
+site_description: Personal Knowledge Base for DevOps Engineering
+site_author: Eddy Wiyatno
+
+theme:
+  name: material
+  language: en
+  
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+  font:
+    text: Roboto
+    code: JetBrains Mono
+
+  features:
+    # Navigation
+    - navigation.pruning
+    - navigation.indexes
+   
+    #- navigation.sections
+    # Table of Contents
+    - toc.follow
+
+    # Search
+    - search.highlight
+    - search.suggest
+
+    # Content
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+
+plugins:
+  - search
+  - awesome-pages
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  
+  # Pengaturan TOC digabung di sini agar tidak tumpang tindih
+  - toc:
+      toc_depth: 3
+      permalink: true
+
+  # PyMdown Extensions
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.keys
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js
+  - javascripts/mermaid.js
+
+extra_css:
+  - stylesheets/extra.css
+  - stylesheets/procedure.css

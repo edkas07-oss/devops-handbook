@@ -1,0 +1,62 @@
+/* ==================================================
+   Tables Layout & Styling
+   ================================================== */
+
+.md-typeset .md-typeset__scrollwrap,
+.md-typeset .md-typeset__table {
+  display: block;
+  width: 100% !important;
+  margin: 1em 0;
+}
+
+.md-typeset table:not([class]) {
+  display: table !important;
+  width: 100% !important;
+  table-layout: auto !important;
+}
+
+.md-typeset table:not([class]) th,
+.md-typeset table:not([class]) td {
+  padding: .65rem .45rem;
+  vertical-align: top;
+}
+
+/* --------------------------------------------------
+   1. TABEL 2 KOLOM
+   -------------------------------------------------- */
+/* Kolom 1 ringkas pas isi */
+.md-typeset table:not([class]) th:first-child,
+.md-typeset table:not([class]) td:first-child {
+  white-space: nowrap;
+  width: 10%;
+}
+
+/* Kolom 2 menyerap sisa ruang */
+.md-typeset table:not([class]) th:last-child,
+.md-typeset table:not([class]) td:last-child {
+  width: 99%;
+}
+
+/* --------------------------------------------------
+   2. OVERRIDE KHUSUS TABEL 3 KOLOM (ENHANCED)
+   -------------------------------------------------- */
+/* Kolom 1: Rapat pas isi */
+.md-typeset table:not([class]) tr th:first-child:nth-last-child(3),
+.md-typeset table:not([class]) tr td:first-child:nth-last-child(3) {
+  white-space: nowrap !important;
+  width: 10% !important;
+}
+
+/* Kolom 2: Rapat pas isi (Menghilangkan gap renggang jika isinya pendek) */
+.md-typeset table:not([class]) tr th:nth-child(2):nth-last-child(2),
+.md-typeset table:not([class]) tr td:nth-child(2):nth-last-child(2) {
+  white-space: nowrap !important;
+  width: 1% !important;
+}
+
+/* Kolom 3: Menyerap seluruh sisa ruang ke kanan */
+.md-typeset table:not([class]) tr th:last-child:nth-child(3),
+.md-typeset table:not([class]) tr td:last-child:nth-child(3) {
+  white-space: normal !important;
+  width: auto !important;
+}

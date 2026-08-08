@@ -1,0 +1,16 @@
+# Pages
+
+arrange:
+
+- index.md
+- installation.md
+- create-project.md
+- project-structure.md
+- install-theme.md
+- run-development-server.md
+- configure-hugo.md
+- create-home-page.md
+- create-content.md
+- build-website.md
+- deploy-static-website.md
+- update-theme.md

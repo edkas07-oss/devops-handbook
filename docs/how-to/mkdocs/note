@@ -1,0 +1,112 @@
+MkDocs
+├── 1. Introduction
+│   ├── What is MkDocs
+│   ├── Why MkDocs
+│   ├── Features
+│   ├── Architecture
+│   └── Learning Path
+│
+├── 2. Installation
+│   ├── Prerequisites
+│   ├── Installing Python
+│   ├── Creating Virtual Environment
+│   ├── How Virtual Environment Works
+│   ├── Installing MkDocs
+│   ├── Installing Material for MkDocs
+│   ├── Installing Additional Plugins
+│   └── Verification
+│
+├── 3. Create Project
+│   ├── Create New Project
+│   ├── Running Development Server
+│   ├── Build Static Website
+│   └── Project Lifecycle
+│
+├── 4. Project Structure
+│   ├── Directory Layout
+│   ├── docs/
+│   ├── mkdocs.yml
+│   ├── overrides/
+│   ├── site/
+│   └── Recommended Structure
+│
+├── 5. Configuration
+│   ├── Site Information
+│   ├── Navigation
+│   ├── Theme
+│   ├── Palette
+│   ├── Fonts
+│   ├── Extensions
+│   ├── Plugins
+│   └── Extra Configuration
+│
+├── 6. Writing Documentation
+│   ├── Markdown Basics
+│   ├── Headings
+│   ├── Lists
+│   ├── Tables
+│   ├── Images
+│   ├── Links
+│   ├── Code Blocks
+│   ├── Admonitions
+│   ├── Mermaid
+│   ├── Tabs
+│   ├── Footnotes
+│   └── Diagrams
+│
+├── 7. Plugins
+│   ├── Search
+│   ├── Git Revision Date
+│   ├── Minify
+│   ├── Macros
+│   ├── Awesome Pages
+│   └── Other Useful Plugins
+│
+├── 8. Deployment
+│   ├── Build
+│   ├── GitHub Pages
+│   ├── GitLab Pages
+│   ├── NGINX
+│   ├── Apache
+│   ├── Container Deployment
+│   └── CI/CD
+│
+├── 9. Best Practices
+│   ├── Directory Structure
+│   ├── Naming Convention
+│   ├── Writing Style
+│   ├── Version Control
+│   ├── Documentation Review
+│   └── Backup Strategy
+│
+├── 10. Troubleshooting
+│   ├── Installation Issues
+│   ├── Theme Problems
+│   ├── Plugin Problems
+│   ├── Build Errors
+│   ├── Deployment Issues
+│   └── FAQ
+│
+└── Engineering Notes
+    ├── pip vs pip3
+    ├── Virtualenv vs venv
+    ├── Python Package Management
+    ├── Material Theme Internals
+    ├── Useful Tips
+    ├── Performance Tuning
+    └── References
+
+Filosofi Penulisan
+
+Saya ingin mengusulkan satu prinsip yang menurut saya sangat penting dan bisa menjadi "roh" dari handbook ini:
+
+Jelaskan secukupnya, tunjukkan contohnya, lalu arahkan ke dokumentasi resmi untuk pembahasan yang lebih mendalam.
+
+Dengan prinsip ini:
+
+Handbook tetap ringkas dan fokus.
+Tidak menjadi salinan dokumentasi resmi.
+Tidak cepat usang ketika versi software berubah.
+Tetap memberikan nilai tambah melalui contoh implementasi, pengalaman, dan praktik terbaik.
+
+Menurut saya, ini akan menjadi pembeda utama DevOps Engineering Handbook Anda dibandingkan dokumentasi lain. Pembaca tidak hanya mendapatkan "apa yang bisa dilakukan", tetapi juga "bagaimana menerapkannya" dengan contoh yang nyata dan mudah diikuti.

@@ -1,0 +1,13 @@
+# Pages
+
+title: Git
+
+arrange:
+
+- index.md
+- install.md
+- configure.md
+- publish-project-to-git-repo.md
+- clone-git-repo.md
+- manage-branches.md
+- troubleshooting.md

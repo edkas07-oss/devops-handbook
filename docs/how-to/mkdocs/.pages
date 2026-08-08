@@ -1,0 +1,15 @@
+# Pages
+
+arrange:
+
+- index.md
+- installation.md
+- create-project.md
+- project-structure.md
+- configuration.md
+- writing-documentation.md
+- build-static-website.md
+- deploy-static-website.md
+- backup-and-recovery.md
+- upgrade.md
+- troubleshooting.md

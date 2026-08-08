@@ -1,0 +1,8 @@
+- 📑 Architecture Decision Records:
+    - Introduction
+    - ADR-0001 - Knowledge Organization Model
+    - ADR-0002 - Repository Organization
+    - ADR-0003 - Source and Deployment Separation
+    - ADR-0004 - Generic Runtime Container
+    - ADR-0005 - Documentation Writing Standard
+    - References
