@@ -43,7 +43,7 @@ tersedianya komponen monitoring pertama yang terverifikasi dengan cara:
 | Application health interface | Telegraf menuju `http://<tomcat-container>:8080/health`; integrasi belum dilaksanakan | Planned |
 | Monitoring platform | Prometheus, Telegraf, storage, dashboard, dan Alertmanager | Planned |
 | Delivery design | Boundary CI, CD, Ansible, dan deployment verification telah diidentifikasi | Completed |
-| AI repository governance | Root `AGENTS.md` pada empat repository telah lulus structural, fresh-session, dan tabletop verification | Completed |
+| AI repository governance | Root `AGENTS.md` pada empat repository telah lulus structural, fresh-session, tabletop, dan publication verification | Completed |
 | CI/CD implementation | Pipeline build, integration test, provisioning, dan deployment | Planned |
 | End-to-end deployment | Seluruh alur topology berjalan dan diverifikasi | Planned |
 
@@ -79,6 +79,11 @@ tersedianya komponen monitoring pertama yang terverifikasi dengan cara:
     Menerapkan repository-level instructions agar AI mengikuti ownership,
     approval, verification, dan stop conditions sebelum technical
     implementation dilanjutkan.
+
+7. **[TN-007 — Verify Repository Governance Publication](TN-007-verify-repository-governance-publication.md)**
+
+    Memverifikasi commit identity dan `update by push` evidence setelah
+    governance dipublikasikan ke empat repository Gitea.
 
 !!! note "Phase Output"
 
