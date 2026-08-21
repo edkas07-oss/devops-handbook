@@ -25,6 +25,11 @@ Apabila belum, lihat dokumen berikut.
 
 ## ▶️ Procedure
 
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
 ### Review Build Output
 
 Pastikan direktori `public/` telah berhasil dihasilkan.
@@ -48,7 +53,9 @@ public
 
 Pastikan file `index.html` tersedia.
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Run NGINX Container
 
@@ -72,7 +79,9 @@ Keterangan:
 | `-v` | Me-mount direktori `public/` sebagai document root NGINX. |
 | `:ro` | Mount dalam mode read-only. |
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Verify Running Container
 
@@ -89,7 +98,9 @@ CONTAINER ID  IMAGE           STATUS         PORTS
 xxxxxxx       nginx:latest    Up 10 seconds  0.0.0.0:8080->80/tcp
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Access Website
 
@@ -102,6 +113,11 @@ http://localhost:8080
 Sesuaikan alamat host dan port apabila menggunakan konfigurasi yang berbeda.
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

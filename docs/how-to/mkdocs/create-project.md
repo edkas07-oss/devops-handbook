@@ -50,7 +50,12 @@ Pastikan beberapa kebutuhan berikut telah tersedia.
 
 ## ▶️ Procedure
 
-### Step 1 — Create a New Project
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Create a New Project
 
 Pindah ke direktori kerja.
 
@@ -72,9 +77,11 @@ INFO    - Writing config file: my-project/mkdocs.yml
 INFO    - Writing initial docs: my-project/docs/index.md
 ```
 
----
+</div>
 
-### Step 2 — Review Project Structure
+<div class="procedure-step" markdown>
+
+### Review Project Structure
 
 Masuk ke direktori project.
 
@@ -105,9 +112,11 @@ Keterangan.
 | `docs/index.md` | Halaman utama website. |
 | `mkdocs.yml` | File konfigurasi MkDocs. |
 
----
+</div>
 
-### Step 3 — Start the Development Server
+<div class="procedure-step" markdown>
+
+### Start the Development Server
 
 Jalankan development server.
 
@@ -127,9 +136,11 @@ Apabila ingin dapat diakses dari perangkat lain dalam jaringan yang sama.
 mkdocs serve --dev-addr 0.0.0.0:8000
 ```
 
----
+</div>
 
-### Step 4 — Test Live Reload
+<div class="procedure-step" markdown>
+
+### Test Live Reload
 
 Buka file berikut.
 
@@ -143,9 +154,11 @@ Simpan file kemudian refresh browser.
 
 MkDocs akan secara otomatis melakukan rebuild tanpa perlu menjalankan ulang development server.
 
----
+</div>
 
-### Step 5 — Build the Website
+<div class="procedure-step" markdown>
+
+### Build the Website
 
 Bangun website statis.
 
@@ -165,6 +178,11 @@ my-project/
 Direktori `site/` berisi website statis yang siap dipublikasikan.
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

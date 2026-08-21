@@ -8,7 +8,7 @@
     </style>
   </defs>
   <rect class="bg" width="1600" height="1510"/>
-  <text x="800" y="42" text-anchor="middle" class="title">Personal Site CI/CD Artifact Pipeline</text>
+  <text x="800" y="42" text-anchor="middle" class="title">Personal Site Continuous Integration Pipeline</text>
 
   <!-- Trigger -->
   <rect class="cluster" x="60" y="75" width="1480" height="155" rx="14"/>
@@ -21,7 +21,7 @@
 
   <!-- Agent -->
   <rect class="cluster" x="60" y="265" width="1080" height="1110" rx="14"/>
-  <text x="85" y="298" class="clusterTitle">2. Jenkins Agent Executing Phase — label: builder</text>
+  <text x="85" y="298" class="clusterTitle">2. Jenkins Agent Executing Phase — label: builder-01</text>
   <rect class="node" x="395" y="320" width="410" height="58" rx="10"/>
   <text x="600" y="346" text-anchor="middle" class="label">Jenkins SSH Agent (builder-01)</text><text x="600" y="366" text-anchor="middle" class="body">Runs rootless Podman jobs</text>
 
@@ -38,7 +38,7 @@
 
   <rect class="stage build" x="95" y="700" width="1010" height="185" rx="12"/>
   <text x="118" y="727" class="stageTitle">Stage: Build Static Website</text>
-  <rect class="container" x="185" y="754" width="300" height="91" rx="10"/><text x="335" y="782" text-anchor="middle" class="label">Hugo Container</text><text x="335" y="804" text-anchor="middle" class="body">klakegg/hugo:ext-alpine</text><text x="335" y="824" text-anchor="middle" class="small">ephemeral Podman container</text>
+  <rect class="container" x="160" y="754" width="350" height="91" rx="10"/><text x="335" y="782" text-anchor="middle" class="label">Hugo Container</text><text x="335" y="804" text-anchor="middle" class="body">ghcr.io/gohugoio/hugo:v0.160.1</text><text x="335" y="824" text-anchor="middle" class="small">ephemeral Podman container</text>
   <rect class="node" x="565" y="764" width="220" height="69" rx="9"/><text x="675" y="791" text-anchor="middle" class="label">Hugo command</text><text x="675" y="813" text-anchor="middle" class="small">--minify --destination public</text>
   <rect class="store" x="860" y="754" width="180" height="91" rx="10"/><text x="950" y="782" text-anchor="middle" class="label">public/</text><text x="950" y="805" text-anchor="middle" class="body">HTML + assets</text><text x="950" y="825" text-anchor="middle" class="small">build output</text>
   <path class="line" d="M485 799 H558"/><path class="line" d="M785 799 H853"/>

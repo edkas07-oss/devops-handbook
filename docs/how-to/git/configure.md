@@ -44,6 +44,11 @@ Pastikan:
 
 ## ▶️ Procedure
 
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
 ### Configure Username
 
 Konfigurasikan username yang akan digunakan pada setiap commit.
@@ -64,7 +69,9 @@ Contoh output.
 John Doe
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Configure Email
 
@@ -86,7 +93,9 @@ Contoh output.
 john.doe@example.com
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Configure Default Branch
 
@@ -108,7 +117,9 @@ Contoh output.
 main
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Review Configuration
 
@@ -127,6 +138,11 @@ init.defaultbranch=main
 ```
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

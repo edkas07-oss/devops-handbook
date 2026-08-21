@@ -55,7 +55,12 @@ Pastikan:
 
 ## ▶️ Procedure
 
-### Step 1 — Open the Configuration File
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Open the Configuration File
 
 Seluruh konfigurasi MkDocs disimpan pada file berikut.
 
@@ -75,9 +80,11 @@ atau
 mkdocs build
 ```
 
----
+</div>
 
-### Step 2 — Configure Website Information
+<div class="procedure-step" markdown>
+
+### Configure Website Information
 
 Tambahkan identitas website.
 
@@ -95,9 +102,11 @@ site_url: https://example.com
 | `site_author` | Penulis dokumentasi. |
 | `site_url` | URL website setelah dipublikasikan. |
 
----
+</div>
 
-### Step 3 — Configure Navigation
+<div class="procedure-step" markdown>
+
+### Configure Navigation
 
 Atur struktur navigasi website.
 
@@ -114,9 +123,11 @@ nav:
 
 Navigation menentukan urutan halaman yang ditampilkan pada sidebar.
 
----
+</div>
 
-### Step 4 — Configure Theme
+<div class="procedure-step" markdown>
+
+### Configure Theme
 
 Aktifkan Material for MkDocs.
 
@@ -134,9 +145,11 @@ Material Theme menyediakan berbagai fitur seperti:
 - Dark Mode
 - Icons
 
----
+</div>
 
-### Step 5 — Configure Plugins
+<div class="procedure-step" markdown>
+
+### Configure Plugins
 
 Tambahkan plugin sesuai kebutuhan.
 
@@ -153,9 +166,11 @@ Contoh plugin yang umum digunakan.
 | `git-revision-date-localized` | Menampilkan tanggal perubahan halaman. |
 | `minify` | Mengurangi ukuran file HTML hasil build. |
 
----
+</div>
 
-### Step 6 — Configure Markdown Extensions
+<div class="procedure-step" markdown>
+
+### Configure Markdown Extensions
 
 Aktifkan fitur Markdown tambahan.
 
@@ -178,9 +193,11 @@ Extension tersebut memungkinkan penggunaan:
 - Collapsible Content
 - Mermaid Diagram
 
----
+</div>
 
-### Step 7 — Configure Additional Resources
+<div class="procedure-step" markdown>
+
+### Configure Additional Resources
 
 Apabila menggunakan CSS atau JavaScript tambahan.
 
@@ -195,6 +212,11 @@ extra_javascript:
 Konfigurasi ini memungkinkan website menggunakan stylesheet maupun JavaScript buatan sendiri tanpa mengubah source Material Theme.
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

@@ -42,6 +42,11 @@ Pastikan:
 
 ## ▶️ Procedure
 
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
 ### Install Git
 
 === "Ubuntu / Debian"
@@ -82,7 +87,9 @@ Pastikan:
 
     Jalankan installer kemudian ikuti wizard instalasi hingga selesai.
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Verify Installation
 
@@ -101,6 +108,11 @@ git version 2.50.1
 Pastikan Git dapat dijalankan tanpa error.
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

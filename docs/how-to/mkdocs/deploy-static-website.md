@@ -51,7 +51,12 @@ Pastikan:
 
 ## ▶️ Procedure
 
-### Step 1 — Review the Static Website
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Review the Static Website
 
 Pastikan proses build telah menghasilkan direktori berikut.
 
@@ -61,9 +66,11 @@ site/
 
 Direktori tersebut berisi seluruh file website yang akan dipublikasikan.
 
----
+</div>
 
-### Step 2 — Synchronize the Deployment Directory
+<div class="procedure-step" markdown>
+
+### Synchronize the Deployment Directory
 
 Salin hasil build ke deployment repository.
 
@@ -83,9 +90,11 @@ devops-handbook-site/
 └── site/
 ```
 
----
+</div>
 
-### Step 3 — Review the Deployment Configuration
+<div class="procedure-step" markdown>
+
+### Review the Deployment Configuration
 
 Pastikan lokasi website telah dikonfigurasi.
 
@@ -102,9 +111,11 @@ Parameter:
 | IMAGE_NAME | Runtime image |
 | WEB_ROOT | Static website location |
 
----
+</div>
 
-### Step 4 — Start the Container
+<div class="procedure-step" markdown>
+
+### Start the Container
 
 Jalankan deployment.
 
@@ -127,9 +138,11 @@ Container
 
 NGINX akan menyajikan seluruh file pada direktori tersebut.
 
----
+</div>
 
-### Step 5 — Access the Website
+<div class="procedure-step" markdown>
+
+### Access the Website
 
 Buka browser.
 
@@ -140,6 +153,11 @@ http://localhost:8080
 Pastikan halaman utama berhasil ditampilkan.
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

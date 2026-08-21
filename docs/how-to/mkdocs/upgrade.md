@@ -52,7 +52,12 @@ Pastikan:
 
 ## ▶️ Procedure
 
-### Step 1 — Review the Current Version
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Review the Current Version
 
 Periksa versi MkDocs.
 
@@ -68,9 +73,11 @@ pip show mkdocs-material
 
 Catat versi yang sedang digunakan sebagai referensi apabila diperlukan proses rollback.
 
----
+</div>
 
-### Step 2 — Review the Release Notes
+<div class="procedure-step" markdown>
+
+### Review the Release Notes
 
 Sebelum melakukan upgrade, baca release notes dari proyek yang akan diperbarui.
 
@@ -84,9 +91,11 @@ Perhatikan informasi berikut:
 
 Langkah ini membantu mengidentifikasi perubahan yang mungkin memerlukan penyesuaian konfigurasi atau dokumentasi.
 
----
+</div>
 
-### Step 3 — Upgrade the Packages
+<div class="procedure-step" markdown>
+
+### Upgrade the Packages
 
 Upgrade MkDocs.
 
@@ -102,9 +111,11 @@ pip install --upgrade mkdocs-material
 
 Apabila proyek menggunakan plugin tambahan, lakukan upgrade sesuai kebutuhan.
 
----
+</div>
 
-### Step 4 — Build the Website
+<div class="procedure-step" markdown>
+
+### Build the Website
 
 Setelah upgrade selesai, bangun kembali website.
 
@@ -114,9 +125,11 @@ mkdocs build
 
 Pastikan proses build selesai tanpa error.
 
----
+</div>
 
-### Step 5 — Verify the Website
+<div class="procedure-step" markdown>
+
+### Verify the Website
 
 Jalankan development server.
 
@@ -139,6 +152,11 @@ Periksa:
 Pastikan seluruh komponen berfungsi sebagaimana mestinya.
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

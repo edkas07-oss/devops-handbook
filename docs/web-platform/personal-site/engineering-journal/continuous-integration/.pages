@@ -1,5 +1,13 @@
 # Pages
 
+title: Continuous Integration
+
 arrange:
 
 - index.md
+- TN-001-initialize-jenkins-controller-environment.md
+- TN-002-deploy-configure-ssh-agent-node.md
+- TN-003-configure-gitea-repository-access.md
+- TN-004-create-jenkinsfile.md
+- TN-005-create-build-pipeline.md
+- TN-006-execute-ci-pipeline-initial-test.md

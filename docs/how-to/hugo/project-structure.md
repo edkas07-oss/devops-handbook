@@ -22,6 +22,11 @@ Apabila belum, ikuti panduan berikut.
 
 ## ▶️ Procedure
 
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
 ### Review Project Structure
 
 Masuk ke direktori project.
@@ -54,7 +59,9 @@ Contoh output.
 
 Struktur di atas merupakan struktur standar yang dihasilkan oleh Hugo.
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Review Project Components
 
@@ -72,7 +79,9 @@ Berikut fungsi masing-masing file dan direktori.
 | `static/` | Menyimpan file statis seperti gambar, favicon, CSS, JavaScript, maupun file lain yang akan disalin langsung ke direktori hasil build. |
 | `themes/` | Menyimpan Hugo Theme yang digunakan oleh project. |
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Review Development Workflow
 
@@ -91,6 +100,11 @@ Selama proses pengembangan website, setiap direktori memiliki fungsi yang berbed
 | `hugo.toml` | Mengelola konfigurasi website. |
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

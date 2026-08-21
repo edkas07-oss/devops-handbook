@@ -28,6 +28,11 @@ cd ~/git/personal-site
 
 ## ▶️ Procedure
 
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
 ### Create Home Page
 
 Buat file berikut.
@@ -58,7 +63,9 @@ Website ini berisi artikel, dokumentasi project, dan pengalaman yang saya bagika
 
 Simpan perubahan.
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Review Home Page
 
@@ -79,6 +86,11 @@ http://localhost:1313
 Home Page akan menampilkan konten yang baru dibuat.
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

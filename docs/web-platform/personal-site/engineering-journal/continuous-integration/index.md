@@ -1,70 +1,114 @@
-# WK-001 — Build Pipeline
+# Continuous Integration Engineering Journal
 
-Selamat datang di halaman utama dokumentasi **WK-001: Build Pipeline**. Document ini mencatat seluruh implementasi, arsitektur, dan catatan teknis terkait pembangunan **Continuous Integration (CI) Pipeline** untuk *personal site* menggunakan Jenkins, Podman (rootless), dan MinIO Object Storage.
+## Overview
 
----
+Bagian ini mencatat perjalanan engineering fase Continuous Integration (CI)
+Personal Site, mulai dari persiapan Jenkins hingga pipeline berhasil membangun
+static site Hugo dan menyimpan artifact ke MinIO.
 
-## 🎯 Objective & Scope
+Technical Note disusun menurut urutan implementasi. Dokumen di bagian ini
+mempertahankan konteks historis, termasuk kondisi awal, keputusan implementasi,
+hasil pengujian, dan masalah yang ditemukan selama pembangunan pipeline.
 
-* **Objective:** Membangun *Build Stage* terisolasi berbasis container untuk mengompilasi *source code* Hugo menjadi berkas statis, mengemasnya menjadi artefak, dan mengunggahnya ke Object Storage secara otomatis.
-* **Scope:** Berfokus murni pada **Fase Build (CI)**. Tahapan *Deployment (CD)* dan *Validation* dicakup pada Worklog terpisah.
+## Objective
 
----
+Membangun pipeline CI yang dapat:
 
-## 📊 Environment Status
+- mengambil source code Personal Site dari Gitea;
+- menjalankan build Hugo di dalam ephemeral Podman container;
+- memvalidasi hasil static site;
+- mengemas direktori `public/` sebagai immutable artifact; dan
+- mengunggah artifact ke bucket `personal-site` pada MinIO.
 
-Kondisi komponen lingkungan pada saat fase *Build Pipeline* ini diselesaikan:
+## Final Pipeline Flow
 
-| Component | Technology | Status | Role / Notes |
-| ----------- | ------------ | -------- | -------------- |
-| **SCM** | Gitea | ✅ Ready | Repository source code (`personal-site`) |
-| **CI Engine** | Jenkins | ✅ Ready | Controller & SSH Agent (`builder-01`) |
-| **Container Runtime** | Podman | ✅ Ready | Rootless execution engine |
-| **Build Tool** | Hugo (Ext-Alpine) | ✅ Ready | Ephemeral build container |
-| **Artifact Storage** | MinIO | ✅ Ready | S3-compatible storage (Bucket: `personal-site`) |
+![Personal Site CI Pipeline](../../assets/images/personal-site-ci-pipeline.svg)
 
----
+```text
+Gitea
+  ↓
+Jenkins Controller
+  ↓
+builder-01
+  ↓
+Hugo container → public/
+  ↓
+personal-site-<BUILD_NUMBER>.tar.gz
+  ↓
+MinIO bucket: personal-site
+```
 
-## 🏗️ Architecture & Pipeline Flow
+## Implementation Result
 
-Seluruh eksekusi pipeline berjalan secara otomatis di dalam *ephemeral container* pada Jenkins Agent.
+| Component | Implementation | Status |
+| --- | --- | --- |
+| Source control | Gitea repository `personal-site` | Completed |
+| Pipeline definition | `personal-site/Jenkinsfile` | Completed |
+| Jenkins execution node | SSH agent `builder-01` | Completed |
+| Build environment | Rootless Podman and Hugo container | Completed |
+| Static-site validation | Require `public/index.html` | Completed |
+| Artifact format | `personal-site-<BUILD_NUMBER>.tar.gz` | Completed |
+| Artifact storage | MinIO bucket `personal-site` | Completed |
 
-![Personal Site CI/CD Artifact Pipeline](../../assets/images/personal-site-ci-pipeline.svg)
+## Technical Notes
 
----
+Technical Note sebaiknya dibaca secara berurutan:
 
-## 📚 Technical Notes (TN) Index
+1. **[TN-001 — Initialize Jenkins Controller & Environment](TN-001-initialize-jenkins-controller-environment.md)**
 
-Berikut adalah daftar rincian teknis pelaksanaan yang dipecah berdasarkan modul dan perannya dalam *Build Phase*:
+    Menyiapkan Jenkins Controller, environment, dan plugin yang diperlukan.
 
-### 1. Build Infrastructure & Environment
+2. **[TN-002 — Deploy & Configure SSH Agent Node](TN-002-deploy-configure-ssh-agent-node.md)**
 
-* **[TN-001: Initialize Jenkins Controller & Environment](TN-001-start-jenkins-container.md)** — Menjalankan container Jenkins, memverifikasi environment Jenkins, dan menginstal plugin yang diperlukan.
-* **[TN-002: Deploy & Configure SSH Agent Node](TN-002-deploy-configure-ssh-agent-node.md)** — MMenyiapkan Jenkins SSH Agent (builder-01) sebagai lingkungan eksekusi terpisah untuk menjalankan job build pipeline.
+    Menyiapkan `builder-01` sebagai execution node untuk pipeline.
 
-### 2. SCM Integration & Pipeline Definition
+3. **[TN-003 — Configure Gitea Repository Access](TN-003-configure-gitea-repository-access.md)**
 
-* **[TN-003: Configure Gitea Repository Access](TN-003-configure-gitea-repository-access.md)** — Konfigurasi otentikasi SSH Key / Access Token untuk menghubungkan Jenkins dengan Gitea SCM.
-* **[TN-004: Create Jenkinsfile](TN-004-create-jenkinsfile.md)** — Penulisan struktur deklaratif `Jenkinsfile` awal berbasis stage.
-* **[TN-005: Create Build Pipeline & Execute Initial Test](TN-005-create-build-pipeline.md)** — Pembuatan item pipeline bertipe *Pipeline as Code* pada dashboard Jenkins dan eksekusi awal untuk memverifikasi pipeline.
+    Menghubungkan Jenkins dengan repository Personal Site pada Gitea.
 
----
+4. **[TN-004 — Create Jenkinsfile](TN-004-create-jenkinsfile.md)**
 
-## 🛠️ Troubleshooting & Troubleshooting Index
+    Membuat definisi stage CI sebagai Pipeline as Code.
 
-Pencatatan masalah teknis utama yang ditemukan beserta solusinya selama pengembangan Build Pipeline:
+5. **[TN-005 — Create Build Pipeline & Execute Initial Test](TN-005-create-build-pipeline.md)**
 
-* **[Troubleshooting Log](troubleshooting.md)**
-  * *SCM Checkout Failure (`Permission denied publickey`)*
-  * *POSIX Shell Compatibility (`Illegal option -o pipefail`)*
-  * *Groovy/Shell Variable Interpolation Collision*
-  * *Hugo Compiling to Empty Artifact Fix*
+    Membuat Jenkins job dari SCM dan menjalankan pengujian awal.
 
----
+6. **[TN-006 — Execute CI Pipeline Initial Test](TN-006-execute-ci-pipeline-initial-test.md)**
 
-## 🚀 Next Steps
+    Memverifikasi build Hugo, artifact packaging, dan publish ke MinIO.
 
-Setelah fase **Build Pipeline** ini rampung dan artefak tersimpan rapi di MinIO:
+!!! note "Output of This Phase"
 
-1. Melanjutkan ke **WK-002: Deployment Pipeline (CD)** untuk menarik artefak dari MinIO dan men-deploy-nya ke Target Server (Nginx / Web Server).
-2. Menambahkan tahapan automated testing / validation pada artefak yang di-deploy.
+    Fase CI menghasilkan artifact dengan kontrak berikut:
+
+    ```text
+    Object name : personal-site-<BUILD_NUMBER>.tar.gz
+    Content     : public/
+    Storage     : MinIO
+    Bucket      : personal-site
+    ```
+
+    Artifact tersebut menjadi satu-satunya input release bagi pipeline CD.
+    Hugo tidak melakukan build ulang pada fase deployment.
+
+## Lessons Learned
+
+- Hugo theme yang dikelola sebagai Git submodule harus diinisialisasi sebelum
+  build dijalankan.
+- Exit code Hugo saja belum cukup membuktikan artifact layak digunakan;
+  pipeline harus memastikan `public/index.html` tersedia dan tidak kosong.
+- Variable yang diteruskan ke ephemeral container harus diekspor secara
+  eksplisit agar nilainya tersedia di dalam container.
+- Artifact CI harus memiliki identitas build yang dapat ditelusuri dan menjadi
+  satu-satunya input release untuk pipeline CD.
+
+## Related Documentation
+
+- [Continuous Deployment Engineering Journal](../continuous-deployment/index.md)
+- [Personal Site Engineering Journal](../index.md)
+- [Personal Site CI/CD Artifact Pipeline](../../assets/images/personal-site-ci-pipeline.svg)
+
+Untuk alur yang berlaku saat ini, gunakan dokumentasi
+[CI/CD](../../ci-cd/index.md). Engineering Journal ini digunakan ketika konteks
+perjalanan implementasi atau riwayat troubleshooting diperlukan.

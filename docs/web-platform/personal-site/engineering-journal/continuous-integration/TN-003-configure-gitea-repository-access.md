@@ -2,11 +2,16 @@
 
 ## Objective
 
-Mengonfigurasi Jenkins agar dapat mengakses repository Gitea yang berisi source code `personal-site` menggunakan mekanisme otentikasi yang aman.
+Mengonfigurasi Jenkins agar dapat mengakses repository Gitea yang berisi source code `personal-site` menggunakan mekanisme autentikasi yang aman.
 
 ## Background
 
-Build Pipeline tergantung pada kemampuan Jenkins untuk mengambil kode sumber dari Gitea. Otentikasi yang tepat diperlukan agar Jenkins dapat melakukan checkout tanpa intervensi manual dan tanpa mengekspos kredensial secara publik.
+Build Pipeline tergantung pada kemampuan Jenkins untuk mengambil kode sumber dari Gitea. Autentikasi yang tepat diperlukan agar Jenkins dapat melakukan checkout tanpa intervensi manual dan tanpa mengekspos kredensial secara publik.
+
+## Scope
+
+Mencakup pemilihan autentikasi, pembuatan Personal Access Token, penyimpanan
+credential pada Jenkins, dan verifikasi akses Gitea.
 
 ## Prerequisites
 
@@ -15,17 +20,60 @@ Build Pipeline tergantung pada kemampuan Jenkins untuk mengambil kode sumber dar
 - Repository Gitea `personal-site` sudah dibuat dan dapat dijangkau.
 - User atau deployment key Gitea siap untuk konfigurasi.
 
-## Engineering Decision
+## Execution Decision
+
+### PS-ADR-0001 — Use Jenkins as Automation Server
 
 Refer to:
 
-- **PS-ADR-0001 — Use Jenkins as Automation Server**
-- **PS-ADR-0006 — Use Personal Access Token for Gitea Repository**
-- **PS-ADR-0009 — Use Containerized Pipeline Environment**
+- **[PS-ADR-0001 — Use Jenkins as Automation Server](../../../../adr/personal-site/adr-records/PS-ADR-0001.md){ target="_blank" rel="noopener" }**
 
-> Architecture Decision Records (ADR) tersebut menjadi referensi utama (Single Source of Truth) untuk penggunaan Jenkins, pemilihan Personal Access Token sebagai autentikasi Gitea, serta pengelolaan credential pada lingkungan pipeline yang tercontainerisasi.
+**Decision**
 
-Menggunakan Personal Access Token (HTTP/HTTPS) yang dikelola di Jenkins Credentials untuk Otentikasi SCM (Gitea).
+Jenkins menjadi automation server yang mengambil source code Personal Site dari
+repository Gitea.
+
+**Reason**
+
+- Jenkins mendukung integrasi SCM sebagai bagian dari pipeline.
+- Checkout source code dapat diorkestrasi bersama tahap build dan publikasi
+  artefak.
+
+### PS-ADR-0006 — Use Personal Access Token for Gitea Repository
+
+Refer to:
+
+- **[PS-ADR-0006 — Use Personal Access Token for Gitea Repository](../../../../adr/personal-site/adr-records/PS-ADR-0006.md){ target="_blank" rel="noopener" }**
+
+**Decision**
+
+Jenkins mengakses repository Gitea melalui HTTPS menggunakan Personal Access
+Token yang disimpan pada Jenkins Credentials.
+
+**Reason**
+
+- Token dapat dibatasi dengan scope minimum sesuai prinsip least privilege.
+- Credential dapat dirotasi tanpa mengubah Jenkinsfile.
+- Token tidak perlu disimpan di source code atau output pipeline.
+
+### PS-ADR-0009 — Use Containerized Pipeline Environment
+
+Refer to:
+
+- **[PS-ADR-0009 — Use Containerized Pipeline Environment](../../../../adr/personal-site/adr-records/PS-ADR-0009.md){ target="_blank" rel="noopener" }**
+
+**Decision**
+
+Tool pipeline dijalankan melalui ephemeral container, sedangkan credential SCM
+tetap dikelola dan diberikan oleh Jenkins hanya ketika dibutuhkan.
+
+**Reason**
+
+- Menjaga Jenkins Controller tetap ringan dan bebas dari dependency tool build.
+- Mengisolasi tool serta menjaga environment pipeline tetap konsisten.
+- Memisahkan pengelolaan secret dari lifecycle container.
+
+Menggunakan Personal Access Token (HTTP/HTTPS) yang dikelola di Jenkins Credentials untuk autentikasi SCM (Gitea).
 
 ### Perbandingan Metode Autentikasi
 
@@ -42,11 +90,15 @@ Menggunakan Personal Access Token (HTTP/HTTPS) yang dikelola di Jenkins Credenti
 - HTTPS + PAT lebih mudah bekerja pada lingkungan **containerized / ephemeral build** yang digunakan pada Personal Site.
 - Rotasi token dapat dilakukan sebagai proses terencana tanpa memengaruhi credential pengguna lain.
 
-Dengan pertimbangan ini, metode yang dipilih adalah **Personal Access Token (PAT)** untuk otentikasi Jenkins ke repository Gitea.
-  
+Dengan pertimbangan ini, metode yang dipilih adalah **Personal Access Token (PAT)** untuk autentikasi Jenkins ke repository Gitea.
+
 ## Implementation
 
-### Buat Personal Access Token di Gitea
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Create a Personal Access Token in Gitea
 
 1. Login ke Gitea.
 2. Buka **Settings → Applications → Access Tokens** (atau menu sejenis).
@@ -54,7 +106,15 @@ Dengan pertimbangan ini, metode yang dipilih adalah **Personal Access Token (PAT
 4. Berikan scope minimum yang diperlukan (misalnya `read:repository`).
 5. **Salin dan simpan token tersebut sekarang, karena token ini hanya ditampilkan sekali dan tidak bisa dilihat lagi setelah halaman ditutup.**
 
-### Tambahkan credential token di Jenkins
+!!! success "Expected Result"
+
+    Personal Access Token dengan scope minimum berhasil dibuat dan disimpan secara aman.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Add Token Credential to Jenkins
 
 1. Login ke Jenkins sebagai administrator.
 2. Buka **Manage Jenkins → Credentials → System → Global credentials (unrestricted)**.
@@ -62,23 +122,33 @@ Dengan pertimbangan ini, metode yang dipilih adalah **Personal Access Token (PAT
 4. Pilih **Kind**: `Username with password`.
 5. Isi detail credential:
 
-- **Scope**: `Global`
-- **ID**: `gitea-access-token`
-- **Description**: `Gitea access token for personal-site repository`
-- **Username**: `git` atau nama user Gitea jika diperlukan oleh URL HTTPS.
-- **Password**: *[Tempelkan Access Token yang didapat dari Gitea]*
+    - **Scope**: `Global`
+    - **ID**: `gitea-access-token`
+    - **Description**: `Gitea access token for personal-site repository`
+    - **Username**: `git` atau nama user Gitea jika diperlukan oleh URL HTTPS.
+    - **Password**: *[Tempelkan Access Token yang didapat dari Gitea]*
 
-1. Klik **Create**.
+6. Klik **Create**.
 
 !!! note "Engineering Notes"
 
     - Pastikan akses token Gitea dibuat dengan scope minimum untuk `read` atau `pull` repository.
     - Jika Jenkins plugin Git memerlukan username, gunakan `git` atau nama akun yang sah, tergantung konfigurasi Gitea.
     - Jangan menyimpan token dalam kode sumber; selalu kelola melalui Jenkins Credentials.
-  
+
+!!! success "Expected Result"
+
+    Credential `gitea-access-token` tersedia pada Jenkins tanpa mengekspos token di repository.
+
+</div>
+
+</div>
+
 ### Pipeline Configuration
 
-Detail konfigurasi pipeline (SCM, credentials, branch specifier, dan trigger) dibahas pada `TN-007: Create Build Pipeline`. Silakan rujuk file tersebut untuk langkah-langkah konfigurasi job dan validasi checkout.
+Detail konfigurasi pipeline (SCM, credentials, branch specifier, dan trigger)
+dibahas pada
+[TN-005 — Create Build Pipeline & Execute Initial Test](TN-005-create-build-pipeline.md).
 
 ## Verification
 
@@ -88,3 +158,9 @@ Detail konfigurasi pipeline (SCM, credentials, branch specifier, dan trigger) di
 | Credential `gitea-access-token` tersedia di Jenkins | ✅ | Credential muncul di Jenkins Global store. |
 | Jenkins dapat mengakses repository lewat HTTPS | ✅ | `git ls-remote` berhasil ketika menggunakan credential yang tepat. |
 | Repository URL sudah sesuai untuk pipeline | ✅ | Gunakan `https://<gitea-host>/<org>/personal-site.git` untuk konfigurasi pipeline. |
+
+## Related Documentation
+
+- [TN-002 — Deploy & Configure SSH Agent Node](TN-002-deploy-configure-ssh-agent-node.md)
+- [TN-004 — Create Jenkinsfile](TN-004-create-jenkinsfile.md)
+- [Continuous Integration Engineering Journal](index.md)

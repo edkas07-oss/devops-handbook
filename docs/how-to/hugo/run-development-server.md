@@ -28,6 +28,11 @@ cd ~/git/personal-site
 
 ## ▶️ Procedure
 
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
 ### Start Development Server
 
 Jalankan Development Server.
@@ -50,7 +55,9 @@ Press Ctrl+C to stop
 
 Development Server akan terus berjalan hingga dihentikan secara manual.
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Start Development Server for Remote Access
 
@@ -78,7 +85,9 @@ http://192.168.1.50:1313
 
     Pastikan firewall mengizinkan koneksi ke port **1313** dan seluruh perangkat berada pada jaringan yang sama.
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Open Website
 
@@ -92,7 +101,9 @@ http://localhost:1313
 
 Apabila berhasil, halaman utama website akan ditampilkan menggunakan theme **Ananke**.
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Enable Draft Content
 
@@ -129,7 +140,9 @@ hugo server -D
 
     Parameter ini digunakan selama proses pengembangan agar halaman yang masih berstatus draft tetap dapat ditampilkan pada Development Server.
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Stop Development Server
 
@@ -142,6 +155,11 @@ Ctrl + C
 Server akan berhenti dan terminal kembali ke shell.
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

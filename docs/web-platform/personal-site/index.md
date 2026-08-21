@@ -1,127 +1,92 @@
 # Personal Site
 
-## 🔍 Overview
+## Overview
 
-**Personal Site** merupakan project yang bertujuan membangun sebuah website publik sebagai media untuk memperkenalkan profil profesional, membagikan artikel teknis, serta menyediakan *Curriculum Vitae* (CV) yang dapat diakses secara online.
+Personal Site adalah project website yang ditujukan untuk menampilkan profil
+profesional, Curriculum Vitae, portofolio, serta artikel mengenai teknologi
+informasi dan manajemen.
 
-!!! info "Pembeda dengan Handbook"
-    Berbeda dengan **DevOps Engineering Handbook** yang berfokus pada dokumentasi teknis dan panduan implementasi internal, **Personal Site** ditujukan sebagai situs publik yang menyajikan informasi profesional serta artikel berdasarkan pengalaman di bidang **IT Infrastructure** dan **DevOps Engineering**.
+Project ini dibangun sebagai static site menggunakan Hugo dan di-host
+menggunakan NGINX container. Pendekatan ini menghasilkan website yang cepat,
+ringan, mudah dipelihara, serta dapat dibangun dan di-deploy secara konsisten.
 
-### 📌 Solution Highlights
+## Project Objectives
 
-- **Static Site Generator (Hugo)** — Menghasilkan website statis dengan performa tinggi dan proses *build* yang sangat cepat.
-- **Containerized Runtime (NGINX)** — Website dipublikasikan menggunakan NGINX Container sehingga deployment ringan, konsisten, dan *portable*.
-- **Version Control (Git)** — Seluruh *source code* dan konfigurasi project dikelola menggunakan Git untuk mendukung *version control* dan pengembangan berkelanjutan.
+- Menyediakan sumber informasi utama mengenai profil profesional pemilik situs.
+- Mempublikasikan artikel IT, infrastructure, DevOps, dan manajemen.
+- Menampilkan pengalaman, kompetensi, dan portofolio secara terstruktur.
+- Menyediakan website statis yang cepat, ringan, dan mudah dipelihara.
+- Menerapkan software delivery lifecycle yang dapat direproduksi.
 
----
+## Scope
 
-## 📚 Scope
+| Area | Scope |
+| --- | --- |
+| Content | Menampilkan profil profesional, Curriculum Vitae, portofolio, serta artikel mengenai teknologi informasi dan manajemen. |
+| Audience | Menyediakan informasi profesional yang dapat diakses oleh pembaca publik melalui website. |
+| Website delivery | Menghasilkan static website yang cepat, ringan, dan mudah dipelihara. |
+| Publishing | Mendukung proses build dan deployment otomatis agar perubahan konten dapat dipublikasikan secara konsisten dan dapat direproduksi. |
+| Runtime | Menjalankan website menggunakan container-based web runtime untuk melayani konten statis. |
+| Exclusion | Tidak mencakup authentication, user-generated content, transactional feature, database application, maupun dynamic backend service. |
 
-Pada implementasi awal, **Personal Site** difokuskan untuk menyediakan konten berikut:
+## Technology Stack
 
-- 👤 **About Me** — Profil singkat, pengalaman kerja, dan latar belakang profesional.
-- 📝 **Articles** — Artikel teknis, opini, serta wawasan seputar IT Infrastructure, DevOps, Linux, Container, Cloud, dan Automation.
-- 📄 **Curriculum Vitae (CV)** — Ringkasan keahlian, pengalaman, sertifikasi, dan portofolio profesional.
+| Layer | Technology | Responsibility |
+| --- | --- | --- |
+| Static Site Generator | Hugo Extended | Menghasilkan HTML dan static assets |
+| Source Control | Git dan Gitea | Menyimpan source code dan pipeline definition |
+| Automation | Jenkins | Menjalankan pipeline CI dan CD |
+| Container Runtime | Rootless Podman | Menjalankan build tools dan web runtime |
+| Artifact Storage | MinIO | Menyimpan immutable CI artifact |
+| Web Server | NGINX | Melayani HTTP request untuk konten statis |
+| Documentation | MkDocs | Menerbitkan dokumentasi engineering project |
 
-!!! tip "Implementation Scope"
+## Current Status
 
-    Project ini dirancang untuk dikembangkan secara bertahap.
+| Capability | Status |
+| --- | --- |
+| Hugo development workflow | Implemented |
+| Continuous Integration | Implemented and verified |
+| Artifact publication to MinIO | Implemented and verified |
+| Continuous Deployment | Implemented and verified |
+| NGINX runtime on Podman | Running |
+| HTTP endpoint | Accessible and verified |
+| Infrastructure provisioning with Ansible | Planned |
 
-    Dokumentasi ini berfokus pada implementasi project, sedangkan panduan penggunaan masing-masing teknologi dijelaskan secara terpisah pada bagian **How-To**.
+## Documentation Structure
 
----
+| Section | Purpose |
+| --- | --- |
+| [Architecture](architecture/index.md) | Menjelaskan desain dan hubungan antarkomponen |
+| [Development](development/index.md) | Menjelaskan workflow pengembangan Hugo |
+| [Infrastructure](infrastructure/index.md) | Mendefinisikan platform dan runtime prerequisites |
+| [CI/CD](ci-cd/index.md) | Menjelaskan pipeline yang berlaku saat ini |
+| [Operations](operations/index.md) | Menjelaskan aktivitas operasional runtime |
+| [Troubleshooting](troubleshooting/index.md) | Menyediakan panduan diagnosis dan penyelesaian masalah |
+| [Engineering Journal](engineering-journal/index.md) | Menyimpan histori perencanaan dan implementasi |
+| [References](references/index.md) | Mengumpulkan ADR, repository, dan referensi terkait |
 
-## 🗂️ Documentation Structure
+## Documentation Model
 
-Dokumentasi project dibagi ke dalam beberapa fase utama berikut.
-
-| Directory | Purpose |
-|-----------|---------|
-| **Planning** | Mendefinisikan tujuan, kebutuhan, dan teknologi yang digunakan. |
-| **Architecture** | Mendeskripsikan desain solusi dan arsitektur sistem. |
-| **Implementation** | Menjelaskan proses implementasi hingga deployment. |
-| **Maintenance** | Menjelaskan aktivitas operasional dan pemeliharaan. |
-
-Struktur dokumentasi disusun sebagai berikut.
-
-| File / Folder | Description |
-| :--- | :--- |
-| **`index.md`** | Overview dan pengantar project |
-| **`planning/`** | Perencanaan dan spesifikasi project |
-| ├── `objectives.md` | Tujuan, ruang lingkup, dan manfaat project |
-| ├── `requirements.md` | Kebutuhan fungsional, non-fungsional, software, hardware, dan lingkungan |
-| └── `technology-stack.md` | Teknologi yang dipilih beserta alasan pemilihannya |
-| **`architecture/`** | Desain solusi dan arsitektur sistem |
-| └── `index.md` | Arsitektur logis, komponen, dan prinsip desain |
-| **`implementation/`** | Implementasi solusi |
-| ├── `index.md` | Overview implementasi dan workflow |
-| ├── `setup.md` | Persiapan lingkungan pengembangan dan konfigurasi project |
-| ├── `testing.md` | Pengujian manual proses build dan deployment |
-| ├── `automation.md` | Otomatisasi build dan deployment menggunakan CI/CD Pipeline |
-| └── `deployment.md` | Deployment website ke lingkungan runtime |
-| **`maintenance/`** | Operasional dan pemeliharaan |
-| └── `backup-and-recovery.md` | Strategi backup dan recovery |
-| **`assets/images/`** | Gambar, diagram, dan ilustrasi |
-| **`lessons-learned.md`** | Pengalaman, kendala, solusi, dan pembelajaran |
-| **`references.md`** | Referensi dan dokumentasi eksternal |
-
----
-
-## 🔄 Project Lifecycle
-
-Dokumentasi **Personal Site** disusun mengikuti *software delivery lifecycle* sehingga setiap fase memiliki tujuan, aktivitas, dan hasil yang jelas.
-
-```mermaid
-flowchart LR
-    Planning --> Architecture --> Implementation --> Maintenance
+```text
+Engineering activity
+        ↓
+Engineering Journal ──→ Architecture Decision Records
+        ↓
+Review and consolidation
+        ↓
+Current-state project documentation
 ```
 
-| Phase | Goal |
-|--------|------|
-| **Planning** | Mendefinisikan tujuan project, kebutuhan sistem, serta teknologi yang digunakan sebagai dasar implementasi. |
-| **Architecture** | Merancang solusi, komponen, dan hubungan antar komponen untuk memenuhi kebutuhan project. |
-| **Implementation** | Mengimplementasikan solusi melalui proses setup, testing, deployment, dan otomatisasi secara bertahap. |
-| **Maintenance** | Menjaga website tetap tersedia, aman, dan mudah dipelihara melalui aktivitas operasional dan pemeliharaan. |
+Engineering Journal mempertahankan konteks historis. Halaman Architecture,
+Development, Infrastructure, CI/CD, Operations, dan Troubleshooting menjelaskan
+kondisi serta prosedur yang berlaku saat ini.
 
-Setiap fase menghasilkan artefak yang menjadi masukan bagi fase berikutnya sehingga proses pengembangan dapat dilakukan secara terstruktur, terdokumentasi, dan berkelanjutan.
+## Success Criteria
 
----
-
-## 👥 Target Audience
-
-Dokumentasi ini ditujukan bagi:
-
-- Infrastructure Engineer
-- DevOps Engineer
-- System Administrator
-- Cloud Engineer
-- Mahasiswa atau profesional yang ingin membangun **Personal Site** menggunakan Hugo.
-- Siapa pun yang ingin mempelajari implementasi website statis menggunakan pendekatan **DevOps**.
-
----
-
-## 🔗 Related Documentation
-
-Project ini memanfaatkan beberapa teknologi yang telah didokumentasikan pada bagian **How-To**.
-
-| Technology | Documentation |
-|------------|---------------|
-| Hugo | How-To → Hugo |
-| Git | How-To → Git |
-| Podman | How-To → Podman |
-| NGINX | How-To → NGINX |
-
----
-
-## 📝 Summary
-
-Pada halaman ini telah dijelaskan:
-
-- Gambaran umum project.
-- Ruang lingkup implementasi.
-- Struktur dokumentasi project.
-- Software Delivery Lifecycle.
-- Target pembaca dokumentasi.
-- Hubungan antara project dan dokumentasi **How-To**.
-
-Selanjutnya dokumentasi akan memasuki fase **Planning**, yaitu mendefinisikan tujuan, kebutuhan, dan teknologi yang menjadi dasar implementasi project.
+- Source Hugo dapat dikembangkan dan diuji secara lokal.
+- CI menghasilkan `public/index.html` dan artifact yang dapat ditelusuri.
+- Artifact tersimpan pada MinIO dan tidak dibangun ulang saat CD.
+- CD mengisi `www-personal-site` dan menjalankan `personal-site-web`.
+- NGINX mengakses konten statis melalui read-only volume mount.
+- Healthcheck container dan HTTP endpoint memberikan hasil sukses.

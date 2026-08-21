@@ -36,6 +36,11 @@ git version 2.x.x
 
 ## ▶️ Procedure
 
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
 ### Change to Project Directory
 
 Masuk ke direktori project.
@@ -44,7 +49,9 @@ Masuk ke direktori project.
 cd ~/git/personal-site
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Clone Theme Repository
 
@@ -65,7 +72,9 @@ Receiving objects: 100%
 Resolving deltas: 100%
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Configure Hugo Theme
 
@@ -90,7 +99,9 @@ theme = 'ananke'
 
     Apabila menggunakan theme yang berbeda, ubah nilai parameter tersebut sesuai nama direktori theme pada folder `themes`.
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Review Theme Directory
 
@@ -115,6 +126,11 @@ themes/
 Pastikan repository Ananke berhasil diunduh.
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

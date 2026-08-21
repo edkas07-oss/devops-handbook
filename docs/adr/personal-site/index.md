@@ -28,6 +28,8 @@ Dokumentasi ini berfungsi sebagai pusat referensi untuk memahami alasan di balik
 | [**PS-ADR-0010**](adr-records/PS-ADR-0010.md){: target="_blank" } | Use Object Storage for Build Artifact | Personal Site | CI/CD | Superseded by PS-ADR-0003 | 2026-08-04 |
 | [**PS-ADR-0011**](adr-records/PS-ADR-0011.md){: target="_blank" } | Deploy Immutable CI Artifact | Personal Site | Continuous Deployment | Accepted | 2026-08-08 |
 | [**PS-ADR-0012**](adr-records/PS-ADR-0012.md){: target="_blank" } | Store Static Content in Podman Named Volume | Personal Site | Continuous Deployment | Accepted | 2026-08-08 |
+| [**PS-ADR-0013**](adr-records/PS-ADR-0013.md){: target="_blank" } | Execute Deployment through Dedicated Jenkins Agent | Personal Site | Continuous Deployment | Accepted | 2026-08-08 |
+| [**PS-ADR-0014**](adr-records/PS-ADR-0014.md){: target="_blank" } | Keep Application Deployment Configuration Outside Generic Runtime Image | Personal Site | Continuous Deployment | Accepted | 2026-08-08 |
 
 ---
 
@@ -49,6 +51,8 @@ Tabel berikut memetakan setiap ADR Project Personal Site dengan dokumen teknis a
 | PS-ADR-0010 | Use Object Storage for Build Artifact | Superseded by PS-ADR-0003 |
 | PS-ADR-0011 | Deploy Immutable CI Artifact | Continuous Deployment TN-001 |
 | PS-ADR-0012 | Store Static Content in Podman Named Volume | Continuous Deployment TN-001 |
+| PS-ADR-0013 | Execute Deployment through Dedicated Jenkins Agent | Continuous Deployment TN-001, TN-002 |
+| PS-ADR-0014 | Keep Application Deployment Configuration Outside Generic Runtime Image | Continuous Deployment TN-002, TN-003 |
 
 ---
 

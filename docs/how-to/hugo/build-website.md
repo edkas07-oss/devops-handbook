@@ -30,6 +30,11 @@ Apabila belum, lihat dokumen berikut.
 
 ## ▶️ Procedure
 
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
 ### Build Website
 
 Masuk ke direktori project.
@@ -53,6 +58,10 @@ Total in 120 ms
 ```
 
 ------------------------------------------------------------------------
+
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Review Build Result
 
@@ -78,6 +87,10 @@ public
 
 ------------------------------------------------------------------------
 
+</div>
+
+<div class="procedure-step" markdown>
+
 ### Review Home Page
 
 Buka file hasil build.
@@ -89,6 +102,11 @@ xdg-open public/index.html
 Atau gunakan browser untuk membuka file `public/index.html`.
 
 ------------------------------------------------------------------------
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

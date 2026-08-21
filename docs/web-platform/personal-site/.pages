@@ -4,5 +4,12 @@ title: Personal Site
 
 arrange:
 
-- Planning
-- Architechture
+- index.md
+- architecture
+- development
+- infrastructure
+- ci-cd
+- operations
+- troubleshooting
+- engineering-journal
+- references

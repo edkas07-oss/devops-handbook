@@ -8,22 +8,87 @@ Menulis `Jenkinsfile` deklaratif awal untuk mendefinisikan alur Build Pipeline p
 
 Pipeline sebagai kode memastikan definisi job disimpan dalam repository dan dapat berubah seiring evolusi aplikasi. Jenkinsfile memungkinkan pipeline dijalankan secara konsisten pada setiap commit.
 
+## Scope
+
+Mencakup definisi stage CI, ephemeral container, validasi static site,
+packaging, dan publikasi artefak. Pembuatan job dan hasil eksekusi dicatat
+terpisah.
+
 ## Prerequisites
 
-- TN-001 hingga TN-005 telah berhasil diselesaikan.
+- TN-001 hingga TN-003 telah berhasil diselesaikan.
 - Repository `personal-site` sudah dapat diakses.
 - Jenkins Pipeline item sudah dikonfigurasi untuk menarik `Jenkinsfile` dari repository.
 
-## Engineering Decision
+## Execution Decision
+
+### PS-ADR-0003 — Externalized Static Content Storage
 
 Refer to:
 
-- **PS-ADR-0003 — Externalized Static Content Storage**
-- **PS-ADR-0005 — Separate Source Code and Deployment Artifacts**
-- **PS-ADR-0009 — Use Containerized Pipeline Environment**
-- **PS-ADR-0007 — Use Pipeline as Code**
+- **[PS-ADR-0003 — Externalized Static Content Storage](../../../../adr/personal-site/adr-records/PS-ADR-0003.md){ target="_blank" rel="noopener" }**
 
-> Architecture Decision Records (ADR) tersebut menjadi referensi utama (Single Source of Truth) untuk menghasilkan static content sebagai artifact terpisah dari source code, menjalankan proses build dan publikasi melalui container, serta menyimpan artifact secara eksternal di MinIO.
+**Decision**
+
+Hasil build Hugo dipaketkan sebagai artefak dan dipublikasikan ke MinIO di luar
+runtime container serta Jenkins Workspace.
+
+**Reason**
+
+- Membuat artefak independen dari workspace dan runtime container.
+- Mendukung prinsip Build Once, Deploy Many.
+- Memungkinkan artefak digunakan kembali untuk deployment dan rollback.
+
+### PS-ADR-0005 — Separate Source Code and Deployment Artifacts
+
+Refer to:
+
+- **[PS-ADR-0005 — Separate Source Code and Deployment Artifacts](../../../../adr/personal-site/adr-records/PS-ADR-0005.md){ target="_blank" rel="noopener" }**
+
+**Decision**
+
+Source code dan deployment artifact dikelola sebagai output dengan lifecycle dan
+tanggung jawab yang berbeda.
+
+**Reason**
+
+- Menjaga source repository bebas dari hasil build.
+- Memisahkan histori perubahan source code dari lifecycle artifact.
+- Memungkinkan proses build dan deployment berkembang secara independen.
+
+### PS-ADR-0009 — Use Containerized Pipeline Environment
+
+Refer to:
+
+- **[PS-ADR-0009 — Use Containerized Pipeline Environment](../../../../adr/personal-site/adr-records/PS-ADR-0009.md){ target="_blank" rel="noopener" }**
+
+**Decision**
+
+Jenkinsfile menjalankan Hugo dan MinIO Client sebagai ephemeral container
+menggunakan Podman.
+
+**Reason**
+
+- Menjaga build environment konsisten pada setiap eksekusi.
+- Mengisolasi dependency Hugo dan MinIO Client dari Jenkins Controller.
+- Memungkinkan versi tool dikelola melalui container image.
+
+### PS-ADR-0007 — Use Pipeline as Code
+
+Refer to:
+
+- **[PS-ADR-0007 — Use Pipeline as Code](../../../../adr/personal-site/adr-records/PS-ADR-0007.md){ target="_blank" rel="noopener" }**
+
+**Decision**
+
+Seluruh definisi pipeline CI disimpan sebagai Jenkinsfile di dalam source
+repository Personal Site.
+
+**Reason**
+
+- Memberikan histori perubahan pipeline melalui Git.
+- Memungkinkan perubahan pipeline direview bersama source code.
+- Mengurangi konfigurasi pipeline manual pada Jenkins.
 
 ## Implementation
 
@@ -36,11 +101,11 @@ pipeline {
      * Menentukan Build Agent
      *
      * Seluruh proses build dijalankan pada Jenkins SSH Build Agent
-     * dengan label "builder".
+     * dengan label "builder-01".
      **************************************************************************/
 
     agent {
-        label 'builder'
+        label 'builder-01'
     }
 
     /**************************************************************************
@@ -49,7 +114,7 @@ pipeline {
 
     environment {
 
-        HUGO_IMAGE   = 'docker.io/klakegg/hugo:ext-alpine'
+        HUGO_IMAGE   = 'ghcr.io/gohugoio/hugo:v0.160.1'
         MC_IMAGE     = 'quay.io/minio/mc:latest'
 
         ARTIFACT_NAME = "personal-site-${BUILD_NUMBER}.tar.gz"
@@ -223,7 +288,7 @@ pipeline {
 
 Catatan:
 
-- `agent { label 'builder' }` mengarahkan Jenkins untuk menjalankan pipeline pada Jenkins SSH Build Agent dengan label `builder`.
+- `agent { label 'builder-01' }` mengarahkan Jenkins untuk menjalankan pipeline pada Jenkins SSH Build Agent `builder-01`.
 - Variabel environment yang digunakan meliputi `HUGO_IMAGE`, `MC_IMAGE`, `ARTIFACT_NAME`, `MINIO_ALIAS`, `MINIO_BUCKET`, dan `MINIO_URL`.
 - Stage `Publish Artifact` menggunakan `withCredentials` dan MinIO Client container untuk mengunggah tarball ke MinIO.
 - Jika MinIO endpoint atau host berbeda, sesuaikan nilai `MINIO_URL` dan konfigurasi credential.
@@ -235,10 +300,16 @@ Catatan:
 | Jenkinsfile tersedia di repository | ✅ | `Jenkinsfile` berada di root repository `personal-site`. |
 | Pipeline deklaratif sudah terdefinisi | ✅ | Jenis pipeline `declarative` dipakai. |
 | Stage dasar terdefinisi | ✅ | Checkout, Verify Agent, Build Static Site, Package Artifact, Publish Artifact ada. |
-| Artifak dapat di-archive | ✅ | `archiveArtifacts` disiapkan untuk menyimpan tarball. |
+| Artefak dapat diarsipkan | ✅ | `archiveArtifacts` disiapkan untuk menyimpan tarball. |
 
 ## Notes
 
 - Sesuaikan `podman` command dengan environment agent jika daemon atau image registry berbeda.
 - Untuk tahap publikasi, sertakan `MINIO_USER` dan `MINIO_PASSWORD` sebagai credential Jenkins yang benar.
 - Jika `mc alias set` perlu host certificate custom, tambahkan opsi `--insecure` atau tambahkan trust config sesuai dokumentasi MinIO.
+
+## Related Documentation
+
+- [TN-003 — Configure Gitea Repository Access](TN-003-configure-gitea-repository-access.md)
+- [TN-005 — Create Build Pipeline](TN-005-create-build-pipeline.md)
+- [Continuous Integration Engineering Journal](index.md)

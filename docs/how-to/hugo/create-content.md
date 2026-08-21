@@ -28,6 +28,11 @@ Apabila belum, lihat dokumen berikut.
 
 ## ▶️ Procedure
 
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
 ### Create New Content
 
 Masuk ke direktori project.
@@ -67,7 +72,9 @@ draft = true
 Ini adalah artikel pertama pada Personal Site.
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Preview Content
 
@@ -82,6 +89,11 @@ hugo server -D
 ```
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

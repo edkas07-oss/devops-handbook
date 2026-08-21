@@ -4,4 +4,7 @@ title: Continuous Deployment
 
 arrange:
 
+- index.md
 - TN-001-design-continuous-deployment-pipeline.md
+- TN-002-prepare-nginx-runtime-for-podman-volume-deployment.md
+- TN-003-create-jenkins-continuous-deployment-pipeline.md

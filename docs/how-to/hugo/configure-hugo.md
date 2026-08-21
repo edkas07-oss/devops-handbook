@@ -31,6 +31,11 @@ Apabila belum, lihat dokumen berikut.
 
 ## ▶️ Procedure
 
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
 ### Review Current Configuration
 
 Masuk ke direktori project.
@@ -56,6 +61,10 @@ theme = 'ananke'
 
 ------------------------------------------------------------------------
 
+</div>
+
+<div class="procedure-step" markdown>
+
 ### Update Site Configuration
 
 Edit file konfigurasi.
@@ -75,6 +84,10 @@ theme = "ananke"
 
 ------------------------------------------------------------------------
 
+</div>
+
+<div class="procedure-step" markdown>
+
 ### Review Changes
 
 Apabila Development Server masih berjalan, buka browser.
@@ -86,6 +99,11 @@ http://localhost:1313
 Pastikan judul website telah berubah sesuai konfigurasi.
 
 ------------------------------------------------------------------------
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

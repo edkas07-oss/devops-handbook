@@ -1,6 +1,9 @@
 # Pages
 
+title: Engineering Journal
+
 arrange:
 
+- index.md
 - continuous-integration
 - continuous-deployment

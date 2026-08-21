@@ -1,7 +1,0 @@
-Lalu hubungan antar dokumen menjadi seperti ini:
-
-Engineering Principles → Mengapa prinsip tersebut digunakan?
-Architecture Decision Records → Mengapa keputusan tersebut diambil?
-How To → Bagaimana menggunakan teknologinya?
-Project → Bagaimana teknologi tersebut diterapkan pada project ini?
-Implementation → Bagaimana project dibangun langkah demi langkah?

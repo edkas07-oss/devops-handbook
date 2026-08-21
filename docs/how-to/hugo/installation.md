@@ -40,6 +40,11 @@ sudo dnf install -y curl jq tar tree
 
 ## ▶️ Procedure
 
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
 ### Verify Hugo Installation
 
 Sebelum melakukan instalasi, pastikan Hugo belum tersedia pada workstation.
@@ -60,7 +65,9 @@ Apabila Hugo telah terinstal, informasi versi akan ditampilkan.
 hugo v0.xxx.x
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Create Download Directory
 
@@ -71,7 +78,9 @@ mkdir -p ~/Downloads/hugo
 cd ~/Downloads/hugo
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Get Latest Hugo Version
 
@@ -90,7 +99,9 @@ Contoh output.
 v0.164.0
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Get Download URL
 
@@ -121,7 +132,9 @@ https://github.com/gohugoio/hugo/releases/download/v0.164.0/hugo_extended_0.164.
     - Tidak perlu memperbarui dokumentasi setiap kali Hugo merilis versi baru. sehingga dokumentasi tetap dapat digunakan pada versi Hugo berikutnya
     - Mengurangi risiko menggunakan URL download yang sudah tidak valid.
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Download Hugo
 
@@ -131,7 +144,9 @@ Unduh Hugo Extended.
 wget "$DOWNLOAD_URL"
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Extract Archive
 
@@ -156,7 +171,9 @@ Contoh output.
 └── README.md
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Install Hugo
 
@@ -167,6 +184,11 @@ sudo install hugo /usr/local/bin/
 ```
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

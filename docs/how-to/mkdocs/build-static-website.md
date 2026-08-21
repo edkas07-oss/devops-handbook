@@ -48,7 +48,12 @@ Pastikan:
 
 ## ▶️ Procedure
 
-### Step 1 — Review the Source Documentation
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Review the Source Documentation
 
 Pastikan seluruh dokumentasi berada pada direktori `docs/`.
 
@@ -62,9 +67,11 @@ my-project/
 
 MkDocs akan menggunakan seluruh file Markdown pada direktori tersebut sebagai sumber website.
 
----
+</div>
 
-### Step 2 — Build the Website
+<div class="procedure-step" markdown>
+
+### Build the Website
 
 Jalankan proses build.
 
@@ -80,9 +87,11 @@ INFO    - Building documentation...
 INFO    - Documentation built successfully
 ```
 
----
+</div>
 
-### Step 3 — Review the Build Output
+<div class="procedure-step" markdown>
+
+### Review the Build Output
 
 Apabila proses build berhasil, MkDocs akan membuat direktori berikut.
 
@@ -93,9 +102,11 @@ my-project/
 └── mkdocs.yml
 ```
 
----
+</div>
 
-### Step 4 — Review the Static Website
+<div class="procedure-step" markdown>
+
+### Review the Static Website
 
 Direktori `site/` berisi seluruh website statis.
 
@@ -114,9 +125,11 @@ site/
 
 Direktori ini siap dipublikasikan ke web server.
 
----
+</div>
 
-### Step 5 — Rebuild After Changes
+<div class="procedure-step" markdown>
+
+### Rebuild After Changes
 
 Setiap kali dokumentasi berubah, jalankan kembali proses build.
 
@@ -127,6 +140,11 @@ mkdocs build
 Direktori `site/` akan diperbarui secara otomatis sesuai perubahan dokumentasi.
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

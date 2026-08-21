@@ -25,11 +25,20 @@ Apabila belum, lihat dokumen berikut.
 
 ## ▶️ Procedure
 
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
 ### Change to Theme Directory
 
 ``` bash
 cd ~/git/personal-site/themes/ananke
 ```
+
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Review Current Status
 
@@ -38,6 +47,10 @@ git status
 ```
 
 Pastikan tidak terdapat perubahan lokal yang belum di-commit.
+
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Update Theme
 
@@ -58,6 +71,10 @@ Updating ...
 Fast-forward
 ```
 
+</div>
+
+<div class="procedure-step" markdown>
+
 ### Review Latest Commit
 
 ``` bash
@@ -65,6 +82,11 @@ git log --oneline -5
 ```
 
 ------------------------------------------------------------------------
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

@@ -1,3 +1,8 @@
+# Pages
+
 title: 🕸️  Web Platform Projects
+
 arrange:
-  - personal-site
+
+- index.md
+- personal-site

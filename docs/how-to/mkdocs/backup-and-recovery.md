@@ -53,7 +53,12 @@ Pastikan:
 
 ## ▶️ Procedure
 
-### Step 1 — Review the Backup Strategy
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Review the Backup Strategy
 
 Identifikasi komponen yang perlu dibackup.
 
@@ -66,9 +71,11 @@ Identifikasi komponen yang perlu dibackup.
 
 Backup sebaiknya dilakukan secara berkala sesuai kebutuhan organisasi.
 
----
+</div>
 
-### Step 2 — Backup the Source Repository
+<div class="procedure-step" markdown>
+
+### Backup the Source Repository
 
 Lakukan backup terhadap source repository menggunakan Git.
 
@@ -80,9 +87,11 @@ git push origin main
 
 Pastikan seluruh perubahan telah tersimpan pada remote repository.
 
----
+</div>
 
-### Step 3 — Backup the Deployment Repository
+<div class="procedure-step" markdown>
+
+### Backup the Deployment Repository
 
 Lakukan backup terhadap deployment repository.
 
@@ -100,9 +109,11 @@ rsync -av devops-handbook-site/ /backup/devops-handbook-site/
 
 Pilih metode backup yang sesuai dengan lingkungan yang digunakan.
 
----
+</div>
 
-### Step 4 — Recover the Website
+<div class="procedure-step" markdown>
+
+### Recover the Website
 
 Apabila terjadi kehilangan data atau migrasi server, lakukan proses recovery.
 
@@ -123,9 +134,11 @@ Apabila diperlukan, jalankan kembali proses:
 1. Build Static Website
 2. Deploy Static Website
 
----
+</div>
 
-### Step 5 — Verify the Recovery
+<div class="procedure-step" markdown>
+
+### Verify the Recovery
 
 Pastikan seluruh file telah berhasil dipulihkan.
 
@@ -156,6 +169,11 @@ http://localhost:8080
 Pastikan seluruh halaman dapat diakses dengan normal.
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

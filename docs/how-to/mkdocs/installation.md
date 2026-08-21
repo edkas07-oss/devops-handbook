@@ -55,7 +55,12 @@ Pastikan:
 
 ## ▶️ Procedure
 
-### Step 1 — Install Python
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Install Python
 
 Periksa apakah Python telah tersedia.
 
@@ -78,9 +83,11 @@ sudo apt update
 sudo apt install python3 python3-pip python3-venv python3-full -y
 ```
 
----
+</div>
 
-### Step 2 — Prepare pip
+<div class="procedure-step" markdown>
+
+### Prepare pip
 
 Pastikan pip tersedia dan siap digunakan.
 
@@ -104,9 +111,11 @@ Verifikasi.
 pip --version
 ```
 
----
+</div>
 
-### Step 3 — Create Virtual Environment
+<div class="procedure-step" markdown>
+
+### Create Virtual Environment
 
 Buat virtual environment.
 
@@ -128,9 +137,11 @@ Prompt terminal akan berubah.
 (.venv) user@hostname:~$
 ```
 
----
+</div>
 
-### Step 4 — Install MkDocs
+<div class="procedure-step" markdown>
+
+### Install MkDocs
 
 Instal MkDocs.
 
@@ -150,9 +161,11 @@ Contoh output.
 mkdocs, version 1.x.x
 ```
 
----
+</div>
 
-### Step 5 — Install Material for MkDocs
+<div class="procedure-step" markdown>
+
+### Install Material for MkDocs
 
 Instal Material Theme.
 
@@ -174,9 +187,11 @@ Verifikasi.
 pip show mkdocs-material
 ```
 
----
+</div>
 
-### Step 6 — Verify the Installation
+<div class="procedure-step" markdown>
+
+### Verify the Installation
 
 Pastikan seluruh komponen telah tersedia.
 
@@ -197,6 +212,11 @@ pip show mkdocs-material
 ```
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

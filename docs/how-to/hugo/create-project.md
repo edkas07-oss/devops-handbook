@@ -34,6 +34,11 @@ Apabila Hugo belum terinstal, ikuti panduan berikut.
 
 ## ▶️ Procedure
 
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
 ### Create New Project
 
 Masuk ke direktori kerja.
@@ -56,7 +61,9 @@ Congratulations! Your new Hugo project was created in
 /home/eddywiyatno/git/personal-site
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Initialize Existing Repository
 
@@ -87,6 +94,11 @@ Congratulations! Your new Hugo project was created in
     Pendekatan ini umumnya digunakan apabila repository dibuat terlebih dahulu menggunakan GitHub, Gitea, atau layanan Git lainnya.
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

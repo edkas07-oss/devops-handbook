@@ -1,4 +1,4 @@
-# 💻 Setup
+# Development Environment Setup
 
 ## 🔍 Overview
 

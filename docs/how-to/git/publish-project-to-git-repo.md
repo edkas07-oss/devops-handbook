@@ -51,6 +51,11 @@ Pastikan:
 
 ## ▶️ Procedure
 
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
 ### Create Project Directory
 
 Buat direktori project.
@@ -77,7 +82,9 @@ Contoh output.
 /home/user/my-project
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Initialize Git Repository
 
@@ -105,7 +112,9 @@ Contoh output.
 .git
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Add Files
 
@@ -135,7 +144,9 @@ Changes to be committed:
     new file: README.md
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Commit Changes
 
@@ -163,7 +174,9 @@ Contoh output.
 a1b2c3d Initial commit
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Configure Remote Repository
 
@@ -186,7 +199,9 @@ origin  https://github.com/<username>/<repository>.git (fetch)
 origin  https://github.com/<username>/<repository>.git (push)
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Publish Project to Git Repository
 
@@ -201,6 +216,11 @@ Apabila branch utama menggunakan nama `master`, sesuaikan nama branch yang digun
 Review repository menggunakan web browser untuk memastikan seluruh source code telah berhasil dipublikasikan.
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

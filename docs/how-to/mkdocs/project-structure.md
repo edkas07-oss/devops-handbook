@@ -46,7 +46,12 @@ Pastikan:
 
 ## ▶️ Procedure
 
-### Step 1 — Review the Default Project Structure
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Review the Default Project Structure
 
 Masuk ke direktori project.
 
@@ -71,9 +76,11 @@ my-project/
 
 Struktur tersebut merupakan project minimal yang diperlukan untuk menjalankan MkDocs.
 
----
+</div>
 
-### Step 2 — Understand the Source Directory
+<div class="procedure-step" markdown>
+
+### Understand the Source Directory
 
 Direktori `docs/` digunakan untuk menyimpan seluruh dokumentasi dalam format Markdown.
 
@@ -89,9 +96,11 @@ docs/
 
 Seluruh file Markdown pada direktori ini akan diproses saat menjalankan proses build.
 
----
+</div>
 
-### Step 3 — Understand the Configuration File
+<div class="procedure-step" markdown>
+
+### Understand the Configuration File
 
 File konfigurasi utama MkDocs adalah:
 
@@ -111,9 +120,11 @@ File ini digunakan untuk mengatur berbagai konfigurasi website, seperti:
 
 Seluruh konfigurasi website dikelola melalui file ini.
 
----
+</div>
 
-### Step 4 — Understand the Build Output
+<div class="procedure-step" markdown>
+
+### Understand the Build Output
 
 Jalankan proses build.
 
@@ -145,9 +156,11 @@ site/
 
 Direktori ini dibuat secara otomatis setiap kali menjalankan proses build.
 
----
+</div>
 
-### Step 5 — Review the Recommended Project Structure
+<div class="procedure-step" markdown>
+
+### Review the Recommended Project Structure
 
 Seiring bertambahnya jumlah dokumentasi, struktur project dapat disusun menjadi lebih terorganisir.
 
@@ -174,6 +187,11 @@ my-project/
 Struktur tersebut memudahkan pengelolaan dokumentasi ketika jumlah halaman semakin banyak.
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

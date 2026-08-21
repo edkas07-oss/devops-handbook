@@ -59,6 +59,11 @@ Pastikan:
 
 ## ▶️ Procedure
 
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
 ### Clone Existing Repository
 
 Clone repository.
@@ -75,7 +80,9 @@ Receiving objects: 100%
 Resolving deltas: 100%
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Clone Repository as Project Template
 
@@ -163,7 +170,9 @@ git push -u origin main
 
     Menghapus direktori tersebut memastikan project baru memiliki histori Git yang independen sehingga tidak mewarisi riwayat repository template.
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Open Project
 
@@ -185,7 +194,9 @@ Contoh output.
 /home/user/repository
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Review Repository
 
@@ -205,7 +216,9 @@ Your branch is up to date with 'origin/main'.
 nothing to commit, working tree clean
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Review Remote Repository
 
@@ -222,7 +235,9 @@ origin https://github.com/<username>/<repository>.git (fetch)
 origin https://github.com/<username>/<repository>.git (push)
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Review Branch
 
@@ -240,6 +255,11 @@ Contoh output.
 ```
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

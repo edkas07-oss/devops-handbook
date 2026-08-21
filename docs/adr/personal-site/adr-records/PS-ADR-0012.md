@@ -15,7 +15,7 @@
 
 Project **Personal Site** memisahkan static content hasil build Hugo dari image runtime NGINX.
 
-Pipeline CD menyimpan static content pada Podman named volume berversi, kemudian memasang volume tersebut secara read-only ke `/var/www/html` pada container NGINX.
+Pipeline CD menyimpan static content pada Podman named volume `www-personal-site`, kemudian memasang volume tersebut secara read-only ke `/var/www/html` pada container NGINX.
 
 ## 🌍 Context
 
@@ -29,31 +29,31 @@ Static content tidak dimasukkan ke image NGINX pada setiap deployment.
 
 Pipeline CD akan:
 
-1. membuat Podman named volume dengan pola `personal-site-release-<BUILD_NUMBER>`;
+1. memastikan Podman named volume `www-personal-site` tersedia;
 2. mengisi volume tersebut dengan konten dari direktori `public/` melalui ephemeral helper container;
 3. menjalankan NGINX menggunakan generic image dari repository `nginx-image`;
-4. memasang volume release ke `/var/www/html` sebagai read-only; dan
-5. mempertahankan volume release sebelumnya hingga release baru berhasil divalidasi.
+4. memasang volume `www-personal-site` ke `/var/www/html` sebagai read-only; dan
+5. mencatat identitas artefak aktif dan artefak sebelumnya untuk mendukung rollback.
 
 ## 🏛️ Architecture
 
 ```mermaid
 flowchart LR
     Artifact["Hugo Artifact"] --> Populate["Ephemeral Helper Container"]
-    Populate --> Release["Podman Named Volume<br/>personal-site-release-BUILD_NUMBER"]
+    Populate --> Release["Podman Named Volume<br/>www-personal-site"]
     Image["Generic NGINX Image"] --> Container["NGINX Container"]
     Release -->|Volume mount: /var/www/html:ro| Container
     Container --> Website["Personal Site"]
 ```
 
-Image menyediakan NGINX dan konfigurasi web server. Podman volume release menyediakan static content aplikasi. Keduanya digabungkan hanya pada saat container dijalankan.
+Image menyediakan NGINX dan konfigurasi web server. Podman volume `www-personal-site` menyediakan static content aplikasi. Keduanya digabungkan hanya pada saat container dijalankan.
 
 ## 💡 Rationale
 
 - Memisahkan lifecycle runtime NGINX dan static content.
 - Menghindari pembangunan ulang image untuk setiap versi website.
 - Mempercepat deployment artefak baru.
-- Memungkinkan pergantian release dan rollback berdasarkan volume versi.
+- Memberikan nama volume runtime yang tetap dan mudah dikenali.
 - Membatasi akses container terhadap konten melalui mount read-only.
 
 ## ⚠️ Consequences
@@ -62,14 +62,14 @@ Image menyediakan NGINX dan konfigurasi web server. Podman volume release menyed
 
 - Generic NGINX image dapat digunakan kembali.
 - Deployment konten tidak memerlukan image build.
-- Release sebelumnya dapat dipertahankan untuk rollback.
+- Rollback dapat dilakukan dengan mengisi ulang volume dari artefak sebelumnya.
 - Static content tidak dapat ditulis oleh container.
 
 ### Trade-offs
 
-- Target runtime harus mengelola Podman volume release dan kebijakan retensinya.
+- Target runtime harus mengelola Podman volume `www-personal-site`.
 - Script runtime harus mendukung Podman named volume pada `/var/www/html`.
-- Pergantian release memerlukan penggantian atau restart container.
+- Pembaruan konten harus diatur agar NGINX tidak menyajikan kondisi volume yang sedang diisi sebagian.
 - Proses pengisian volume membutuhkan ephemeral helper container.
 
 ## 🔗 Related Decisions

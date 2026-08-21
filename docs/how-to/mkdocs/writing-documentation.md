@@ -53,7 +53,11 @@ Pastikan:
 
 ## ▶️ Procedure
 
-### Step 1 — Create a Markdown File
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Create a Markdown File
 
 Seluruh dokumentasi ditulis menggunakan file Markdown (`.md`) yang berada di dalam direktori `docs/`.
 
@@ -67,9 +71,11 @@ docs/
 └── deployment.md
 ```
 
----
+</div>
 
-### Step 2 — Organize the Document
+<div class="procedure-step" markdown>
+
+### Organize the Document
 
 Gunakan struktur dokumen yang konsisten.
 
@@ -89,9 +95,11 @@ Sebagai contoh.
 
 Dokumen yang memiliki struktur konsisten akan lebih mudah dipahami dan dipelihara.
 
----
+</div>
 
-### Step 3 — Use Common Components
+<div class="procedure-step" markdown>
+
+### Use Common Components
 
 Gunakan komponen yang sesuai dengan kebutuhan dokumentasi.
 
@@ -107,9 +115,11 @@ Gunakan komponen yang sesuai dengan kebutuhan dokumentasi.
 | Mermaid Diagrams | Membuat diagram |
 | Icons | Mempermudah identifikasi informasi |
 
----
+</div>
 
-### Step 4 — Preview the Documentation
+<div class="procedure-step" markdown>
+
+### Preview the Documentation
 
 Jalankan development server.
 
@@ -125,9 +135,11 @@ http://127.0.0.1:8000
 
 Setiap perubahan pada file Markdown akan langsung diperbarui secara otomatis.
 
----
+</div>
 
-### Step 5 — Review the Content
+<div class="procedure-step" markdown>
+
+### Review the Content
 
 Sebelum dipublikasikan, lakukan peninjauan terhadap dokumentasi.
 
@@ -140,7 +152,9 @@ Pastikan:
 - Gambar ditampilkan dengan benar.
 - Tabel mudah dibaca.
 
----
+</div>
+
+</div>
 
 ## ✅ Verification
 

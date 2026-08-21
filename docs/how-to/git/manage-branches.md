@@ -48,6 +48,11 @@ Pastikan:
 
 ## ▶️ Procedure
 
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
 ### Review Branches
 
 Tampilkan branch yang tersedia.
@@ -75,7 +80,9 @@ Contoh output.
   remotes/origin/main
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Create Branch
 
@@ -98,7 +105,9 @@ Contoh output.
   feature-homepage
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Switch Branch
 
@@ -127,7 +136,9 @@ Contoh output.
 * feature-homepage
 ```
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Publish Branch
 
@@ -139,7 +150,9 @@ git push -u origin feature-homepage
 
 Review branch pada Git repository menggunakan web browser.
 
----
+</div>
+
+<div class="procedure-step" markdown>
 
 ### Delete Branch
 
@@ -168,6 +181,11 @@ git push origin --delete feature-homepage
 ```
 
 ---
+
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

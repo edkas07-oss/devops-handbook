@@ -1,0 +1,122 @@
+Saya ingin memperbarui dokumen Engineering Journal Standards.
+
+Konteks:
+
+Engineering Journal merupakan wadah utama untuk mencatat seluruh aktivitas
+engineering dalam suatu project, sejak aktivitas awal seperti brainstorming
+hingga pelaksanaan, verification, engineering decision, dan penutupan
+aktivitas.
+
+Brainstorming bukan aktivitas di luar Engineering Journal. Brainstorming
+merupakan salah satu fase di dalam Engineering Journal dan prosesnya harus
+didokumentasikan secara paralel selama diskusi berlangsung.
+
+Pada fase brainstorming:
+
+1. Cara melakukan brainstorming mengacu kepada:
+   - Engineering Principles;
+   - Engineering Journal Standards.
+
+2. Proses dan hasil brainstorming didokumentasikan secara paralel dengan
+   mengacu kepada:
+   - Documentation Standards;
+   - Writing Standards.
+
+3. Brainstorming dapat menghasilkan beberapa jenis informasi:
+   - background;
+   - problem statement;
+   - objective;
+   - initial requirements;
+   - assumptions;
+   - constraints;
+   - alternatives;
+   - risks;
+   - open questions;
+   - architecture inputs;
+   - development inputs;
+   - follow-up actions.
+
+4. Hasil brainstorming harus diarahkan ke page Engineering Journal
+   yang sesuai:
+   - background dan problem statement → Overview;
+   - tujuan dan kebutuhan → Requirements;
+   - desain, komponen, integrasi, constraint teknis, dan alternatif
+     → Architecture;
+   - pendekatan implementasi, dependency, task, dan testing
+     → Development;
+   - asumsi yang belum dibuktikan → Assumptions;
+   - risiko → Risks;
+   - pertanyaan yang belum terjawab → Open Questions;
+   - pekerjaan lanjutan → Action Items.
+
+5. Informasi pada Architecture dan Development yang berasal dari
+   brainstorming masih merupakan input awal. Informasi tersebut belum
+   otomatis menjadi arsitektur final, implementation plan final, atau
+   engineering decision.
+
+6. Informasi hasil brainstorming perlu memiliki status yang jelas,
+   misalnya:
+   - Idea;
+   - Proposed;
+   - Assumption;
+   - Open;
+   - Assessed;
+   - Verified;
+   - Decided;
+   - Implemented.
+
+7. Fakta, asumsi, hipotesis, usulan, dan keputusan harus dibedakan.
+
+8. Hasil brainstorming tidak boleh langsung ditulis sebagai keputusan final
+   sebelum melalui assessment, verification, evidence, dan Engineering
+   Decision.
+
+Tugas:
+
+1. Baca Engineering Journal Standards yang ada saat ini secara keseluruhan.
+2. Baca Engineering Principles, Documentation Standards, dan Writing
+   Standards yang terkait.
+3. Periksa apakah konsep brainstorming di atas sudah tercakup.
+4. Identifikasi bagian yang kurang, tumpang tindih, atau bertentangan.
+5. Tentukan bagian dokumen yang paling tepat untuk diperbarui.
+6. Pertahankan struktur, gaya penulisan, dan terminologi handbook yang sudah ada.
+7. Hindari menduplikasi aturan yang sudah menjadi tanggung jawab dokumen
+   standard lain. Gunakan cross-reference jika lebih tepat.
+8. Perbarui Engineering Journal Standards agar brainstorming menjadi fase
+   resmi dalam Engineering Journal.
+9. Jangan mengubah dokumen standard lainnya kecuali benar-benar diperlukan.
+   Jika perubahan diperlukan, jelaskan terlebih dahulu sebelum mengubahnya.
+10. Tampilkan ringkasan perubahan dan diff setelah selesai.
+
+Prinsip desain dokumen:
+
+- Single Source of Truth.
+- Write for Readers.
+- Practical before Theory.
+- Consistent.
+- Visual dan mudah dipindai.
+- Native Markdown.
+- Low cognitive load.
+
+Sebelum melakukan perubahan, jelaskan terlebih dahulu:
+
+- pemahaman terhadap struktur dokumen saat ini;
+- gap yang ditemukan;
+- bagian yang akan diperbarui;
+- alasan perubahan tersebut.
+
+Setelah assessment selesai, lanjutkan perubahan pada dokumen.
+
+Dokumen yang harus diperiksa:
+
+- Engineering Journal Standards:
+  docs/standards/engineering-journal-standards.md
+
+- Engineering Principles:
+  docs/standards/engineering-principles.md
+
+- Documentation Standards:
+  docs/standards/documentation-standards.md
+
+- Writing Standards:
+  docs/standards/writing-standards.md
