@@ -1,4 +1,46 @@
 /* ==================================================
+   Full Width Container Override
+   ================================================== */
+
+/* Memperluas area utama dokumen */
+.md-grid {
+  max-width: 100% !important;
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
+
+/* Memperluas area konten teks/tabel di bagian tengah */
+.md-content {
+  max-width: 100% !important;
+}
+
+/* ==================================================
+   Sidebar Navigation & TOC Styling
+   ================================================== */
+
+/* Adjust width sidebar kiri & kanan */
+.md-sidebar--primary,
+.md-sidebar--secondary {
+  width: 16rem !important; /* Default ~12.1rem, tingkatkan sesuai kebutuhan (misal: 14rem - 16rem) */
+}
+
+/* Memperbesar ukuran font navigasi kiri */
+.md-nav--primary .md-nav__link {
+  font-size: 0.75rem !important; /* Default ~0.65rem - 0.7rem */
+}
+
+/* Memperbesar ukuran font Table of Contents (kanan) */
+.md-sidebar--secondary .md-nav__link {
+  font-size: 0.75rem !important;
+}
+
+/* Memperbesar judul "Table of contents" di atas sidebar kanan */
+.md-nav--secondary .md-nav__title {
+  font-size: 0.85rem !important;
+  font-weight: bold;
+}
+
+/* ==================================================
    Tables Layout & Styling
    ================================================== */
 
@@ -44,19 +86,50 @@
 .md-typeset table:not([class]) tr th:first-child:nth-last-child(3),
 .md-typeset table:not([class]) tr td:first-child:nth-last-child(3) {
   white-space: nowrap !important;
-  width: 10% !important;
+  width: auto !important;
 }
 
 /* Kolom 2: Rapat pas isi (Menghilangkan gap renggang jika isinya pendek) */
 .md-typeset table:not([class]) tr th:nth-child(2):nth-last-child(2),
 .md-typeset table:not([class]) tr td:nth-child(2):nth-last-child(2) {
-  white-space: nowrap !important;
-  width: 1% !important;
+  white-space: wrap !important;
+  width: auto !important;
 }
 
 /* Kolom 3: Menyerap seluruh sisa ruang ke kanan */
 .md-typeset table:not([class]) tr th:last-child:nth-child(3),
 .md-typeset table:not([class]) tr td:last-child:nth-child(3) {
   white-space: normal !important;
+  width: auto !important;
+}
+
+/* --------------------------------------------------
+   3. OVERRIDE KHUSUS TABEL 4 KOLOM
+   -------------------------------------------------- */
+/* Kolom 1: Rapat pas isi */
+.md-typeset table:not([class]) tr th:first-child:nth-last-child(4),
+.md-typeset table:not([class]) tr td:first-child:nth-last-child(4) {
+  white-space: nowrap !important;
+  width: 10% !important;
+}
+
+/* Kolom 2: Rapat pas isi */
+.md-typeset table:not([class]) tr th:nth-child(2):nth-last-child(3),
+.md-typeset table:not([class]) tr td:nth-child(2):nth-last-child(3) {
+  white-space: wrap !important;
+  width: auto !important;
+}
+
+/* Kolom 3: Rapat pas isi */
+.md-typeset table:not([class]) tr th:nth-child(3):nth-last-child(2),
+.md-typeset table:not([class]) tr td:nth-child(3):nth-last-child(2) {
+  white-space: wrap !important;
+  width: auto !important;
+}
+
+/* Kolom 4: Menyerap seluruh sisa ruang ke kanan */
+.md-typeset table:not([class]) tr th:last-child:nth-child(4),
+.md-typeset table:not([class]) tr td:last-child:nth-child(4) {
+  white-space: wrap !important;
   width: auto !important;
 }
