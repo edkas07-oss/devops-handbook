@@ -69,5 +69,7 @@ luar scope Tomcat Monitoring.
 
 Monitoring end-to-end belum diimplementasikan. JMX Exporter dan endpoint HTTPS
 `9404/metrics` telah diverifikasi secara lokal, tetapi belum diintegrasikan
-dengan Prometheus. Health check Telegraf, dashboard, alerting, dan external
-integration masih menjadi target capability project.
+dengan Prometheus. Telegraf health-check source contract telah dibuat untuk
+`/health`, tetapi belum diparsing oleh binary Telegraf maupun diintegrasikan
+dengan Prometheus. Dashboard, alerting, dan external integration masih menjadi
+target capability project.

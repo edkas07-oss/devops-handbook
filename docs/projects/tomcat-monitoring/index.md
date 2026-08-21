@@ -75,7 +75,7 @@ Bridge.
 | Tomcat monitoring instrumentation | Local image from the earlier source revision passed HTTPS/JVM smoke test; current-source rebuild and deployment planned |
 | Prometheus container | Planned |
 | Container status monitoring | Metrics source not determined |
-| Monitoring implementation | Runtime Monitoring Foundation in progress |
+| Monitoring implementation | Telegraf health-check source contract implemented locally; remaining integration planned |
 | End-to-end verification | Not started |
 
 ## Documentation Structure

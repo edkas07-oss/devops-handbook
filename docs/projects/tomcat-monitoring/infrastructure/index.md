@@ -23,7 +23,7 @@ proses infrastructure yang telah ditetapkan.
 | JMX Exporter Java Agent | Mengekspos JVM dan Tomcat metrics secara lokal | Available in local derived image; deployment planned |
 | Reusable JMX Agent procedure | Menjelaskan pemasangan, TLS configuration, build, dan validation secara reusable | Required in root How-to; not yet published |
 | Prometheus container | Mengumpulkan dan menyimpan time-series metrics | Planned |
-| Telegraf container | Menjalankan local HTTP health check aplikasi | Planned |
+| Telegraf container | Menjalankan local HTTP health check aplikasi | Configuration contract implemented locally; runtime planned |
 | Persistent metrics storage | Mempertahankan historical metrics | Not determined |
 | Container network | Menghubungkan Prometheus dengan endpoint JMX Exporter | Not determined |
 | TLS certificate and trust | Mengamankan scrape endpoint menggunakan server-side TLS | Not determined |
@@ -71,7 +71,7 @@ configuration.
 | --- | --- | --- | --- |
 | Prometheus to JMX Exporter | HTTPS ke port `9404`, path `/metrics` | Server-side TLS dan source restriction | Locally verified from a test client; Prometheus integration pending |
 | Telegraf to application health endpoint | HTTP ke internal Tomcat port `8080`, path `/health` | Network isolation | Defined by topology; integration pending |
-| Prometheus to Telegraf | Not determined | Not determined | Not determined |
+| Prometheus to Telegraf | HTTP ke port internal `9273`, path `/metrics` | Network restriction pending | Configuration contract implemented locally; not runtime-verified |
 | Dashboard to Prometheus | Not determined | Not determined | Not determined |
 | Prometheus to Alertmanager | Not determined | Not determined | Not determined |
 | Alertmanager to Integration Bridge | Webhook; protocol not determined | Not determined | Designed, not verified |
@@ -102,9 +102,12 @@ sudah menjadi bagian dari interface design.
   Load balancer, reverse proxy, DNS, firewall eksternal, dan jalur akses pengguna
   berada di luar scope pemeriksaan ini.
 
-Health path ditetapkan sebagai `/health` berdasarkan topology. Expected HTTP
-status, response body, timeout, interval, dan cara Prometheus mengambil metrics
-Telegraf masih berstatus `Not determined`.
+Health path ditetapkan sebagai `/health` berdasarkan topology. Contract
+sementara menggunakan HTTP `200`, body yang menyatakan status `UP`, timeout
+`5s`, interval `30s`, dan Telegraf Prometheus client internal
+`:9273/metrics`. Target URL diberikan melalui `TOMCAT_HEALTH_URL` saat runtime.
+Nilai ini telah memiliki source contract dan static validation, tetapi belum
+runtime-verified bersama Telegraf, Prometheus, atau application endpoint nyata.
 
 ## Storage Requirements
 

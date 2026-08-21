@@ -739,6 +739,17 @@ dalam Technical Note.
   atau menjelaskan masalah.
 - Tautkan source file yang menjadi sumber kebenaran daripada menduplikasi file
   konfigurasi panjang.
+- Setiap Technical Note yang menjalankan command wajib memiliki section
+  `Commands Executed`. Catat seluruh command aktual, termasuk discovery yang
+  material terhadap finding, implementation, verification, diagnostic, cleanup,
+  dan command gagal. Jangan mengganti command dengan ringkasan; parameter
+  sensitif diganti placeholder tanpa menghilangkan bentuk command.
+- Untuk aktivitas dengan urutan teknis, tempatkan command aktual pada procedure
+  step atau `Execution Record` sesuai urutan pelaksanaan. Setiap tahap harus
+  mencatat purpose, command, expected result, actual result, dan evidence.
+  Daftar `Commands Executed` tetap menjadi indeks atau pelengkap, bukan
+  pengganti chronology. Command cleanup dicatat setelah resource yang menjadi
+  target cleanup.
 
 ### Decisions
 
@@ -793,6 +804,24 @@ verifikasi telah dilakukan.
     outstanding item, dan residual risk.
 11. Review tautan, data sensitif, chronology, metadata, dan evidence sebelum
     diterbitkan.
+
+### Runtime Component Ownership Gate
+
+Sebelum configuration integration, image pull, atau component test untuk
+runtime container baru dimulai, aktivitas discovery harus menetapkan salah satu
+pilihan berikut:
+
+1. Menggunakan repository runtime generik yang sudah tersedia.
+2. Membuat repository runtime baru untuk component tersebut.
+3. Mengonsumsi upstream langsung sebagai pengecualian yang disetujui.
+
+Catat owner artifact, upstream identity dan pinning, lifecycle build/test/run/
+cleanup, repository yang memiliki configuration integration, serta alasan
+pilihan. Component dengan lifecycle image reusable sendiri harus memiliki
+repository runtime terpisah; project integration tetap memiliki configuration,
+validation lintas component, dan deployment orchestration. Jika ownership belum
+jelas, berhenti pada discovery dan minta Decision Gate—jangan mengasumsikan
+upstream image langsung sebagai contract implementasi.
 
 ## ⭐ Best Practices
 

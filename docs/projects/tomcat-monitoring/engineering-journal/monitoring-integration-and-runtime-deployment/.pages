@@ -1,0 +1,16 @@
+# Pages
+
+title: Monitoring Integration and Runtime Deployment
+
+arrange:
+
+- index.md
+- TN-001-define-monitoring-integration-configuration-and-validation-contract.md
+- TN-002-initialize-monitoring-repository-validation-contract.md
+- TN-003-implement-telegraf-health-check-contract.md
+- TN-004-verify-telegraf-health-check-component.md
+- TN-005-record-executed-commands-and-strengthen-journal-governance.md
+- TN-006-establish-telegraf-runtime-repository.md
+- TN-007-build-and-smoke-test-telegraf-runtime.md
+- TN-008-verify-telegraf-health-check-with-edkas-pc1-alias.md
+- TN-009-commit-telegraf-integration-and-journal-source.md

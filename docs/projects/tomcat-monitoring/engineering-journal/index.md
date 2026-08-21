@@ -35,6 +35,7 @@ live agar pembaca dapat membedakan histori awal dari perbaikan dokumentasi.
 | Phase | Scope | Status |
 | --- | --- | --- |
 | [Runtime Monitoring Foundation](runtime-monitoring-foundation/index.md) | Menentukan arsitektur awal, menyiapkan area kerja, dan memverifikasi komponen monitoring pertama | In Progress |
+| [Monitoring Integration and Runtime Deployment](monitoring-integration-and-runtime-deployment/index.md) | Menetapkan contract konfigurasi, validator, dan readiness sebelum integrasi komponen serta deployment runtime | In Progress |
 
 !!! note "Phase Lifecycle"
 
@@ -54,6 +55,7 @@ live agar pembaca dapat membedakan histori awal dari perbaikan dokumentasi.
 ## Related Documentation
 
 - [Runtime Monitoring Foundation](runtime-monitoring-foundation/index.md)
+- [Monitoring Integration and Runtime Deployment](monitoring-integration-and-runtime-deployment/index.md)
 - [Tomcat Monitoring](../index.md)
 - [Architecture](../architecture/index.md)
 - [Development](../development/index.md)

@@ -14,7 +14,8 @@ instrumentasi, dan `tomcat-monitoring` akan mengintegrasikan Prometheus,
 Telegraf, alerting, serta deployment automation.
 
 Repository `tomcat-monitoring` telah dibuat di Gitea dan di-clone ke
-development environment, tetapi belum memiliki commit atau struktur source.
+development environment. Baseline layout non-secret dan validator statis telah
+dibuat pada working tree lokal, tetapi belum memiliki commit atau publication.
 Repository `tomcat-jmx-exporter` telah memiliki initial commit dan source-nya
 telah dipublikasikan ke Gitea. Local derived image dari source revision awal
 telah lulus smoke test, sedangkan CI untuk image tersebut belum dibuat.
@@ -30,7 +31,7 @@ Source project dibagi berdasarkan lifecycle dan tanggung jawab berikut:
 | --- | --- | --- |
 | `tomcat` | Menyediakan generic Tomcat container image | Available |
 | `tomcat-jmx-exporter` | Menyediakan derived Tomcat image dengan embedded JMX Exporter | Source and Indonesian self-documentation published |
-| `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | Initialized |
+| `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | Baseline layout created locally; configuration not started |
 
 Repository `tomcat-jmx-exporter` tidak menyimpan JMX Exporter JAR sebagai binary
 di Git. Build mengambil versi `1.6.0` yang telah dipin dan memverifikasi
@@ -99,8 +100,9 @@ Podman. Repository lokal tersedia pada:
 /home/eddywiyatno/git/tomcat-jmx-exporter
 ```
 
-Pada `tomcat-monitoring`, working tree masih kosong dan branch `main` belum
-memiliki commit. Pada `tomcat-jmx-exporter`, source awal tersedia pada branch
+Pada `tomcat-monitoring`, branch `main` memiliki governance commit dan working
+tree berisi baseline layout non-secret yang belum di-commit. Configuration
+monitoring executable belum dibuat. Pada `tomcat-jmx-exporter`, source awal tersedia pada branch
 `main` melalui commit `82175bb`. Self-documentation bahasa Indonesia telah
 dipublikasikan melalui commit `d392717`, dan `origin/main` menunjuk commit yang
 sama. Working tree lokal bersih, tetapi branch lokal belum mencatat upstream

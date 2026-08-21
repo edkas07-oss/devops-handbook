@@ -14,8 +14,8 @@ dibutuhkan sebelum implementasi dimulai.
 | Configure source control | Menyiapkan Git dan koneksi repository | Completed |
 | Clone project repository | Membentuk working directory lokal | Completed |
 | Select container runtime | Menetapkan runtime untuk development dan validation | Completed |
-| Initialize project structure | Membuat struktur awal source project | Not started |
-| Verify environment | Memastikan project dapat dijalankan dan diuji | Not started |
+| Initialize project structure | Membuat layout baseline non-secret dan validation contract | Completed locally; pending commit |
+| Verify environment | Memastikan project dapat dijalankan dan diuji | Baseline static validation passed; component validation not started |
 
 ## Setup Workflow
 
@@ -54,14 +54,16 @@ Kondisi repository saat ini:
 
 ```text
 Branch       : main
-Local commit : none
+Local commit : `5cff160` (repository governance)
 Remote       : origin configured
-Project file : none
+Project file : `AGENTS.md`; implementation source belum dibuat
 ```
 
-Struktur project belum dibuat. Inisialisasi struktur akan dilakukan sebagai
-aktivitas engineering tersendiri setelah requirements dan keputusan teknis
-yang diperlukan tersedia.
+Struktur implementation baseline telah dibuat secara lokal setelah
+implementation plan disetujui. Repository memiliki `AGENTS.md`, documentation
+contract di `config/` dan `validation/`, serta `scripts/validate.sh`. Baseline
+ini belum memuat configuration monitoring executable dan masih menunggu commit
+serta publication authorization.
 
 Podman telah diverifikasi menggunakan temporary Tomcat container. Container
 tersebut bukan target runtime project dan akan dibuat ulang melalui proses
@@ -78,9 +80,10 @@ Setup dinyatakan selesai setelah kriteria berikut terpenuhi:
 - Local test dapat menjalankan komponen dalam scope tanpa menyimpan secret pada
   repository.
 
-Saat ini akses repository dan container runtime telah diverifikasi. Struktur
-project dan validation workflow belum tersedia sehingga setup belum dinyatakan
-completed.
+Saat ini akses repository dan container runtime telah diverifikasi. Layout
+baseline dan static validation tersedia secara lokal, tetapi component
+configuration, component validation, dan local integration test belum ada;
+setup belum dinyatakan completed.
 
 ## Setup Output
 
@@ -88,8 +91,8 @@ completed.
 | --- | --- | --- |
 | Development working directory | Clone lokal repository `tomcat-monitoring` | Available |
 | Container runtime | Rootless Podman `4.9.3` | Available |
-| Project structure | Struktur source dan konfigurasi | Not started |
-| Validation workflow | Command dan expected result untuk local validation | Not started |
+| Project structure | Layout baseline non-secret dan documentation contract | Completed locally; pending commit |
+| Validation workflow | `scripts/validate.sh` untuk baseline repository | Available; component validation not started |
 
 ## Related Documentation
 
