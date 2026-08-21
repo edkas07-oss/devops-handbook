@@ -110,6 +110,7 @@ Gunakan ikon pada heading level dua (`##`) sesuai dengan jenis informasi yang di
 | -------- | ---- |
 | Welcome | 👋 |
 | Overview | 🔍 |
+| Background | 🌍 |
 | Why | ❓ |
 | Objectives | 🎯 |
 | Scope | 📚 |
@@ -122,6 +123,11 @@ Gunakan ikon pada heading level dua (`##`) sesuai dengan jenis informasi yang di
 | Deployment Flow | 🚀 |
 | Storage Architecture | 💾 |
 | Design Principles | 🧭 |
+| How to Use This Journal | 🧭 |
+| Engineering Phases | 🛠️ |
+| Document Types | 📄 |
+| Technical Notes | 📄 |
+| Implementation Result | 🛠️ |
 | Repository Structure | 📁 |
 | Repository Organization | 🗂️ |
 | Repository Responsibilities | 📌 |
@@ -150,6 +156,7 @@ Gunakan ikon pada heading level dua (`##`) sesuai dengan jenis informasi yang di
 | Visual Style | 🎨 |
 | Context | 🌍 |
 | Decision | ⚖️ |
+| Execution Decision | ⚖️ |
 | Rationale | 💡 |
 | Consequences | ⚠️ |
 | Status | 📌 |
@@ -160,6 +167,7 @@ Gunakan ikon pada heading level dua (`##`) sesuai dengan jenis informasi yang di
 | ADR Template | 📋 |
 | ADR Status | 📌 |
 | Appendix | 📎 |
+| Review Checklist | 📋 |
 
 Gunakan ikon secara konsisten.
 
@@ -224,3 +232,4 @@ Contoh:
     #### Reference
 
     Implementasi pada bagian ini mengacu pada **PS-ADR-0003**.
+````

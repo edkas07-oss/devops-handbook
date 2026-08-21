@@ -1,0 +1,82 @@
+/* Ordered procedures used by Technical Notes. */
+.md-typeset .procedure {
+  counter-reset: procedure-step;
+  margin: 1.5rem 0;
+}
+
+.md-typeset .procedure-step {
+  position: relative;
+  margin-left: 1.7rem;
+  padding: 0 0 1.5rem 1.25rem;
+}
+
+.md-typeset .procedure-step:last-child {
+  padding-bottom: 0;
+}
+
+.md-typeset .procedure-step::before {
+  position: absolute;
+  top: 1.55rem;
+  bottom: 0;
+  left: -0.48rem;
+  border-left: 2px dashed var(--md-primary-fg-color);
+  content: "";
+}
+
+.md-typeset .procedure-step:last-child::before {
+  display: none;
+}
+
+.md-typeset .procedure-step > h3,
+.md-typeset .procedure-step > h4 {
+  position: relative;
+  margin-top: 0;
+  font-weight: 700;
+}
+
+.md-typeset .procedure-step > h3::before,
+.md-typeset .procedure-step > h4::before {
+  counter-increment: procedure-step;
+  position: absolute;
+  top: 0.08em;
+  left: -2.45rem;
+  display: inline-flex;
+  box-sizing: border-box;
+  width: 1.45rem;
+  height: 1.45rem;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--md-primary-fg-color);
+  border-radius: 50%;
+  background-color: var(--md-primary-fg-color);
+  color: var(--md-primary-bg-color);
+  content: counter(procedure-step);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.md-typeset .procedure-step > ol {
+  margin-top: 0.75rem;
+}
+
+.md-typeset .procedure-step > ol > li {
+  margin-bottom: 0.55rem;
+  padding-left: 0.2rem;
+}
+
+@media screen and (max-width: 44.984375em) {
+  .md-typeset .procedure-step {
+    margin-left: 1.35rem;
+    padding-left: 0.9rem;
+  }
+
+  .md-typeset .procedure-step > h3::before,
+  .md-typeset .procedure-step > h4::before {
+    left: -2.1rem;
+  }
+
+  .md-typeset .procedure-step::before {
+    left: -0.48rem;
+  }
+}

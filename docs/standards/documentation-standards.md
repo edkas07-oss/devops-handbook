@@ -67,7 +67,11 @@ Setiap jenis dokumentasi memiliki template standar.
 | ------------- | ------------------ |
 | **How To** | Overview → Prerequisites → Implementation → Verification → Troubleshooting → Best Practices → References → Summary |
 | **Project** | Overview → Objectives → Requirements → Architecture → Repository Structure → Technology Stack → Implementation → Deployment → Backup and Recovery → Lessons Learned → References |
+| **Engineering Journal** | Project Journal Index → Phase Index → Technical Notes |
 | **Architecture Decision Record (ADR)** | Overview → Context → Decision → Architecture → Rationale → Consequences → Status → Date |
+
+Struktur, penomoran, lifecycle, dan template Technical Note dijelaskan pada
+[Engineering Journal Standards](engineering-journal-standards.md).
 
 ## 📝 File Naming Convention
 
@@ -152,6 +156,7 @@ Untuk menjaga konsistensi visual di seluruh DevOps Engineering Handbook, gunakan
 | -------- | ---- | ----------- |
 | Welcome | 👋 | Halaman pembuka suatu bagian dokumentasi. |
 | Overview | 🔍 | Gambaran umum topik, project, atau teknologi. |
+| Background | 🌍 | Kondisi awal dan alasan suatu aktivitas dilakukan. |
 | Why | ❓ | Alasan atau latar belakang suatu bagian dibuat. |
 | Objectives | 🎯 | Tujuan yang ingin dicapai. |
 | Scope | 📚 | Ruang lingkup pembahasan. |
@@ -164,6 +169,11 @@ Untuk menjaga konsistensi visual di seluruh DevOps Engineering Handbook, gunakan
 | Deployment Flow | 🚀 | Alur deployment. |
 | Storage Architecture | 💾 | Arsitektur penyimpanan. |
 | Design Principles | 🧭 | Prinsip desain yang diterapkan. |
+| How to Use This Journal | 🧭 | Panduan membaca dan menggunakan Engineering Journal. |
+| Engineering Phases | 🛠️ | Fase atau workstream dalam Engineering Journal. |
+| Document Types | 📄 | Jenis dokumen dan tanggung jawabnya. |
+| Technical Notes | 📄 | Daftar aktivitas engineering dalam suatu fase. |
+| Implementation Result | 🛠️ | Hasil implementasi yang telah dicapai. |
 | Repository Structure | 📁 | Struktur repository project. |
 | Repository Organization | 🗂️ | Organisasi repository. |
 | Repository Responsibilities | 📌 | Tanggung jawab masing-masing repository. |
@@ -184,6 +194,7 @@ Untuk menjaga konsistensi visual di seluruh DevOps Engineering Handbook, gunakan
 | Recommended Reading Order | 🧭 | Urutan membaca dokumentasi. |
 | Context | 🌍 | Latar belakang keputusan arsitektur (ADR). |
 | Decision | ⚖️ | Keputusan arsitektur yang dipilih. |
+| Execution Decision | ⚖️ | Keputusan yang diterapkan pada suatu aktivitas dan referensi ADR-nya. |
 | Rationale | 💡 | Alasan pemilihan keputusan. |
 | Consequences | ⚠️ | Dampak atau konsekuensi keputusan. |
 | Status | 📌 | Status Architecture Decision Record (ADR). |
@@ -194,6 +205,7 @@ Untuk menjaga konsistensi visual di seluruh DevOps Engineering Handbook, gunakan
 | ADR Template | 📋 | Struktur standar Architecture Decision Record. |
 | ADR Status | 📌 | Status yang digunakan pada Architecture Decision Record. |
 | Appendix | 📎 | Informasi tambahan. |
+| Review Checklist | 📋 | Daftar pemeriksaan sebelum dokumentasi diterbitkan. |
 
 Gunakan ikon secara konsisten pada heading dokumentasi untuk membantu pembaca mengenali jenis informasi dengan cepat serta menjaga konsistensi visual di seluruh handbook.
 

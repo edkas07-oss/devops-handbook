@@ -23,12 +23,13 @@ Dengan adanya standards, setiap project menggunakan pendekatan yang sama sehingg
 
 ## 📚 Scope
 
-Standards pada handbook ini dibagi ke dalam lima area utama.
+Standards pada handbook ini dibagi ke dalam beberapa area utama.
 
 | Area | Description |
 | ----- | ----------- |
 | Engineering Principles | Prinsip engineering yang menjadi dasar penyusunan dokumentasi. |
 | Documentation Standards | Aturan umum mengenai struktur, organisasi, dan hubungan antar dokumentasi. |
+| Engineering Journal Standards | Standar pencatatan perjalanan engineering dan Technical Note. |
 | Project Standards | Standar struktur dokumentasi untuk setiap project. |
 | Writing Standards | Pedoman gaya penulisan dokumentasi. |
 | Workflow Standards | Workflow penyusunan dan pemeliharaan dokumentasi. |
@@ -39,9 +40,10 @@ Untuk memperoleh pemahaman yang utuh, bacalah dokumentasi dengan urutan berikut.
 
 1. Engineering Principles
 2. Documentation Standards
-3. Project Standards
-4. Writing Standards
-5. Workflow Standards
+3. Engineering Journal Standards
+4. Project Standards
+5. Writing Standards
+6. Workflow Standards
 
 Urutan tersebut membantu memahami prinsip dasar sebelum mulai membuat atau memperbarui dokumentasi.
 
