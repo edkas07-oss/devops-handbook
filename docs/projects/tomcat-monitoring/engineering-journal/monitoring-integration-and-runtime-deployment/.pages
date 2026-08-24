@@ -17,3 +17,7 @@ arrange:
 - TN-010-establish-prometheus-runtime-repository.md
 - TN-011-build-and-smoke-test-prometheus-runtime.md
 - TN-012-reconcile-and-commit-prometheus-runtime-journal-evidence.md
+- TN-013-define-prometheus-scrape-configuration-contract.md
+- TN-014-implement-prometheus-scrape-configuration-and-lab-access.md
+- TN-015-verify-prometheus-named-volume-runtime-and-lab-access.md
+- TN-016-reconcile-and-commit-prometheus-scrape-and-lab-runtime-changes.md

@@ -22,11 +22,11 @@ proses infrastructure yang telah ditetapkan.
 | Tomcat container | Menjalankan application runtime yang dimonitor | Planned |
 | JMX Exporter Java Agent | Mengekspos JVM dan Tomcat metrics secara lokal | Available in local derived image; deployment planned |
 | Reusable JMX Agent procedure | Menjelaskan pemasangan, TLS configuration, build, dan validation secara reusable | Required in root How-to; not yet published |
-| Prometheus container | Mengumpulkan dan menyimpan time-series metrics | Planned |
+| Prometheus container | Mengumpulkan dan menyimpan time-series metrics | Persistent lab runtime verified; scrape integration pending |
 | Telegraf container | Menjalankan local HTTP health check aplikasi | Configuration contract implemented locally; runtime planned |
-| Persistent metrics storage | Mempertahankan historical metrics | Not determined |
-| Container network | Menghubungkan Prometheus dengan endpoint JMX Exporter | Not determined |
-| TLS certificate and trust | Mengamankan scrape endpoint menggunakan server-side TLS | Not determined |
+| Persistent metrics storage | Mempertahankan historical metrics | Named volume `prometheus_data` available; retention, sizing, backup, and recovery not determined |
+| Container network | Menghubungkan Prometheus dengan endpoint JMX Exporter | Lab network `devops-lab` available; target aliases and end-to-end integration pending |
+| TLS certificate and trust | Mengamankan scrape endpoint menggunakan server-side TLS | Read-only `prometheus_truststore` mount verified with system CA bundle; actual JMX CA lifecycle not determined |
 | Application health endpoint | Memberikan status aplikasi yang dapat diverifikasi Telegraf | Interface `/health` defined; implementation planned |
 | Alertmanager | Mengelola dan meneruskan alert | Planned |
 | Integration Bridge | Meneruskan alert ke TrueSight | Planned |
@@ -72,7 +72,7 @@ configuration.
 | Prometheus to JMX Exporter | HTTPS ke port `9404`, path `/metrics` | Server-side TLS dan source restriction | Locally verified from a test client; Prometheus integration pending |
 | Telegraf to application health endpoint | HTTP ke internal Tomcat port `8080`, path `/health` | Network isolation | Defined by topology; integration pending |
 | Prometheus to Telegraf | HTTP ke port internal `9273`, path `/metrics` | Network restriction pending | Configuration contract implemented locally; not runtime-verified |
-| Dashboard to Prometheus | Not determined | Not determined | Not determined |
+| Dashboard to Prometheus | HTTP ke host port `9090` pada lab | Trusted VPN lab; TLS dan authentication belum tersedia | Browser tablet verified through `http://edkas-pc1:9090` on 2026-08-24 |
 | Prometheus to Alertmanager | Not determined | Not determined | Not determined |
 | Alertmanager to Integration Bridge | Webhook; protocol not determined | Not determined | Designed, not verified |
 | Integration Bridge to TrueSight | SNMP Trap atau `msend` | Not determined | Designed, not verified |
@@ -121,7 +121,15 @@ ketika container dibuat ulang. Infrastructure harus menentukan:
 - Backup requirement; serta
 - Recovery procedure.
 
-Seluruh keputusan storage tersebut masih berstatus `Not determined`.
+Lab runtime menggunakan named volume `prometheus_data` yang dipasang
+read-write ke `/prometheus`. Permission data untuk runtime non-root telah
+terverifikasi melalui startup TSDB. Configuration menggunakan
+`prometheus_config` dan trust material menggunakan `prometheus_truststore`;
+keduanya dipasang read-only tanpa host bind.
+
+Default retention `15d` terlihat pada runtime log, tetapi belum diterima
+sebagai project retention policy. Capacity, growth limit, backup, dan recovery
+tetap berstatus `Not determined`.
 
 ## Certificate Requirements
 
@@ -180,7 +188,7 @@ diimplementasikan:
 - Execution model untuk CI/CD dan Ansible provisioning;
 - CI build dan image publication contract `tomcat-jmx-exporter`;
 - Reusable JMX Exporter Java Agent procedure pada root How-to;
-- Lokasi deployment Prometheus dan komponen monitoring lainnya;
+- Lokasi deployment selain persistent lab runtime Prometheus;
 - Container network dan port allocation;
 - Persistent storage dan retention policy;
 - CPU, memory, dan storage sizing;
@@ -197,10 +205,16 @@ Derived image `localhost/tomcat-jmx-exporter:1.0.0` dengan JMX Exporter `1.6.0`
 telah dibangun dan lulus local HTTPS smoke test pada TN-002. Current source
 `d392717` telah dipublikasikan ke Gitea setelah image tersebut dibangun, tetapi
 clean image build dari current source belum diverifikasi. Container image masih
-lokal dan belum
-dipublikasikan ke registry atau di-deploy ke target runtime. Prometheus,
-Telegraf, Alertmanager, storage, certificate production, serta provisioning
-melalui CI/CD dan Ansible belum diimplementasikan.
+lokal dan belum dipublikasikan ke registry atau di-deploy ke target runtime.
+
+Persistent lab container `prometheus` berjalan pada network `devops-lab`,
+memublikasikan host port `9090`, dan menggunakan named volumes
+`prometheus_config`, `prometheus_truststore`, serta `prometheus_data` tanpa host
+bind. Semantic configuration, readiness, mount modes, dan akses dashboard dari
+tablet melalui VPN telah diverifikasi pada 2026-08-24. System CA bundle pada
+truststore hanya membuktikan runtime trust-file contract; JMX Exporter dan
+Telegraf scrape belum diverifikasi. Alertmanager, production certificate,
+serta provisioning melalui CI/CD dan Ansible belum diimplementasikan.
 
 ## Related Pages
 

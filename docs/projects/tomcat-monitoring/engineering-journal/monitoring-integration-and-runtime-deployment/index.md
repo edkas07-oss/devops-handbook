@@ -4,9 +4,11 @@
 
 Fase ini menerjemahkan architecture contract yang telah diterima menjadi
 configuration contract, validation interface, dan runtime component yang
-dikonsumsi repository `tomcat-monitoring`. Baseline integration serta runtime
-generik Telegraf dan Prometheus telah tersedia; configuration Prometheus,
-deployment target, dan verifikasi end-to-end belum diterapkan.
+dikonsumsi repository `tomcat-monitoring`. Baseline integration, runtime
+generik Telegraf dan Prometheus, scrape configuration, serta persistent lab
+Prometheus dengan named volumes telah tersedia. Semantic configuration,
+readiness, dan dashboard lab telah diverifikasi; target scrape dan verifikasi
+end-to-end belum diterapkan.
 
 ## 🎯 Objective
 
@@ -76,6 +78,27 @@ melampaui keputusan, secret boundary, atau authorization yang tersedia.
 
     Menyelaraskan journal evidence dengan commit runtime Prometheus aktual dan
     menyimpan dokumentasi fase dalam commit lokal Handbook yang terarah.
+
+13. **[TN-013 — Define Prometheus Scrape Configuration Contract](TN-013-define-prometheus-scrape-configuration-contract.md)**
+
+    Menetapkan target scrape non-secret, timing, TLS trust reference, dan
+    validation boundary sebelum configuration Prometheus diimplementasikan.
+
+14. **[TN-014 — Implement Prometheus Scrape Configuration and Lab Access](TN-014-implement-prometheus-scrape-configuration-and-lab-access.md)**
+
+    Mengimplementasikan configuration dan validator Prometheus serta optional
+    host-port publication untuk akses dashboard pada environment lab.
+
+15. **[TN-015 — Verify Prometheus Named-Volume Runtime and Lab Access](TN-015-verify-prometheus-named-volume-runtime-and-lab-access.md)**
+
+    Memverifikasi semantic configuration dan persistent Prometheus lab runtime
+    menggunakan named volumes tanpa host bind.
+
+16. **[TN-016 — Reconcile and Commit Prometheus Scrape and Lab Runtime Changes](TN-016-reconcile-and-commit-prometheus-scrape-and-lab-runtime-changes.md)**
+
+    Merekonsiliasi dan menyimpan source, configuration, serta journal evidence
+    TN-013 sampai TN-015 dalam local commit terpisah sesuai ownership
+    repository.
 
 ## 🔗 Related Documentation
 

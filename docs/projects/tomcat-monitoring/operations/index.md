@@ -67,9 +67,14 @@ luar scope Tomcat Monitoring.
 
 ## Current Status
 
-Monitoring end-to-end belum diimplementasikan. JMX Exporter dan endpoint HTTPS
-`9404/metrics` telah diverifikasi secara lokal, tetapi belum diintegrasikan
-dengan Prometheus. Telegraf health-check source contract telah dibuat untuk
-`/health`, tetapi belum diparsing oleh binary Telegraf maupun diintegrasikan
-dengan Prometheus. Dashboard, alerting, dan external integration masih menjadi
-target capability project.
+Monitoring end-to-end belum diimplementasikan. Persistent lab Prometheus telah
+lulus semantic configuration dan readiness verification, serta dashboard dapat
+dibuka dari tablet melalui VPN menggunakan `http://edkas-pc1:9090`. Hasil ini
+hanya membuktikan availability UI Prometheus pada lab, bukan keberhasilan
+scrape atau monitoring Tomcat.
+
+JMX Exporter dan endpoint HTTPS `9404/metrics` telah diverifikasi secara lokal,
+tetapi belum diintegrasikan dengan Prometheus menggunakan CA actual. Telegraf
+health-check source contract tersedia dan component behavior telah diverifikasi
+secara terpisah, tetapi Prometheus belum melakukan scrape terhadap Telegraf.
+Alerting dan external integration masih menjadi target capability project.

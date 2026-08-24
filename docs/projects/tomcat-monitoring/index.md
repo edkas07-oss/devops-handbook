@@ -73,9 +73,9 @@ Bridge.
 | Tomcat container provisioning | Planned |
 | Tomcat JMX Exporter source | Current source `d392717` published to Gitea; source validation passed; clean image build not verified |
 | Tomcat monitoring instrumentation | Local image from the earlier source revision passed HTTPS/JVM smoke test; current-source rebuild and deployment planned |
-| Prometheus container | Planned |
+| Prometheus container | Persistent lab runtime verified on 2026-08-24; dashboard accessible through VPN at `http://edkas-pc1:9090`; scrape targets not verified |
 | Container status monitoring | Metrics source not determined |
-| Monitoring implementation | Telegraf health-check source contract implemented locally; remaining integration planned |
+| Monitoring implementation | Telegraf health-check and Prometheus scrape source contracts implemented; Prometheus semantic configuration, readiness, named-volume mounts, and lab dashboard access verified |
 | End-to-end verification | Not started |
 
 ## Documentation Structure
