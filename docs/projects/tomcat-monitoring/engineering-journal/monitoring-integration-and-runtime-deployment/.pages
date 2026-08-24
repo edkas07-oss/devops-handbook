@@ -14,3 +14,6 @@ arrange:
 - TN-007-build-and-smoke-test-telegraf-runtime.md
 - TN-008-verify-telegraf-health-check-with-edkas-pc1-alias.md
 - TN-009-commit-telegraf-integration-and-journal-source.md
+- TN-010-establish-prometheus-runtime-repository.md
+- TN-011-build-and-smoke-test-prometheus-runtime.md
+- TN-012-reconcile-and-commit-prometheus-runtime-journal-evidence.md

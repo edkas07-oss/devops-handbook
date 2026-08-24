@@ -3,9 +3,10 @@
 ## 🔍 Overview
 
 Fase ini menerjemahkan architecture contract yang telah diterima menjadi
-configuration contract, validation interface, dan readiness plan bagi
-repository `tomcat-monitoring`. Fase belum menerapkan source, configuration,
-runtime container, atau deployment target.
+configuration contract, validation interface, dan runtime component yang
+dikonsumsi repository `tomcat-monitoring`. Baseline integration serta runtime
+generik Telegraf dan Prometheus telah tersedia; configuration Prometheus,
+deployment target, dan verifikasi end-to-end belum diterapkan.
 
 ## 🎯 Objective
 
@@ -60,6 +61,21 @@ melampaui keputusan, secret boundary, atau authorization yang tersedia.
 
     Mencatat commit lokal yang terpisah menurut ownership repository tanpa
     menyertakan perubahan handbook yang tidak terkait.
+
+10. **[TN-010 — Establish Prometheus Runtime Repository](TN-010-establish-prometheus-runtime-repository.md)**
+
+    Menetapkan ownership dan menerapkan source runtime Prometheus generik yang
+    telah lolos static validation, sebelum configuration scrape project dibuat.
+
+11. **[TN-011 — Build and Smoke Test Prometheus Runtime](TN-011-build-and-smoke-test-prometheus-runtime.md)**
+
+    Membangun dan menjalankan smoke test sementara pada image runtime
+    Prometheus generik tanpa configuration atau deployment integration.
+
+12. **[TN-012 — Reconcile and Commit Prometheus Runtime Journal Evidence](TN-012-reconcile-and-commit-prometheus-runtime-journal-evidence.md)**
+
+    Menyelaraskan journal evidence dengan commit runtime Prometheus aktual dan
+    menyimpan dokumentasi fase dalam commit lokal Handbook yang terarah.
 
 ## 🔗 Related Documentation
 
