@@ -27,3 +27,5 @@ arrange:
 - TN-020-verify-isolated-jmx-exporter-tls-scrape-integration.md
 - TN-021-reconcile-tomcat-server-metric-name-contract.md
 - TN-022-commit-jmx-tls-integration-and-metric-contract-evidence.md
+- TN-023-verify-publication-of-jmx-integration-commits.md
+- TN-024-commit-publication-verification-evidence.md

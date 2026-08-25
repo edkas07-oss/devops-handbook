@@ -131,6 +131,16 @@ melampaui keputusan, secret boundary, atau authorization yang tersedia.
     Menyimpan source dan documentation evidence TN-020 sampai TN-022 dalam
     local commits terpisah sesuai repository ownership.
 
+23. **[TN-023 — Verify Publication of JMX Integration Commits](TN-023-verify-publication-of-jmx-integration-commits.md)**
+
+    Memverifikasi exact remote `main` identities untuk source dan Handbook
+    commits TN-022 tanpa melakukan remote mutation baru.
+
+24. **[TN-024 — Commit Publication Verification Evidence](TN-024-commit-publication-verification-evidence.md)**
+
+    Menyimpan TN-023 publication evidence dan TN-024 commit record dalam satu
+    local Handbook commit yang terarah.
+
 ## 🔗 Related Documentation
 
 - [Tomcat Monitoring Engineering Journal](../index.md)
