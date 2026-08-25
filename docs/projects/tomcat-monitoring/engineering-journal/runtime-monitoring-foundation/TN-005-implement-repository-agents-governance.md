@@ -1,4 +1,4 @@
-# TN-006 — Implement Repository AGENTS.md Governance
+# TN-005 — Implement Repository AGENTS.md Governance
 
 | Field | Value |
 | --- | --- |
@@ -96,7 +96,7 @@ Truth`, `Repository Boundaries`, `Working Rules`, `Approval Requirements`,
 | Fresh-session interpretation | Purpose, boundary, approval, verification, dan stop condition dirangkum sesuai repository | Passed | Keempat ringkasan mempertahankan responsibility dan prohibited boundary masing-masing. |
 | Tabletop approval review | Read, edit, build/test, runtime, cleanup, Git, external state, dan scope change dibedakan | Passed | Fresh sessions meminta authorization terpisah untuk persistent, destructive, Git, external-state, dan scope-change actions. |
 | MkDocs render | Dokumentasi dapat dirender setelah navigation berubah | Not verified | Executable `mkdocs` tidak tersedia dan dependency installation tidak diotorisasi. |
-| Side-effect review | Tidak ada perubahan di luar instruction dan documentation scope | Passed | Tidak ada source change, build, component test, runtime operation, cleanup, commit, push, publication, atau deployment. |
+| Side-effect review | Tidak ada perubahan di luar instruction dan documentation scope | Passed | Tidak ada source change, build, component test, runtime operation, cleanup, commit, publication, atau deployment. |
 
 ## Outcome
 
@@ -105,10 +105,9 @@ structural, discovery, interpretation, serta tabletop verification memenuhi
 expected result. Governance kini aktif untuk fresh Codex session yang dimulai
 dari masing-masing repository root.
 
-Instruction files masih merupakan local working-tree changes. Commit dan push
-tidak dilakukan karena membutuhkan authorization terpisah. MkDocs render belum
-diverifikasi karena executable tidak tersedia, tetapi kondisi ini tidak
-mengurangi hasil instruction discovery dan behavior verification.
+Instruction files telah melalui structural dan behavior verification. MkDocs
+render belum diverifikasi karena executable tidak tersedia, tetapi kondisi ini
+tidak mengurangi hasil instruction discovery dan behavior verification.
 
 ## Lessons Learned
 
@@ -119,15 +118,25 @@ mengurangi hasil instruction discovery dan behavior verification.
 - Tabletop verification membuat batas authorization dapat diuji tanpa
   menimbulkan build, runtime, destructive, Git, atau external-state side effect.
 
+## Source-Control Handoff
+
+Governance repository disimpan terpisah sesuai ownership:
+
+| Repository | Commit |
+| --- | --- |
+| `devops-handbook` | `651710e` |
+| `tomcat` | `e2d2df6` |
+| `tomcat-jmx-exporter` | `231cb91` |
+| `tomcat-monitoring` | `5cff160` |
+
 ## Next Steps
 
-Project owner mereview Stage 07. Commit atau push hanya dilakukan melalui
-authorization terpisah. Technical implementation Tomcat Monitoring berikutnya
-dimulai dalam fresh session agar repository instructions dimuat sejak awal.
+Technical implementation Tomcat Monitoring berikutnya dimulai dalam fresh
+session agar repository instructions dimuat sejak awal.
 
 ## Related Documentation
 
-- [TN-005 — Normalize Runtime Monitoring Foundation Journal](TN-005-normalize-runtime-monitoring-foundation-journal.md)
+- [TN-004 — Normalize Runtime Monitoring Foundation Journal](TN-004-normalize-runtime-monitoring-foundation-journal.md)
 - [Runtime Monitoring Foundation Engineering Journal](index.md)
 - [Stage 06 — Design Repository AGENTS.md Governance](../../../../file/tomcat-monitoring-workflow-review/stage-06-agents-governance-design.md)
 - [Stage 07 — Implement Repository AGENTS.md Governance](../../../../file/tomcat-monitoring-workflow-review/stage-07-implement-agents-governance.md)

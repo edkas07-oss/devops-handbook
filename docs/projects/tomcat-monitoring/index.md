@@ -68,14 +68,14 @@ Bridge.
 
 | Capability | Status |
 | --- | --- |
-| Monitoring architecture | Topology defined; JMX flow verified locally |
+| Monitoring architecture | Topology defined; persistent lab JMX flow verified |
 | Rootless Podman runtime | Available and verified |
-| Tomcat container provisioning | Planned |
+| Tomcat container provisioning | Generic persistent JMX lab target deployed; application provisioning planned |
 | Tomcat JMX Exporter source | Current source `231cb91` published to Gitea; source validation and local image build passed on 2026-08-25 |
-| Tomcat monitoring instrumentation | Current-source image `localhost/tomcat-jmx-exporter:1.0.0` passed local HTTPS/JVM smoke test; deployment planned |
-| Prometheus container | Persistent lab runtime verified on 2026-08-24; dashboard accessible through VPN at `http://edkas-pc1:9090`; isolated JMX TLS scrape verified on 2026-08-25 without changing persistent runtime |
+| Tomcat monitoring instrumentation | Current-source image `localhost/tomcat-jmx-exporter:1.0.0` deployed as persistent generic lab target with internal HTTPS metrics and no host-published metrics port |
+| Prometheus container | Persistent lab runtime uses existing named volumes; dashboard and strict JMX TLS scrape verified on 2026-08-25 through `http://edkas-pc1:9090` |
 | Container status monitoring | Metrics source not determined |
-| Monitoring implementation | Isolated JMX TLS scrape success, strict untrusted-CA failure, and recovery verified; `tomcat_server` accepted as canonical Tomcat baseline metric, while persistent integration remains pending |
+| Monitoring implementation | Persistent JMX target `up=1`; `jvm_memory_heap_used_bytes` and canonical `tomcat_server` available; Telegraf, alerting, and external integration pending |
 | End-to-end verification | Not started |
 
 ## Documentation Structure

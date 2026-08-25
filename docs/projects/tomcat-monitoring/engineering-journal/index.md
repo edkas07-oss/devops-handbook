@@ -26,8 +26,9 @@ Engineering Journal.
   kondisi implementasi terkini.
 - Gunakan ADR untuk memahami alasan dan konsekuensi keputusan arsitektur.
 
-TN-001 sampai TN-004 merupakan reconstructed records yang dinormalisasi setelah
-aktivitas awal berlangsung. TN-005 mencatat proses normalisasi tersebut secara
+Runtime Monitoring Foundation TN-001 sampai TN-003 merupakan reconstructed
+records yang dinormalisasi setelah aktivitas awal berlangsung. TN-004 mencatat
+proses normalisasi tersebut secara
 live agar pembaca dapat membedakan histori awal dari perbaikan dokumentasi.
 
 ## Engineering Phases

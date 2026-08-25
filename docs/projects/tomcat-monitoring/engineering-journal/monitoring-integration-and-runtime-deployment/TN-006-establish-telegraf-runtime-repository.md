@@ -41,7 +41,7 @@ sehingga berstatus Reconstructed secara transparan.
 
 Repository `telegraf` kini memiliki `AGENTS.md`, identity/configuration,
 Containerfile, rootless-friendly entrypoint, dan scripts build/test/run/clean.
-Tidak ada image build, runtime test, container, network, commit, atau push.
+Tidak ada image build, runtime test, container, network, atau commit.
 
 ## 🔗 Related Documentation
 

@@ -1,4 +1,4 @@
-# TN-005 — Normalize Runtime Monitoring Foundation Journal
+# TN-004 — Normalize Runtime Monitoring Foundation Journal
 
 | Field | Value |
 | --- | --- |
@@ -24,7 +24,7 @@ dipahami tanpa mengubah technical history.
 
 ## Background
 
-TN-001 sampai TN-004 dibuat setelah sebagian aktivitas yang diceritakan telah
+TN-001 sampai TN-003 dibuat setelah sebagian aktivitas yang diceritakan telah
 selesai dan menggunakan Engineering Journal template lama. Assessment Stage 04
 menetapkan controlled normalization agar isi historis tetap dipertahankan,
 sementara ambiguity pada tanggal, status, dan evidence diperbaiki secara
@@ -32,7 +32,7 @@ transparan.
 
 ## Scope
 
-- Menambahkan metadata dan reconstruction notice pada TN-001 sampai TN-004;
+- Menambahkan metadata dan reconstruction notice pada TN-001 sampai TN-003;
 - Menambahkan legacy structure mapping pada TN-001;
 - Menambahkan Outcome dan memperjelas evidence pada setiap Technical Note;
 - Memisahkan status current source dari local image verification sebelumnya;
@@ -49,8 +49,8 @@ technical test yang pernah dijalankan.
 | --- | --- |
 | Engineering Journal Standards | Menentukan metadata, record type, Outcome, dan review requirements. |
 | Stage 04 assessment | Menentukan gap, evidence boundary, dan strategi controlled normalization. |
-| TN-001 sampai TN-004 | Menjadi historical records yang dinormalisasi. |
-| Repository `tomcat-jmx-exporter` | Memeriksa commit `82175bb`, `d392717`, dan `origin/main`. |
+| TN-001 sampai TN-003 | Menjadi historical records yang dinormalisasi. |
+| Repository `tomcat-jmx-exporter` | Memeriksa commit `82175bb` dan `d392717`. |
 | TM-ADR-0001 | Memeriksa decision handoff dan completion chronology TN-001. |
 | Project documentation | Memeriksa consistency current-state status. |
 
@@ -69,27 +69,27 @@ technical test yang pernah dijalankan.
 
 | Target | Change |
 | --- | --- |
-| TN-001 sampai TN-004 | Menambahkan activity type, record type, activity date, recorded-date disclosure, owner, authorization metadata, dan reconstruction notice. |
+| TN-001 sampai TN-003 | Menambahkan activity type, record type, activity date, recorded-date disclosure, owner, authorization metadata, dan reconstruction notice. |
 | TN-001 | Menambahkan legacy structure mapping dan completion chronology berdasarkan TM-ADR-0001. |
-| TN-001 sampai TN-004 | Menambahkan Outcome tanpa mengganti technical result historis. |
+| TN-001 sampai TN-003 | Menambahkan Outcome tanpa mengganti technical result historis. |
 | Verification tables | Memisahkan method, expected result, actual result, dan evidence. |
-| TN-003 | Menambahkan follow-up evidence bahwa initial commit menjadi bagian dari history `origin/main`. |
-| TN-004 | Menegaskan bahwa smoke test menggunakan local image yang sudah tersedia dan bukan clean build `d392717`. |
+| TN-002 | Menambahkan source-control handoff untuk initial commit. |
+| TN-003 | Menegaskan bahwa smoke test menggunakan local image yang sudah tersedia dan bukan clean build `d392717`. |
 | Journal index | Menjelaskan perbedaan reconstructed records dan live normalization record. |
-| Phase index | Menambahkan TN-005 serta memisahkan current source dari local image verification. |
+| Phase index | Menambahkan TN-004 serta memisahkan current source dari local image verification. |
 | Current-state documentation | Mengoreksi status pada Overview, Development, Infrastructure, dan CI/CD tanpa mengubah arsitektur. |
-| Navigation | Menambahkan TN-005 ke phase `.pages`. |
+| Navigation | Menambahkan TN-004 ke phase `.pages`. |
 
 ## Review Result
 
 | Review Area | Result | Evidence |
 | --- | --- | --- |
-| Required metadata | Passed | TN-001 sampai TN-005 memiliki status, activity type, record type, project, phase, activity date, recorded date, dan owner. |
-| Reconstruction transparency | Passed | TN-001 sampai TN-004 memiliki reconstruction notice; recorded date yang tidak dapat dibuktikan dinyatakan `Unknown`. |
-| Historical preservation | Passed | Nomor, judul, activity date, technical result, troubleshooting, commit, dan image evidence dipertahankan. |
+| Required metadata | Passed | TN-001 sampai TN-004 memiliki status, activity type, record type, project, phase, activity date, recorded date, dan owner. |
+| Reconstruction transparency | Passed | TN-001 sampai TN-003 memiliki reconstruction notice; recorded date yang tidak dapat dibuktikan dinyatakan `Unknown`. |
+| Historical preservation | Passed | Activity date, technical result, troubleshooting, commit, dan image evidence dipertahankan; source-control-only records kemudian dikonsolidasikan mengikuti governance yang berlaku. |
 | Outcome | Passed | Seluruh Technical Note memiliki Outcome dan outstanding work yang relevan. |
 | Verification boundary | Passed | Current source `d392717` dibedakan dari local image yang diverifikasi pada TN-002. |
-| Navigation | Passed | TN-005 tersedia pada phase index dan `.pages`. |
+| Navigation | Passed | TN-004 tersedia pada phase index dan `.pages`. |
 | Relative links | Passed | Seluruh relative link pada journal records yang dinormalisasi memiliki target. |
 | Markdown integrity | Passed | Code fence berpasangan dan pemeriksaan whitespace tidak menemukan error. |
 | Runtime verification | Not performed | Documentation Consolidation tidak membangun image atau menjalankan smoke test baru. |
@@ -99,7 +99,7 @@ technical test yang pernah dijalankan.
 
 Controlled normalization selesai. Reconstructed records kini menjelaskan
 provenance dan keterbatasannya, sedangkan current-state documentation
-membedakan source publication dari local image verification.
+membedakan source revision dari local image verification.
 
 Clean build dan smoke test dari commit `d392717`, reusable root How-to, serta
 repository-level `AGENTS.md` tetap menjadi outstanding activity terpisah.
@@ -110,6 +110,5 @@ Technical Note ini tidak menghasilkan technical verification baru.
 - [Runtime Monitoring Foundation Engineering Journal](index.md)
 - [TN-001 — Design Runtime Monitoring Contract](TN-001-design-runtime-monitoring-contract.md)
 - [TN-002 — Implement Tomcat JMX Exporter Image](TN-002-implement-tomcat-jmx-exporter-image.md)
-- [TN-003 — Publish Tomcat JMX Exporter Source](TN-003-publish-tomcat-jmx-exporter-source.md)
-- [TN-004 — Standardize Indonesian Self-Documentation](TN-004-standardize-indonesian-self-documentation.md)
+- [TN-003 — Standardize Indonesian Self-Documentation](TN-003-standardize-indonesian-self-documentation.md)
 - [Engineering Journal Standards](../../../../standards/engineering-journal-standards.md)

@@ -171,7 +171,7 @@ Hasil ini menyelesaikan blocker network-client yang dicatat pada [TN-004](TN-004
 
 ## ⚠️ Scope Boundary
 
-Verifikasi ini membuktikan component Telegraf dan configuration health-check pada network test sementara saja. Ia tidak membuktikan scrape Prometheus, runtime Tomcat nyata, TLS, alerting, deployment, registry publication, commit, atau push. Tidak ada persistent container, host port, named volume, secret, atau production target yang dibuat.
+Verifikasi ini membuktikan component Telegraf dan configuration health-check pada network test sementara saja. Ia tidak membuktikan scrape Prometheus, runtime Tomcat nyata, TLS, alerting, deployment, registry publication, atau commit. Tidak ada persistent container, host port, named volume, secret, atau production target yang dibuat.
 
 ## 🧾 Documentation Integrity Check
 
@@ -186,6 +186,17 @@ git -C /home/eddywiyatno/git/devops-handbook diff --check -- docs/projects/tomca
 **Expected result.** Tidak ada output dan exit code `0`.
 
 **Actual result and evidence.** Passed tanpa output dengan exit code `0`.
+
+## 🔄 Source-Control Handoff
+
+Hasil rangkaian implementasi dan verification Telegraf disimpan terpisah sesuai
+repository ownership:
+
+| Repository | Commit | Scope |
+| --- | --- | --- |
+| `telegraf` | `cae6aab` | Generic Telegraf runtime dan lifecycle scripts. |
+| `tomcat-monitoring` | `ce605b8` | Health-check configuration, validator, dan integration baseline. |
+| `devops-handbook` | `3aadf6f` | Engineering Journal dan current-state documentation. |
 
 ## ⏭️ Next Steps
 

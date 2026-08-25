@@ -1,4 +1,4 @@
-# TN-004 — Standardize Indonesian Self-Documentation
+# TN-003 — Standardize Indonesian Self-Documentation
 
 | Field | Value |
 | --- | --- |
@@ -18,7 +18,7 @@
 !!! note "Reconstruction Notice"
 
     Technical Note ini direkonstruksi setelah perubahan self-documentation
-    dipublikasikan. Tanggal pertama dokumen dibuat tidak dapat dibuktikan;
+    selesai. Tanggal pertama dokumen dibuat tidak dapat dibuktikan;
     filesystem hanya menunjukkan dokumen dimodifikasi pada 2026-08-17. Smoke
     test menggunakan local image yang telah dibangun sebelum commit `d392717`;
     catatan ini tidak mengklaim clean image build dari current source.
@@ -30,7 +30,7 @@ bahasa Indonesia tanpa mengubah kontrak, konfigurasi, atau perilaku runtime.
 
 ## Background
 
-Initial source yang dipublikasikan pada TN-003 masih menggunakan bahasa Inggris
+Initial source hasil TN-002 masih menggunakan bahasa Inggris
 pada komentar `CONFIG`, header file, petunjuk penggunaan, dan sebagian pesan
 operator. Source perlu menggunakan bahasa Indonesia agar konsisten dengan
 repository lain dan lebih mudah dipahami oleh pengelola environment.
@@ -44,7 +44,7 @@ Technical Note ini mencakup:
 - Heading dan penjelasan pada `README.md`;
 - Pesan bantuan, build, validation error, cleanup, dan smoke test;
 - Deskripsi OCI image dalam bahasa Indonesia; serta
-- Commit dan publikasi perubahan ke branch `origin/main`.
+- Commit perubahan self-documentation pada branch lokal `main`.
 
 Technical Note ini tidak mencakup:
 
@@ -59,7 +59,7 @@ Technical Note ini tidak mencakup:
 | --- | --- | --- |
 | Initial source | Verified | Commit `82175bb` tersedia pada branch lokal `main` |
 | Existing smoke test | Verified | TN-002 mencatat HTTPS dan JVM metrics test berhasil |
-| Clean starting state | Verified | TN-003 mencatat working tree bersih setelah initial push |
+| Clean starting state | Verified | TN-002 mencatat working tree bersih setelah implementasi awal |
 
 ## Execution Decision
 
@@ -122,17 +122,15 @@ menerapkan keputusan arsitektur baru.
 
 <div class="procedure-step" markdown>
 
-### Publish the Verified Change
+### Record the Verified Change
 
 1. Review kembali perubahan yang telah lulus validation.
 2. Commit perubahan self-documentation pada branch `main`.
-3. Push commit ke repository Gitea dan verifikasi `origin/main` menunjuk commit
-   yang sama.
 
 !!! success "Expected Result"
 
-    Perubahan self-documentation tersedia pada source of truth tanpa membawa
-    perubahan runtime di luar scope.
+    Perubahan self-documentation tersimpan dalam commit yang dapat ditelusuri
+    tanpa membawa perubahan runtime di luar scope.
 
 </div>
 
@@ -149,8 +147,7 @@ Verifikasi dilakukan pada development workstation tanggal 2026-08-15.
 | Comment language | Pencarian pola komentar bahasa Inggris sebelumnya | Tidak ada pola lama yang tersisa | Passed | Search result tidak menemukan pola lama yang ditargetkan |
 | Change scope | Review `git diff --stat` dan content diff | Perubahan terbatas pada sembilan file self-documentation | Passed | Commit `d392717` mengubah sembilan file |
 | Runtime smoke test | `./scripts/test.sh` menggunakan local image yang tersedia | HTTPS `/metrics` dan JVM collection tetap berfungsi | Passed | Output test berbahasa Indonesia; image tidak dibangun ulang dari `d392717` |
-| Published commit | `git log -1` | Perubahan memiliki commit yang dapat ditelusuri | Passed | Commit `d39271715e20f527b45752831cd6e5e901743b53` |
-| Remote publication | `git branch -r --contains d392717` | Commit tersedia pada `origin/main` | Passed | `origin/main` memuat commit `d392717` |
+| Source commit | `git log -1` | Perubahan memiliki commit yang dapat ditelusuri | Passed | Commit `d39271715e20f527b45752831cd6e5e901743b53` |
 
 Image tidak dibangun ulang karena instruction runtime tidak berubah. Deskripsi
 OCI berbahasa Indonesia akan diterapkan pada build image berikutnya. Smoke test
@@ -169,14 +166,13 @@ dibangun sebelumnya, bukan build baru dari working tree.
 
 - Koreksi OCI source label pada perubahan source terpisah karena URL saat ini
   masih menggunakan `localhost`, bukan hostname remote Gitea aktual.
-- Gunakan source yang telah dipublikasikan sebagai input CI build berikutnya.
+- Gunakan source hasil perubahan sebagai input CI build berikutnya.
 
 ## Outcome
 
-Self-documentation bahasa Indonesia telah divalidasi, di-commit sebagai
-`d392717`, dan tersedia pada `origin/main`. Objective perubahan dokumentasi
-source dinyatakan selesai tanpa klaim bahwa current source telah menghasilkan
-image baru.
+Self-documentation bahasa Indonesia telah divalidasi dan disimpan sebagai
+commit `d392717`. Objective perubahan dokumentasi source dinyatakan selesai
+tanpa klaim bahwa current source telah menghasilkan image baru.
 
 Local smoke test tetap membuktikan behavior image yang telah tersedia dari
 aktivitas TN-002. Clean build dan smoke test dari commit `d392717`, koreksi OCI
@@ -185,7 +181,7 @@ work terpisah.
 
 ## Related Documentation
 
-- [TN-003 — Publish Tomcat JMX Exporter Source](TN-003-publish-tomcat-jmx-exporter-source.md)
+- [TN-002 — Implement Tomcat JMX Exporter Image](TN-002-implement-tomcat-jmx-exporter-image.md)
 - [Runtime Monitoring Foundation Engineering Journal](index.md)
 - [Development](../../development/index.md)
 - [CI/CD](../../ci-cd/index.md)

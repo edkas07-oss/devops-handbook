@@ -71,6 +71,13 @@ Setelah diterbitkan, pertahankan konteks historis Technical Note. Koreksi salah
 ketik atau tautan yang rusak diperbolehkan. Perubahan engineering berikutnya
 dicatat pada Technical Note baru dan dihubungkan dengan catatan sebelumnya.
 
+Pengecualian hanya berlaku untuk controlled documentation migration yang
+disetujui project owner, seperti menggabungkan Technical Note yang hanya
+mencatat source control ke aktivitas teknis pemiliknya. Migrasi tersebut wajib
+mempertahankan technical result, activity date, verification evidence, dan
+commit identity yang masih relevan serta memperbarui seluruh nomor, navigation,
+dan tautan secara konsisten.
+
 ### Current-state separation
 
 Perintah, nilai konfigurasi, atau arsitektur di dalam jurnal dapat menjadi
@@ -405,7 +412,9 @@ Aturan penomoran:
 1. Gunakan tiga digit dan mulai dari `TN-001`.
 2. Nomor berurutan berdasarkan kemunculan Technical Note di dalam satu fase.
 3. Penomoran boleh dimulai kembali dari `TN-001` pada fase berbeda.
-4. Nomor yang telah diterbitkan tidak digunakan ulang atau diubah.
+4. Nomor yang telah diterbitkan tidak digunakan ulang atau diubah, kecuali
+   controlled documentation migration memenuhi pengecualian pada prinsip
+   `Append-oriented`.
 5. Sisipkan aktivitas baru dengan nomor berikutnya, lalu jelaskan hubungan
    kronologisnya melalui tautan.
 
@@ -804,6 +813,40 @@ verifikasi telah dilakukan.
     outstanding item, dan residual risk.
 11. Review tautan, data sensitif, chronology, metadata, dan evidence sebelum
     diterbitkan.
+
+### Version-control handoff
+
+Stage, commit, push, dan konfirmasi push rutin merupakan mekanisme pengelolaan
+source, bukan objective engineering yang berdiri sendiri. Jangan membuat
+Technical Note baru, menambah entri phase index, atau memperpanjang rangkaian
+aktivitas hanya untuk operasi tersebut.
+
+Terapkan batas berikut:
+
+- Commit yang diperlukan untuk menyimpan hasil aktivitas tetap menjadi bagian
+  dari Technical Note yang menghasilkan perubahan. Jangan memecah commit atau
+  finalisasi dokumentasi menjadi Technical Note terpisah.
+- Push dilakukan manual oleh operator setelah handoff, kecuali authorization
+  eksplisit menetapkan mekanisme lain. Informasikan kebutuhan push pada
+  session handoff, bukan sebagai `Next Steps` Technical Note atau record
+  publication tambahan.
+- Push manual dan konfirmasi rutin bahwa push selesai tidak perlu dicatat pada
+  Engineering Journal. Commit identity hanya dicatat jika diperlukan untuk
+  traceability hasil utama.
+- Publication, audit remote ref, troubleshooting Git, atau recovery boleh
+  menjadi Technical Note hanya ketika aktivitas tersebut merupakan objective
+  engineering, release, atau compliance yang disetujui secara eksplisit dan
+  memiliki verification criteria sendiri.
+- Technical Note source-control-only yang sudah ada boleh digabungkan melalui
+  controlled documentation migration dengan authorization project owner.
+  Pertahankan commit scope dan identity pada Technical Note teknis pemilik
+  perubahan, hapus detail push rutin, lalu validasi ulang numbering,
+  navigation, dan seluruh tautan.
+
+Aturan ini mengatur granularitas Engineering Journal dan tidak memberikan
+authorization untuk stage, commit, push, perubahan branch, atau remote
+mutation. Permission dan workflow Git tetap mengikuti `AGENTS.md` serta
+authorization repository yang berlaku.
 
 ### Runtime Component Ownership Gate
 

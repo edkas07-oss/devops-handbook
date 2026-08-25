@@ -8,8 +8,9 @@ dikonsumsi repository `tomcat-monitoring`. Baseline integration, runtime
 generik Telegraf dan Prometheus, scrape configuration, serta persistent lab
 Prometheus dengan named volumes telah tersedia. Isolated JMX TLS scrape,
 strict untrusted-CA failure, dan recovery telah diverifikasi tanpa mengubah
-persistent Prometheus. Runtime metric-name contract telah direkonsiliasi;
-persistent integration dan verifikasi end-to-end belum diterapkan.
+persistent Prometheus. Runtime metric-name contract telah direkonsiliasi.
+Persistent lab JMX TLS scrape kemudian diterapkan dan diverifikasi dengan data
+volume yang sama; verifikasi end-to-end tetap belum diterapkan.
 
 ## 🎯 Objective
 
@@ -60,86 +61,68 @@ melampaui keputusan, secret boundary, atau authorization yang tersedia.
     `edkas-pc1` untuk endpoint metrics; berhasil membuktikan kondisi sehat,
     body mismatch, status mismatch, dan cleanup resource sementara.
 
-9. **[TN-009 — Commit Telegraf, Integration, and Journal Source](TN-009-commit-telegraf-integration-and-journal-source.md)**
-
-    Mencatat commit lokal yang terpisah menurut ownership repository tanpa
-    menyertakan perubahan handbook yang tidak terkait.
-
-10. **[TN-010 — Establish Prometheus Runtime Repository](TN-010-establish-prometheus-runtime-repository.md)**
+9. **[TN-009 — Establish Prometheus Runtime Repository](TN-009-establish-prometheus-runtime-repository.md)**
 
     Menetapkan ownership dan menerapkan source runtime Prometheus generik yang
     telah lolos static validation, sebelum configuration scrape project dibuat.
 
-11. **[TN-011 — Build and Smoke Test Prometheus Runtime](TN-011-build-and-smoke-test-prometheus-runtime.md)**
+10. **[TN-010 — Build and Smoke Test Prometheus Runtime](TN-010-build-and-smoke-test-prometheus-runtime.md)**
 
     Membangun dan menjalankan smoke test sementara pada image runtime
     Prometheus generik tanpa configuration atau deployment integration.
 
-12. **[TN-012 — Reconcile and Commit Prometheus Runtime Journal Evidence](TN-012-reconcile-and-commit-prometheus-runtime-journal-evidence.md)**
-
-    Menyelaraskan journal evidence dengan commit runtime Prometheus aktual dan
-    menyimpan dokumentasi fase dalam commit lokal Handbook yang terarah.
-
-13. **[TN-013 — Define Prometheus Scrape Configuration Contract](TN-013-define-prometheus-scrape-configuration-contract.md)**
+11. **[TN-011 — Define Prometheus Scrape Configuration Contract](TN-011-define-prometheus-scrape-configuration-contract.md)**
 
     Menetapkan target scrape non-secret, timing, TLS trust reference, dan
     validation boundary sebelum configuration Prometheus diimplementasikan.
 
-14. **[TN-014 — Implement Prometheus Scrape Configuration and Lab Access](TN-014-implement-prometheus-scrape-configuration-and-lab-access.md)**
+12. **[TN-012 — Implement Prometheus Scrape Configuration and Lab Access](TN-012-implement-prometheus-scrape-configuration-and-lab-access.md)**
 
     Mengimplementasikan configuration dan validator Prometheus serta optional
     host-port publication untuk akses dashboard pada environment lab.
 
-15. **[TN-015 — Verify Prometheus Named-Volume Runtime and Lab Access](TN-015-verify-prometheus-named-volume-runtime-and-lab-access.md)**
+13. **[TN-013 — Verify Prometheus Named-Volume Runtime and Lab Access](TN-013-verify-prometheus-named-volume-runtime-and-lab-access.md)**
 
     Memverifikasi semantic configuration dan persistent Prometheus lab runtime
     menggunakan named volumes tanpa host bind.
 
-16. **[TN-016 — Reconcile and Commit Prometheus Scrape and Lab Runtime Changes](TN-016-reconcile-and-commit-prometheus-scrape-and-lab-runtime-changes.md)**
-
-    Merekonsiliasi dan menyimpan source, configuration, serta journal evidence
-    TN-013 sampai TN-015 dalam local commit terpisah sesuai ownership
-    repository.
-
-17. **[TN-017 — Define JMX Exporter Configuration and Lab TLS Integration Contract](TN-017-define-jmx-exporter-configuration-and-lab-tls-integration-contract.md)**
+14. **[TN-014 — Define JMX Exporter Configuration and Lab TLS Integration Contract](TN-014-define-jmx-exporter-configuration-and-lab-tls-integration-contract.md)**
 
     Menilai configuration baseline, lab TLS, isolated runtime topology, dan
     cleanup contract sebelum JMX Exporter scrape integration diterapkan.
 
-18. **[TN-018 — Implement JMX Exporter Baseline Configuration and Validation](TN-018-implement-jmx-exporter-baseline-configuration-and-validation.md)**
+15. **[TN-015 — Implement JMX Exporter Baseline Configuration and Validation](TN-015-implement-jmx-exporter-baseline-configuration-and-validation.md)**
 
     Mengimplementasikan two-rule JMX Exporter integration baseline dan static
     validator tanpa menjalankan runtime.
 
-19. **[TN-019 — Commit JMX Exporter Baseline Configuration and Decision Evidence](TN-019-commit-jmx-exporter-baseline-configuration-and-decision-evidence.md)**
-
-    Menyimpan source serta decision evidence TN-017 dan TN-018 dalam local
-    commit terpisah sesuai ownership repository.
-
-20. **[TN-020 — Verify Isolated JMX Exporter TLS Scrape Integration](TN-020-verify-isolated-jmx-exporter-tls-scrape-integration.md)**
+16. **[TN-016 — Verify Isolated JMX Exporter TLS Scrape Integration](TN-016-verify-isolated-jmx-exporter-tls-scrape-integration.md)**
 
     Memverifikasi successful dan failed TLS scrape behavior menggunakan
     temporary Prometheus topology, lalu membersihkan exact TN-scoped resources.
 
-21. **[TN-021 — Reconcile Tomcat Server Metric Name Contract](TN-021-reconcile-tomcat-server-metric-name-contract.md)**
+17. **[TN-017 — Reconcile Tomcat Server Metric Name Contract](TN-017-reconcile-tomcat-server-metric-name-contract.md)**
 
     Menyelaraskan source, validator, dan documentation dengan canonical
-    runtime metric name `tomcat_server` berdasarkan evidence TN-020.
+    runtime metric name `tomcat_server` berdasarkan evidence TN-016.
 
-22. **[TN-022 — Commit JMX TLS Integration and Metric Contract Evidence](TN-022-commit-jmx-tls-integration-and-metric-contract-evidence.md)**
+18. **[TN-018 — Define Persistent Lab JMX Scrape Integration Contract](TN-018-define-persistent-lab-jmx-scrape-integration-contract.md)**
 
-    Menyimpan source dan documentation evidence TN-020 sampai TN-022 dalam
-    local commits terpisah sesuai repository ownership.
+    Menilai persistent Prometheus, Tomcat/JMX target, TLS lifecycle, continuity,
+    rollback, dan verification boundary sebelum persistent integration
+    mendapatkan implementation authorization.
 
-23. **[TN-023 — Verify Publication of JMX Integration Commits](TN-023-verify-publication-of-jmx-integration-commits.md)**
+19. **[TN-019 — Define Persistent Lab Self-Signed Certificate Lifecycle](TN-019-define-persistent-lab-self-signed-certificate-lifecycle.md)**
 
-    Memverifikasi exact remote `main` identities untuk source dan Handbook
-    commits TN-022 tanpa melakukan remote mutation baru.
+    Menetapkan non-Git storage, permissions, validity, renewal, distribution,
+    rotation, rollback, revocation, dan cleanup contract untuk self-signed
+    certificate persistent lab.
 
-24. **[TN-024 — Commit Publication Verification Evidence](TN-024-commit-publication-verification-evidence.md)**
+20. **[TN-020 — Deploy Persistent Lab JMX TLS Scrape Integration](TN-020-deploy-persistent-lab-jmx-tls-scrape-integration.md)**
 
-    Menyimpan TN-023 publication evidence dan TN-024 commit record dalam satu
-    local Handbook commit yang terarah.
+    Menerapkan persistent JMX TLS target dan controlled Prometheus replacement,
+    lalu memverifikasi strict scrape, baseline metrics, dashboard readiness,
+    serta data-volume continuity.
 
 ## 🔗 Related Documentation
 

@@ -1,4 +1,4 @@
-# TN-020 — Verify Isolated JMX Exporter TLS Scrape Integration
+# TN-016 — Verify Isolated JMX Exporter TLS Scrape Integration
 
 | Field | Value |
 | --- | --- |
@@ -19,16 +19,16 @@
 
 Membuktikan successful dan failed TLS scrape behavior antara temporary
 Prometheus dan JMX Exporter pada isolated lab topology, lalu membersihkan
-seluruh resource TN-020.
+seluruh resource TN-016.
 
 ## 🌍 Background
 
-TN-017 menetapkan accepted contract untuk lab TLS, isolated topology, failure
-behavior, dan exact cleanup. TN-018 menerapkan two-rule JMX Exporter baseline,
-sedangkan TN-019 menyimpan source serta decision evidence. Semantic parsing,
+TN-014 menetapkan accepted contract untuk lab TLS, isolated topology, failure
+behavior, dan exact cleanup. TN-015 menerapkan two-rule JMX Exporter baseline
+serta mencatat source-control handoff. Semantic parsing,
 TLS handshake, hostname verification, dan Prometheus scrape belum diverifikasi.
 
-Project owner menyetujui TN-020 pada 2026-08-25, termasuk pembuatan temporary
+Project owner menyetujui TN-016 pada 2026-08-25, termasuk pembuatan temporary
 TLS material, containers `tomcat-jmx-exporter` dan `prometheus-tn020`, volumes
 `prometheus_tn020_config`, `prometheus_tn020_truststore`, serta
 `prometheus_tn020_data`, success/failure verification, dan exact cleanup.
@@ -51,19 +51,19 @@ TLS material, containers `tomcat-jmx-exporter` dan `prometheus-tn020`, volumes
 Existing container `prometheus`, volumes `prometheus_config`,
 `prometheus_truststore`, `prometheus_data`, image, network `devops-lab`,
 `.artifacts`, production certificate lifecycle, full operational metric
-catalog, deployment, commit, dan push tidak termasuk scope.
+catalog, deployment, dan commit tidak termasuk scope.
 
 ## ✅ Criteria
 
 | Criterion | Expected result |
 | --- | --- |
 | Source and image identity | Current-source image ID `47eaad88a544` dan Prometheus image tersedia. |
-| Isolation | Hanya exact TN-020 containers dan volumes dibuat pada existing `devops-lab`. |
+| Isolation | Hanya exact temporary containers dan volumes dibuat pada existing `devops-lab`. |
 | TLS success | Target `tomcat-jmx-exporter` berstatus `up=1` dengan hostname verification aktif. |
 | Baseline metrics | Query API mengembalikan `jvm_memory_heap_used_bytes` dan `tomcat_server_info`. |
 | TLS failure | Untrusted certificate atau hostname mismatch membuat target down tanpa `insecure_skip_verify`. |
 | Persistent boundary | Existing Prometheus container dan volumes tidak diubah. |
-| Cleanup | Exact TN-020 containers, volumes, dan TLS directory tidak tersisa. |
+| Cleanup | Exact temporary containers, volumes, dan TLS directory tidak tersisa. |
 
 ## 🧪 Method
 
@@ -113,7 +113,7 @@ permission `/run/user/1000/libpod`. Inspection yang sama berhasil setelah
 runtime access disetujui. Exact collision result, network, dan image readiness
 divalidasi kembali sebelum resource dibuat.
 
-Final preflight tidak menemukan container atau volume dengan exact TN-020
+Final preflight tidak menemukan container atau volume dengan exact TN-016
 names. Existing `prometheus` berstatus running, network `devops-lab` tersedia,
 dan kedua image tersedia.
 
@@ -236,14 +236,14 @@ network `devops-lab` tetap tersedia.
 
 ```bash
 git diff --check
-rg -n '[[:blank:]]+$' docs/projects/tomcat-monitoring/index.md docs/projects/tomcat-monitoring/development/index.md docs/projects/tomcat-monitoring/infrastructure/index.md docs/projects/tomcat-monitoring/operations/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-020-verify-isolated-jmx-exporter-tls-scrape-integration.md
-rg -n '^\| Status \| Completed \|$|TN-020|tomcat_server_info|tomcat_server|up=1|up=0|unknown authority' docs/projects/tomcat-monitoring/index.md docs/projects/tomcat-monitoring/development/index.md docs/projects/tomcat-monitoring/infrastructure/index.md docs/projects/tomcat-monitoring/operations/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-020-verify-isolated-jmx-exporter-tls-scrape-integration.md
+rg -n '[[:blank:]]+$' docs/projects/tomcat-monitoring/index.md docs/projects/tomcat-monitoring/development/index.md docs/projects/tomcat-monitoring/infrastructure/index.md docs/projects/tomcat-monitoring/operations/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-016-verify-isolated-jmx-exporter-tls-scrape-integration.md
+rg -n '^\| Status \| Completed \|$|TN-016|tomcat_server_info|tomcat_server|up=1|up=0|unknown authority' docs/projects/tomcat-monitoring/index.md docs/projects/tomcat-monitoring/development/index.md docs/projects/tomcat-monitoring/infrastructure/index.md docs/projects/tomcat-monitoring/operations/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-016-verify-isolated-jmx-exporter-tls-scrape-integration.md
 command -v mkdocs
 git diff --stat
 git status --short --branch
 ```
 
-Diff check lulus, trailing-whitespace scan tidak menemukan match, TN-020
+Diff check lulus, trailing-whitespace scan tidak menemukan match, TN-016
 terdaftar pada navigation dan phase index, serta current-state pages
 mempertahankan result boundary. MkDocs render berstatus `Not verified` karena
 executable tidak tersedia dan dependency tidak dipasang.
@@ -252,7 +252,7 @@ executable tidak tersedia dan dependency tidak dipasang.
 
 | Method | Expected result | Actual result | Evidence |
 | --- | --- | --- | --- |
-| Source and image inspection | Image yang diuji terhubung dengan current source. | Passed. | Source `231cb91`; image ID `47eaad88a544`, sesuai TN-008. |
+| Source and image inspection | Image yang diuji terhubung dengan current source. | Passed. | Source `231cb91`; image ID `47eaad88a544`, sesuai Runtime Monitoring Foundation TN-006. |
 | Prometheus target dan query API | TLS target up dan dua expected baseline names tersedia. | Partial; target `up=1` dan JVM metric tersedia, tetapi configured Tomcat name tidak. | Target API, JVM query, empty `tomcat_server_info` query, dan `tomcat_server` series. |
 | Untrusted-CA test | Strict verification menurunkan target. | Passed; `up=0` dengan x509 unknown-authority error. | Target dan query API. |
 | Trusted-CA recovery | Target kembali up tanpa menonaktifkan verification. | Passed; `up=1`. | Query API setelah CA restoration. |
@@ -275,12 +275,12 @@ executable tidak tersedia dan dependency tidak dipasang.
 
 Configured metric `tomcat_server_info` tidak tersedia dengan exact name pada
 Prometheus 3.13.2. Runtime menghasilkan `tomcat_server` dengan expected Tomcat
-version label. TN-020 tidak mengubah source karena configuration dan validator
+version label. TN-016 tidak mengubah source karena configuration dan validator
 reconciliation berada di luar authorized verification scope.
 
 Telegraf target pada shared configuration berstatus down karena container
 alias `telegraf` tidak tersedia. Kondisi ini expected dan berada di luar
-JMX-only objective TN-020.
+JMX-only objective TN-016.
 
 ## ❓ Open Questions
 
@@ -288,12 +288,12 @@ JMX-only objective TN-020.
 | --- | --- | --- | --- | --- |
 | Apakah downstream contract menggunakan runtime series `tomcat_server`, atau source rule harus diubah agar exact `tomcat_server_info` tersedia? | Open | Project owner dan `tomcat-monitoring` source owner | Runtime naming behavior dinilai, satu canonical name diterima, lalu configuration, validator, dan current-state documentation direkonsiliasi. | Dashboard dan alert contract untuk Tomcat server-info metric; tidak memblokir TLS path evidence. |
 
-### Resolution recorded by TN-021
+### Resolution recorded by TN-017
 
 Project owner menerima `tomcat_server` sebagai canonical runtime contract pada
-2026-08-25. TN-021 merekonsiliasi configuration, validator, dan current-state
+2026-08-25. TN-017 merekonsiliasi configuration, validator, dan current-state
 documentation; resolution tersebut menutup pertanyaan tanpa mengubah runtime
-evidence historis TN-020.
+evidence historis TN-016.
 
 ## ⚙️ Commands Executed
 
@@ -319,12 +319,11 @@ Telegraf scrape, full metric coverage, alerting, atau end-to-end monitoring.
 ## ⏭️ Next Steps
 
 Metric-name reconciliation dilanjutkan oleh
-[TN-021](TN-021-reconcile-tomcat-server-metric-name-contract.md). Persistent
+[TN-017](TN-017-reconcile-tomcat-server-metric-name-contract.md). Persistent
 integration tetap memerlukan authorization terpisah.
 
 ## 🔗 Related Documentation
 
-- [TN-017 — Define JMX Exporter Configuration and Lab TLS Integration Contract](TN-017-define-jmx-exporter-configuration-and-lab-tls-integration-contract.md)
-- [TN-018 — Implement JMX Exporter Baseline Configuration and Validation](TN-018-implement-jmx-exporter-baseline-configuration-and-validation.md)
-- [TN-019 — Commit JMX Exporter Baseline Configuration and Decision Evidence](TN-019-commit-jmx-exporter-baseline-configuration-and-decision-evidence.md)
+- [TN-014 — Define JMX Exporter Configuration and Lab TLS Integration Contract](TN-014-define-jmx-exporter-configuration-and-lab-tls-integration-contract.md)
+- [TN-015 — Implement JMX Exporter Baseline Configuration and Validation](TN-015-implement-jmx-exporter-baseline-configuration-and-validation.md)
 - [Tomcat Monitoring](../../index.md)

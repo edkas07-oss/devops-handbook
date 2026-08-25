@@ -1,4 +1,4 @@
-# TN-017 — Define JMX Exporter Configuration and Lab TLS Integration Contract
+# TN-014 — Define JMX Exporter Configuration and Lab TLS Integration Contract
 
 | Field | Value |
 | --- | --- |
@@ -23,16 +23,16 @@ JMX Exporter image pada local lab.
 
 ## 🌍 Background
 
-TN-008 membuktikan current source `tomcat-jmx-exporter` dapat menghasilkan
-image lokal yang menyajikan HTTPS metrics dan JVM heap metric. TN-009 menyimpan
-documentation evidence tersebut. Prometheus scrape configuration sudah
+Runtime Monitoring Foundation TN-006 membuktikan current source
+`tomcat-jmx-exporter` dapat menghasilkan image lokal yang menyajikan HTTPS
+metrics dan JVM heap metric. Prometheus scrape configuration sudah
 menargetkan `https://tomcat-jmx-exporter:9404/metrics`, tetapi integration
 repository belum memiliki executable JMX Exporter configuration atau static
 validator.
 
 Runtime integration juga belum memiliki lab certificate dengan SAN
 `tomcat-jmx-exporter`, trust material yang cocok, exact temporary resource
-names, dan cleanup plan. Project owner menyetujui TN-017 sebagai documentation
+names, dan cleanup plan. Project owner menyetujui TN-014 sebagai documentation
 dan decision gate tanpa perubahan source configuration maupun runtime, serta
 meminta pekerjaan tetap mengikuti standar dan mengutamakan efisiensi serta
 efektivitas penggunaan Codex.
@@ -49,7 +49,7 @@ efektivitas penggunaan Codex.
   lifecycle sebagai follow-up terpisah.
 
 Pembuatan configuration, validator, certificate, container, volume, image,
-Prometheus reload, scrape test, cleanup runtime, commit, dan push tidak termasuk
+Prometheus reload, scrape test, cleanup runtime, dan commit tidak termasuk
 scope.
 
 ## 📥 Inputs
@@ -106,9 +106,9 @@ scope.
 
 | Question | State | Owner | Closure condition | Blocked activity |
 | --- | --- | --- | --- | --- |
-| Apakah minimum two-rule configuration diterima sebagai integration proof, bukan final coverage? | Answered | Project owner | Recommendation A diterima pada 2026-08-25. | Tidak ada untuk planning TN-018; implementation tetap memerlukan authorization. |
-| Apakah lab certificate boleh self-signed dan hanya berlaku untuk temporary integration test? | Answered | Project owner | Recommendation B diterima pada 2026-08-25. | Tidak ada untuk planning TN-020; runtime mutation tetap memerlukan authorization. |
-| Apakah persistent Prometheus harus tetap tidak berubah selama integration test? | Answered | Project owner | Recommendation C diterima pada 2026-08-25. | Tidak ada untuk planning TN-020; runtime mutation tetap memerlukan authorization. |
+| Apakah minimum two-rule configuration diterima sebagai integration proof, bukan final coverage? | Answered | Project owner | Recommendation A diterima pada 2026-08-25. | Tidak ada untuk planning TN-015; implementation tetap memerlukan authorization. |
+| Apakah lab certificate boleh self-signed dan hanya berlaku untuk temporary integration test? | Answered | Project owner | Recommendation B diterima pada 2026-08-25. | Tidak ada untuk planning TN-016; runtime mutation tetap memerlukan authorization. |
+| Apakah persistent Prometheus harus tetap tidak berubah selama integration test? | Answered | Project owner | Recommendation C diterima pada 2026-08-25. | Tidak ada untuk planning TN-016; runtime mutation tetap memerlukan authorization. |
 | Kapan full operational metric catalog dibuat? | Deferred | Project owner | JMX scrape path lulus dan metric-catalog scope disetujui. | Dashboard dan alert coverage; tidak memblokir integration proof. |
 | Bagaimana production certificate lifecycle? | Deferred | Infrastructure atau PKI owner | Issuance, distribution, renewal, revocation, dan secret injection contract disetujui. | Production deployment; tidak memblokir isolated lab test. |
 
@@ -116,7 +116,7 @@ scope.
 
 ### Recommendation A — Minimum source configuration
 
-- Tambahkan `config/jmx-exporter/jmx-exporter.yml` pada TN-018.
+- Tambahkan `config/jmx-exporter/jmx-exporter.yml` pada TN-015.
 - Gunakan TLS structure dan dua rules yang sudah diverifikasi pada example:
   `jvm_memory_heap_used_bytes` serta `tomcat_server_info`.
 - Nyatakan bahwa rules tersebut hanya integration baseline, bukan final
@@ -129,7 +129,7 @@ scope.
 
 ### Recommendation B — Lab TLS boundary
 
-- TN-020 membuat self-signed lab certificate dengan SAN
+- TN-016 membuat self-signed lab certificate dengan SAN
   `DNS:tomcat-jmx-exporter` di directory
   `/tmp/tomcat-monitoring-tn020-tls.XXXXXX`.
 - Certificate, private key, PKCS12 keystore, dan password file tidak masuk Git,
@@ -167,8 +167,8 @@ scope.
 
 ### Recommendation E — Activity split
 
-1. TN-018 mengimplementasikan configuration dan validator source-only.
-2. TN-020 membuat temporary TLS/runtime resources, memverifikasi successful
+1. TN-015 mengimplementasikan configuration dan validator source-only.
+2. TN-016 membuat temporary TLS/runtime resources, memverifikasi successful
    dan failed TLS scrape behavior, lalu membersihkan exact targets.
 3. Follow-up terpisah memperluas metric catalog setelah integration path
    terbukti.
@@ -176,9 +176,9 @@ scope.
 ## 🧭 Decision Handoff
 
 Project owner menerima Recommendation A sampai E pada 2026-08-25. Keputusan
-tersebut menutup TN-017 dan menjadi planning baseline untuk TN-018 serta TN-020.
+tersebut menutup TN-014 dan menjadi planning baseline untuk TN-015 serta TN-016.
 Acceptance tidak mengizinkan source change, certificate generation, runtime
-mutation, cleanup, commit, atau push secara otomatis.
+mutation, cleanup, atau commit secara otomatis.
 
 ## ⚙️ Commands Executed
 
@@ -186,13 +186,13 @@ mutation, cleanup, commit, atau push secara otomatis.
 
 ```bash
 git status --short --branch
-sed -n '1,220p' docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/TN-009-commit-current-jmx-exporter-verification-documentation.md
+sed -n '1,220p' docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/TN-006-build-and-smoke-test-current-tomcat-jmx-exporter-source.md
 sed -n '1,180p' config/jmx-exporter/README.md
 sed -n '1,180p' config/prometheus/prometheus.yml
 sed -n '1,260p' config/telegraf/health-check.conf
 sed -n '1,320p' scripts/run.sh
 sed -n '1,280p' scripts/run.sh
-sed -n '100,145p;245,285p' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-013-define-prometheus-scrape-configuration-contract.md
+sed -n '100,145p;245,285p' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-011-define-prometheus-scrape-configuration-contract.md
 sed -n '1,260p' examples/jmx-exporter.yml
 rg -n 'JMX Exporter|JVM|Tomcat|heap|thread|session|9404|TLS|certificate|metric rules' docs/projects/tomcat-monitoring/architecture/index.md docs/projects/tomcat-monitoring/operations/index.md
 sed -n '1,260p' scripts/validate-telegraf.sh
@@ -210,10 +210,10 @@ inspection atau perubahan source dilakukan.
 
 ```bash
 git diff --check
-rg -n '[[:blank:]]+$' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-017-define-jmx-exporter-configuration-and-lab-tls-integration-contract.md
-rg -n '^\| Status \| In Progress \|$|Recommendation [A-E]|TN-017' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-017-define-jmx-exporter-configuration-and-lab-tls-integration-contract.md
-test -f docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-016-reconcile-and-commit-prometheus-scrape-and-lab-runtime-changes.md
-test -f docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/TN-008-build-and-smoke-test-current-tomcat-jmx-exporter-source.md
+rg -n '[[:blank:]]+$' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-014-define-jmx-exporter-configuration-and-lab-tls-integration-contract.md
+rg -n '^\| Status \| In Progress \|$|Recommendation [A-E]|TN-014' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-014-define-jmx-exporter-configuration-and-lab-tls-integration-contract.md
+test -f docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-013-verify-prometheus-named-volume-runtime-and-lab-access.md
+test -f docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/TN-006-build-and-smoke-test-current-tomcat-jmx-exporter-source.md
 test -f docs/projects/tomcat-monitoring/architecture/index.md
 test -f docs/projects/tomcat-monitoring/infrastructure/index.md
 test -f docs/projects/tomcat-monitoring/operations/index.md
@@ -221,8 +221,8 @@ command -v mkdocs
 git status --short --branch
 ```
 
-Diff check lulus, trailing-whitespace scan tidak menemukan match, TN-017
-terdaftar setelah TN-016, seluruh related-documentation target tersedia, dan
+Diff check lulus, trailing-whitespace scan tidak menemukan match, TN-014
+terdaftar setelah TN-013, seluruh related-documentation target tersedia, dan
 lima recommendations ditemukan. MkDocs render berstatus `Not verified` karena
 executable tidak tersedia dan dependency tidak dipasang.
 
@@ -230,8 +230,8 @@ executable tidak tersedia dan dependency tidak dipasang.
 
 ```bash
 git diff --check
-rg -n '[[:blank:]]+$' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-017-define-jmx-exporter-configuration-and-lab-tls-integration-contract.md
-rg -n '^\| Status \| Completed \|$|Recommendation A sampai E pada 2026-08-25|\| Answered \|' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-017-define-jmx-exporter-configuration-and-lab-tls-integration-contract.md
+rg -n '[[:blank:]]+$' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-014-define-jmx-exporter-configuration-and-lab-tls-integration-contract.md
+rg -n '^\| Status \| Completed \|$|Recommendation A sampai E pada 2026-08-25|\| Answered \|' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-014-define-jmx-exporter-configuration-and-lab-tls-integration-contract.md
 git status --short --branch
 ```
 
@@ -242,8 +242,8 @@ yang bersih.
 ## 🧾 Outcome
 
 Assessment dan Decision Gate selesai. Project owner menerima Recommendation A
-sampai E pada 2026-08-25. TN-018 memiliki planning baseline untuk minimum
-source configuration serta static validator; TN-020 memiliki baseline untuk
+sampai E pada 2026-08-25. TN-015 memiliki planning baseline untuk minimum
+source configuration serta static validator; TN-016 memiliki baseline untuk
 isolated TLS/runtime verification dan exact cleanup.
 
 Tidak ada source configuration, certificate, container, volume, network,
@@ -251,14 +251,14 @@ persistent Prometheus state, commit, atau remote state yang diubah.
 
 ## ⏭️ Next Steps
 
-TN-018 dapat dimulai hanya setelah source implementation scope dan verification
-criteria mendapatkan authorization eksplisit. TN-020 tetap memiliki
-authorization gate terpisah setelah TN-018 selesai.
+TN-015 dapat dimulai hanya setelah source implementation scope dan verification
+criteria mendapatkan authorization eksplisit. TN-016 tetap memiliki
+authorization gate terpisah setelah TN-015 selesai.
 
 ## 🔗 Related Documentation
 
-- [TN-016 — Reconcile and Commit Prometheus Scrape and Lab Runtime Changes](TN-016-reconcile-and-commit-prometheus-scrape-and-lab-runtime-changes.md)
-- [Runtime Monitoring Foundation TN-008](../runtime-monitoring-foundation/TN-008-build-and-smoke-test-current-tomcat-jmx-exporter-source.md)
+- [TN-013 — Verify Prometheus Named-Volume Runtime and Lab Access](TN-013-verify-prometheus-named-volume-runtime-and-lab-access.md)
+- [Runtime Monitoring Foundation TN-006](../runtime-monitoring-foundation/TN-006-build-and-smoke-test-current-tomcat-jmx-exporter-source.md)
 - [Architecture](../../architecture/index.md)
 - [Infrastructure](../../infrastructure/index.md)
 - [Operations](../../operations/index.md)

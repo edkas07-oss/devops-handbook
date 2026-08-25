@@ -54,7 +54,7 @@ Telegraf runtime source revision saat ini berhasil dibangun sebagai
 `localhost/telegraf:1.0.0` dan lulus smoke test binary/non-root. Klaim ini
 terbatas pada image lokal dan container sementara; tidak membuktikan runtime
 configuration, Telegraf health check, Prometheus scrape, deployment, registry
-publication, commit, atau push.
+publication atau commit.
 
 ## ⏭️ Next Steps
 

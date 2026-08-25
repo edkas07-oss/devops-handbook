@@ -1,4 +1,4 @@
-# TN-015 — Verify Prometheus Named-Volume Runtime and Lab Access
+# TN-013 — Verify Prometheus Named-Volume Runtime and Lab Access
 
 | Field | Value |
 | --- | --- |
@@ -22,7 +22,7 @@ runtime yang dapat diakses melalui `http://edkas-pc1:9090` tanpa host bind.
 
 ## 🌍 Background
 
-TN-014 mengimplementasikan scrape configuration, source validator, dan host
+TN-012 mengimplementasikan scrape configuration, source validator, dan host
 port interface, tetapi semantic `promtool`, runtime startup, serta browser
 access belum diverifikasi. Project owner menolak host bind dan menerima tiga
 named volume dengan prefix `prometheus` agar configuration, truststore, dan
@@ -49,7 +49,7 @@ volume agar mount mode read-only dan read-write tetap eksplisit.
 
 Volume persistent, container `prometheus`, image, dan network tidak termasuk
 cleanup. JMX Exporter dan Telegraf runtime, keberhasilan scrape, production CA,
-firewall change, VPN change, commit, push, publication, dan deployment tidak
+firewall change, VPN change, commit, publication, dan deployment tidak
 termasuk scope.
 
 ## ✅ Criteria
@@ -74,7 +74,7 @@ termasuk scope.
 5. Jalankan `promtool` menggunakan config serta truststore volume read-only.
 6. Jalankan persistent Prometheus container, periksa readiness, port, mounts,
    log startup, dan akses melalui hostname `edkas-pc1`.
-7. Tunggu browser confirmation dari project owner sebelum menutup TN-015.
+7. Tunggu browser confirmation dari project owner sebelum menutup TN-013.
 
 ## 📥 Evidence
 
@@ -149,7 +149,7 @@ sed -n '1,320p' scripts/initialize-prometheus-volumes.sh
 ```
 
 Source checks lulus. Repository `prometheus`, `tomcat-monitoring`, dan
-`devops-handbook` tetap memiliki perubahan TN-013 sampai TN-015 yang belum
+`devops-handbook` tetap memiliki perubahan TN-011 sampai TN-013 yang belum
 di-commit; tidak ada perubahan pengguna lain yang ditimpa.
 
 ### Initialize named volumes
@@ -212,14 +212,14 @@ VPN IPv6 addresses dan dashboard mengembalikan HTTP `302`.
 sed -n '1,280p' docs/projects/tomcat-monitoring/index.md
 sed -n '1,300p' docs/projects/tomcat-monitoring/infrastructure/index.md
 sed -n '1,260p' docs/projects/tomcat-monitoring/operations/index.md
-sed -n '1,380p' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-015-verify-prometheus-named-volume-runtime-and-lab-access.md
+sed -n '1,380p' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-013-verify-prometheus-named-volume-runtime-and-lab-access.md
 sed -n '1,240p' README.md
 git status --short --branch
 ```
 
 Project owner melaporkan bahwa dashboard tampil dari browser tablet melalui
 VPN. Evidence tersebut dikonsolidasikan ke project overview, Infrastructure,
-Operations, phase index, dan TN-015. Hostname environment-specific dihapus dari
+Operations, phase index, dan TN-013. Hostname environment-specific dihapus dari
 README runtime Prometheus generik dan tetap berada pada project documentation.
 
 ### Final closure verification
@@ -229,14 +229,20 @@ git -C /home/eddywiyatno/git/prometheus diff --check
 git -C /home/eddywiyatno/git/tomcat-monitoring diff --check
 /home/eddywiyatno/git/tomcat-monitoring/scripts/validate.sh
 git diff --check
-rg -n '[[:blank:]]+$' docs/projects/tomcat-monitoring/index.md docs/projects/tomcat-monitoring/infrastructure/index.md docs/projects/tomcat-monitoring/operations/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-015-verify-prometheus-named-volume-runtime-and-lab-access.md
-rg -n '^\| Status \| Completed \|$|Browser tablet|prometheus_config|edkas-pc1:9090|No host bind|tanpa host bind' docs/projects/tomcat-monitoring/index.md docs/projects/tomcat-monitoring/infrastructure/index.md docs/projects/tomcat-monitoring/operations/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-015-verify-prometheus-named-volume-runtime-and-lab-access.md
+rg -n '[[:blank:]]+$' docs/projects/tomcat-monitoring/index.md docs/projects/tomcat-monitoring/infrastructure/index.md docs/projects/tomcat-monitoring/operations/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-013-verify-prometheus-named-volume-runtime-and-lab-access.md
+rg -n '^\| Status \| Completed \|$|Browser tablet|prometheus_config|edkas-pc1:9090|No host bind|tanpa host bind' docs/projects/tomcat-monitoring/index.md docs/projects/tomcat-monitoring/infrastructure/index.md docs/projects/tomcat-monitoring/operations/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-013-verify-prometheus-named-volume-runtime-and-lab-access.md
 git status --short --branch
 ```
 
+## 🔄 Source-Control Handoff
+
+Generic named-volume runtime disimpan pada commit repository `prometheus`
+`0e3d1f4`. Dokumentasi contract, implementation, dan runtime verification
+Prometheus disimpan pada commit Handbook `1dd4239`.
+
 ## 🧾 Outcome
 
-Seluruh criteria TN-015 terpenuhi. Source contract menggunakan named volumes
+Seluruh criteria TN-013 terpenuhi. Source contract menggunakan named volumes
 tanpa host bind; semantic configuration, runtime readiness, mount modes, port
 publication, initializer cleanup, hostname access, dan browser tablet telah
 diverifikasi.
@@ -253,11 +259,8 @@ menyediakan target runtime JMX Exporter dan Telegraf pada network
 `devops-lab`, lalu memverifikasi scrape success serta failure behavior dalam
 scope dan cleanup plan terpisah.
 
-Commit dan push perubahan pada repository `prometheus`, `tomcat-monitoring`,
-dan `devops-handbook` tetap memerlukan authorization terpisah.
-
 ## 🔗 Related Documentation
 
-- [TN-014 — Implement Prometheus Scrape Configuration and Lab Access](TN-014-implement-prometheus-scrape-configuration-and-lab-access.md)
+- [TN-012 — Implement Prometheus Scrape Configuration and Lab Access](TN-012-implement-prometheus-scrape-configuration-and-lab-access.md)
 - [Monitoring Integration and Runtime Deployment](index.md)
 - [Infrastructure](../../infrastructure/index.md)

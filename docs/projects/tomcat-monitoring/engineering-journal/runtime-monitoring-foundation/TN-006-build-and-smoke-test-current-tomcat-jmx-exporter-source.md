@@ -1,4 +1,4 @@
-# TN-008 — Build and Smoke Test Current Tomcat JMX Exporter Source
+# TN-006 — Build and Smoke Test Current Tomcat JMX Exporter Source
 
 | Field | Value |
 | --- | --- |
@@ -49,7 +49,7 @@ secara eksplisit.
 - Konsolidasikan hasil ke phase index dan current-state documentation.
 
 CA production, persistent container, Prometheus scrape, Telegraf integration,
-cleanup image lama, commit, push, publication, dan deployment tidak termasuk
+cleanup image lama, commit, publication, dan deployment tidak termasuk
 scope.
 
 ## ✅ Criteria
@@ -63,7 +63,7 @@ scope.
 | Image contract | Image labels menunjukkan version `1.0.0` dan JMX Exporter `1.6.0`. |
 | Smoke test | HTTPS `/metrics`, JMX scrape duration, dan JVM heap metric tersedia. |
 | Cleanup | Temporary smoke-test container dan test directory tidak tersisa. |
-| Boundary | Tidak ada persistent runtime, image cleanup, commit, push, atau deployment. |
+| Boundary | Tidak ada persistent runtime, image cleanup, commit, atau deployment. |
 
 ## 🧪 Method
 
@@ -83,13 +83,13 @@ scope.
 
 ```bash
 git status --short --branch
-sed -n '1,280p' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-016-reconcile-and-commit-prometheus-scrape-and-lab-runtime-changes.md
+sed -n '1,280p' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-013-verify-prometheus-named-volume-runtime-and-lab-access.md
 sed -n '1,280p' docs/projects/tomcat-monitoring/infrastructure/index.md
 sed -n '1,280p' AGENTS.md
 sed -n '1,280p' README.md
 rg --files | sort
 sed -n '1,320p' docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/index.md
-sed -n '1,360p' docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/TN-007-verify-repository-governance-publication.md
+sed -n '1,360p' docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/TN-005-implement-repository-agents-governance.md
 sed -n '1,120p' PROJECT
 sed -n '1,120p' VERSION
 sed -n '1,220p' CONFIG
@@ -118,7 +118,7 @@ bash -n entrypoint.sh scripts/*.sh
 git diff --check
 command -v podman curl openssl sha256sum
 git status --ignored --short .artifacts
-test -f docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/TN-008-build-and-smoke-test-current-tomcat-jmx-exporter-source.md
+test -f docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/TN-006-build-and-smoke-test-current-tomcat-jmx-exporter-source.md
 git status --short --branch
 sha256sum .artifacts/jmx_prometheus_javaagent.jar
 rg --files --hidden .artifacts
@@ -181,7 +181,7 @@ sed -n '195,225p' docs/projects/tomcat-monitoring/infrastructure/index.md
 
 Project overview, Development, Infrastructure, dan phase index diperbarui untuk
 mengaitkan current source `231cb91` dengan image serta smoke-test evidence
-TN-008. Klaim registry publication, deployment, Prometheus scrape, dan
+TN-006. Klaim registry publication, deployment, Prometheus scrape, dan
 end-to-end monitoring tetap tidak dibuat.
 
 ### Verify documentation and final source state
@@ -190,11 +190,11 @@ end-to-end monitoring tetap tidak dibuat.
 git diff --check
 git diff --stat
 git diff -- docs/projects/tomcat-monitoring/index.md docs/projects/tomcat-monitoring/development/index.md docs/projects/tomcat-monitoring/infrastructure/index.md docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/.pages docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/index.md
-rg -n '[[:blank:]]+$' docs/projects/tomcat-monitoring/index.md docs/projects/tomcat-monitoring/development/index.md docs/projects/tomcat-monitoring/infrastructure/index.md docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/.pages docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/index.md docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/TN-008-build-and-smoke-test-current-tomcat-jmx-exporter-source.md
-rg -n '^\| Status \| Completed \|$|231cb915cc2e058abd1fa0377877b120a9d7e2be|47eaad88a544ec0ef718f1fe449ce617c2fcd060a0ecfbd623530ec9d564fc30|TN-008' docs/projects/tomcat-monitoring/index.md docs/projects/tomcat-monitoring/development/index.md docs/projects/tomcat-monitoring/infrastructure/index.md docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/.pages docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/index.md docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/TN-008-build-and-smoke-test-current-tomcat-jmx-exporter-source.md
+rg -n '[[:blank:]]+$' docs/projects/tomcat-monitoring/index.md docs/projects/tomcat-monitoring/development/index.md docs/projects/tomcat-monitoring/infrastructure/index.md docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/.pages docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/index.md docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/TN-006-build-and-smoke-test-current-tomcat-jmx-exporter-source.md
+rg -n '^\| Status \| Completed \|$|231cb915cc2e058abd1fa0377877b120a9d7e2be|47eaad88a544ec0ef718f1fe449ce617c2fcd060a0ecfbd623530ec9d564fc30|TN-006' docs/projects/tomcat-monitoring/index.md docs/projects/tomcat-monitoring/development/index.md docs/projects/tomcat-monitoring/infrastructure/index.md docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/.pages docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/index.md docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/TN-006-build-and-smoke-test-current-tomcat-jmx-exporter-source.md
 command -v mkdocs
 test -f docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/TN-002-implement-tomcat-jmx-exporter-image.md
-test -f docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/TN-007-verify-repository-governance-publication.md
+test -f docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/TN-005-implement-repository-agents-governance.md
 test -f docs/projects/tomcat-monitoring/engineering-journal/runtime-monitoring-foundation/index.md
 test -f docs/projects/tomcat-monitoring/infrastructure/index.md
 git status --short --branch
@@ -202,7 +202,7 @@ git status --short --branch
 
 Documentation diff check lulus, trailing-whitespace scan tidak menemukan
 match, status TN serta source/image references ditemukan, dan seluruh relative
-link target TN-008 tersedia. Source repository tetap bersih. `mkdocs` tidak
+link target TN-006 tersedia. Source repository tetap bersih. `mkdocs` tidak
 tersedia sehingga render site tidak dijalankan dan dependency tidak dipasang.
 
 | Evidence | Actual result |
@@ -227,9 +227,15 @@ dependency tidak dipasang.
 
 ## 📌 Conclusion
 
-Seluruh mandatory criteria TN-008 memenuhi expected result. Image hasil current
+Seluruh mandatory criteria TN-006 memenuhi expected result. Image hasil current
 source layak menjadi input aktivitas integration berikutnya pada local lab,
 dengan batas bahwa CA actual, target runtime, dan Prometheus scrape belum diuji.
+
+## 🔄 Source-Control Handoff
+
+Dokumentasi hasil build dan smoke test current source disimpan pada commit
+Handbook `e1aee71`. Repository `tomcat-jmx-exporter` tidak memerlukan commit
+baru karena verification tidak mengubah source.
 
 ## 🧾 Outcome
 
@@ -250,6 +256,6 @@ scrape integration.
 ## 🔗 Related Documentation
 
 - [TN-002 — Implement Tomcat JMX Exporter Image](TN-002-implement-tomcat-jmx-exporter-image.md)
-- [TN-007 — Verify Repository Governance Publication](TN-007-verify-repository-governance-publication.md)
+- [TN-005 — Implement Repository AGENTS.md Governance](TN-005-implement-repository-agents-governance.md)
 - [Runtime Monitoring Foundation](index.md)
 - [Infrastructure](../../infrastructure/index.md)

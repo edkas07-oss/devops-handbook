@@ -30,7 +30,7 @@ harus selesai sebelum verification Telegraf yang blocked dilanjutkan.
 
 Aktivitas terbatas pada Engineering Journal, Engineering Journal Standards, dan
 `tomcat-monitoring/AGENTS.md`. Tidak menjalankan image pull, container,
-network, cleanup runtime, build, test component, commit, atau push baru.
+network, cleanup runtime, build, test component, atau commit baru.
 
 ## 📝 Source Inputs
 

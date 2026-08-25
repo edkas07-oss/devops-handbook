@@ -1,4 +1,4 @@
-# TN-010 — Establish Prometheus Runtime Repository
+# TN-009 — Establish Prometheus Runtime Repository
 
 | Field | Value |
 | --- | --- |
@@ -101,11 +101,11 @@ git -C /home/eddywiyatno/git/prometheus status --short
 
 ## ✅ Outcome
 
-Repository Prometheus generik telah tersedia dan lolos static validation. Ia belum dibangun, dipull, diuji sebagai image, dijalankan, diintegrasikan ke `tomcat-monitoring`, di-commit, atau dipush. Karena itu tidak ada klaim bahwa binary Prometheus, permission data runtime, scrape, storage, atau monitoring end-to-end sudah terverifikasi.
+Repository Prometheus generik telah tersedia dan lolos static validation. Ia belum dibangun, dipull, diuji sebagai image, atau dijalankan. Karena itu tidak ada klaim bahwa binary Prometheus, permission data runtime, scrape, storage, atau monitoring end-to-end sudah terverifikasi.
 
 ## ⏭️ Next Steps
 
-Langkah paling dekat adalah local build dan smoke test image Prometheus pada scope terpisah. Setelah runtime image lulus, configuration `prometheus.yml` dan scrape target JMX Exporter/Telegraf dapat dimulai sebagai Technical Note integration berikutnya. Commit dan push tetap memerlukan authorization terpisah.
+Langkah paling dekat adalah local build dan smoke test image Prometheus pada scope terpisah. Setelah runtime image lulus, configuration `prometheus.yml` dan scrape target JMX Exporter/Telegraf dapat dimulai sebagai Technical Note integration berikutnya.
 
 ## 🔗 Related Documentation
 

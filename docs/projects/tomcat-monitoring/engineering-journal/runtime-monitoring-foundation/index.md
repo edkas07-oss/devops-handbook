@@ -42,7 +42,7 @@ tersedianya komponen monitoring pertama yang terverifikasi dengan cara:
 | Application health interface | Telegraf menuju `http://<tomcat-container>:8080/health`; integrasi belum dilaksanakan | Planned |
 | Monitoring platform | Prometheus, Telegraf, storage, dashboard, dan Alertmanager | Planned |
 | Delivery design | Boundary CI, CD, Ansible, dan deployment verification telah diidentifikasi | Completed |
-| AI repository governance | Root `AGENTS.md` pada empat repository telah lulus structural, fresh-session, tabletop, dan publication verification | Completed |
+| AI repository governance | Root `AGENTS.md` pada empat repository telah lulus structural, fresh-session, dan tabletop verification | Completed |
 | CI/CD implementation | Pipeline build, integration test, provisioning, dan deployment | Planned |
 | End-to-end deployment | Seluruh alur topology berjalan dan diverifikasi | Planned |
 
@@ -58,48 +58,33 @@ tersedianya komponen monitoring pertama yang terverifikasi dengan cara:
     Menjalankan kebutuhan infrastructure pertama dengan membangun derived
     Tomcat image dan memverifikasi endpoint JMX Exporter melalui HTTPS.
 
-3. **[TN-003 — Publish Tomcat JMX Exporter Source](TN-003-publish-tomcat-jmx-exporter-source.md)**
-
-    Mencatat initial commit dan publikasi source `tomcat-jmx-exporter` ke
-    repository Gitea.
-
-4. **[TN-004 — Standardize Indonesian Self-Documentation](TN-004-standardize-indonesian-self-documentation.md)**
+3. **[TN-003 — Standardize Indonesian Self-Documentation](TN-003-standardize-indonesian-self-documentation.md)**
 
     Menyeragamkan komentar source, petunjuk penggunaan, dan pesan operator
-    tanpa mengubah kontrak runtime, lalu mempublikasikan hasilnya ke Gitea.
+    tanpa mengubah kontrak runtime.
 
-5. **[TN-005 — Normalize Runtime Monitoring Foundation Journal](TN-005-normalize-runtime-monitoring-foundation-journal.md)**
+4. **[TN-004 — Normalize Runtime Monitoring Foundation Journal](TN-004-normalize-runtime-monitoring-foundation-journal.md)**
 
     Mencatat controlled normalization reconstructed records dan memperjelas
     batas evidence antara current source dan local image verification.
 
-6. **[TN-006 — Implement Repository AGENTS.md Governance](TN-006-implement-repository-agents-governance.md)**
+5. **[TN-005 — Implement Repository AGENTS.md Governance](TN-005-implement-repository-agents-governance.md)**
 
     Menerapkan repository-level instructions agar AI mengikuti ownership,
     approval, verification, dan stop conditions sebelum technical
     implementation dilanjutkan.
 
-7. **[TN-007 — Verify Repository Governance Publication](TN-007-verify-repository-governance-publication.md)**
-
-    Memverifikasi commit identity dan `update by push` evidence setelah
-    governance dipublikasikan ke empat repository Gitea.
-
-8. **[TN-008 — Build and Smoke Test Current Tomcat JMX Exporter Source](TN-008-build-and-smoke-test-current-tomcat-jmx-exporter-source.md)**
+6. **[TN-006 — Build and Smoke Test Current Tomcat JMX Exporter Source](TN-006-build-and-smoke-test-current-tomcat-jmx-exporter-source.md)**
 
     Membangun current source JMX Exporter dan memverifikasi HTTPS endpoint serta
     JVM metrics melalui self-cleaning component smoke test.
 
-9. **[TN-009 — Commit Current JMX Exporter Verification Documentation](TN-009-commit-current-jmx-exporter-verification-documentation.md)**
-
-    Menyimpan TN-008, phase navigation, dan current-state consolidation dalam
-    satu local commit Handbook yang terarah.
-
 !!! note "Phase Output"
 
-    Foundation saat ini memiliki current source `231cb91` pada `origin/main`
-    dan local image `localhost/tomcat-jmx-exporter:1.0.0` hasil build source
-    tersebut. HTTPS `/metrics`, JMX scrape duration, dan JVM heap metric lulus
-    self-cleaning component smoke test pada TN-008.
+    Foundation saat ini memiliki current source `231cb91` dan local image
+    `localhost/tomcat-jmx-exporter:1.0.0` hasil build source tersebut. HTTPS
+    `/metrics`, JMX scrape duration, dan JVM heap metric lulus self-cleaning
+    component smoke test pada TN-006.
 
     Fase belum selesai karena Prometheus, Telegraf, container network,
     production certificate, persistent storage, Ansible, dan end-to-end

@@ -249,9 +249,14 @@ project `tomcat-jmx-exporter`, image version `1.0.0`, dan JMX Exporter `1.6.0`.
 - Detail pemasangan Java Agent yang reusable harus dipromosikan ke root How-to;
   journal hanya mempertahankan urutan integrasi dan hasil aktual.
 
+## Source-Control Handoff
+
+Source awal hasil implementasi disimpan pada commit `82175bb` (`first commit`).
+Commit tersebut mencakup source derived image tanpa generated JMX Exporter JAR,
+private key, certificate, atau runtime TLS material.
+
 ## Next Steps
 
-- Publikasikan source component ke Gitea pada TN-003.
 - Terbitkan reusable JMX Exporter Java Agent procedure pada root How-to.
 - Gunakan derived image sebagai candidate untuk CI build dan integration test.
 - Siapkan container network, production TLS material, dan Prometheus CA trust.
@@ -263,8 +268,8 @@ project `tomcat-jmx-exporter`, image version `1.0.0`, dan JMX Exporter `1.6.0`.
 Local derived image `localhost/tomcat-jmx-exporter:1.0.0` berhasil dibangun dan
 lulus HTTPS serta JVM metrics smoke test pada activity date. Hasil tersebut
 membuktikan local component interface yang diuji pada TN-002, bukan Prometheus
-integration, production deployment, atau clean build source revision yang
-diterbitkan setelah aktivitas ini.
+integration, production deployment, atau clean build source revision setelah
+aktivitas ini.
 
 Outstanding work meliputi reusable root How-to, current-source rebuild,
 Prometheus integration, Telegraf health check, production TLS, container
@@ -273,7 +278,6 @@ network, registry, CI/CD, dan target deployment.
 ## Related Documentation
 
 - [TN-001 — Design Runtime Monitoring Contract](TN-001-design-runtime-monitoring-contract.md)
-- [TN-003 — Publish Tomcat JMX Exporter Source](TN-003-publish-tomcat-jmx-exporter-source.md)
 - [Architecture](../../architecture/index.md)
 - [Infrastructure](../../infrastructure/index.md)
 - [Development](../../development/index.md)

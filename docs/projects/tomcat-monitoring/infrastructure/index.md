@@ -19,14 +19,14 @@ proses infrastructure yang telah ditetapkan.
 | Gitea | Menyimpan source dan konfigurasi project | Available |
 | Development workstation | Menjadi local development environment | Available |
 | Rootless Podman `4.9.3` | Menjalankan Tomcat dan monitoring components | Available |
-| Tomcat container | Menjalankan application runtime yang dimonitor | Planned |
-| JMX Exporter Java Agent | Mengekspos JVM dan Tomcat metrics secara lokal | Available in local derived image; deployment planned |
+| Tomcat container | Menjalankan application runtime yang dimonitor | Generic persistent JMX lab target available; application runtime planned |
+| JMX Exporter Java Agent | Mengekspos JVM dan Tomcat metrics secara lokal | Persistent generic lab target deployed and verified; application deployment planned |
 | Reusable JMX Agent procedure | Menjelaskan pemasangan, TLS configuration, build, dan validation secara reusable | Required in root How-to; not yet published |
-| Prometheus container | Mengumpulkan dan menyimpan time-series metrics | Persistent lab runtime verified; isolated JMX TLS scrape verified without persistent-state mutation |
+| Prometheus container | Mengumpulkan dan menyimpan time-series metrics | Persistent lab runtime and strict JMX TLS scrape verified |
 | Telegraf container | Menjalankan local HTTP health check aplikasi | Configuration contract implemented locally; runtime planned |
 | Persistent metrics storage | Mempertahankan historical metrics | Named volume `prometheus_data` available; retention, sizing, backup, and recovery not determined |
-| Container network | Menghubungkan Prometheus dengan endpoint JMX Exporter | Alias `tomcat-jmx-exporter` verified on lab network `devops-lab`; persistent and end-to-end integration pending |
-| TLS certificate and trust | Mengamankan scrape endpoint menggunakan server-side TLS | Temporary self-signed JMX CA trust and strict failure behavior verified; production certificate lifecycle not determined |
+| Container network | Menghubungkan Prometheus dengan endpoint JMX Exporter | Persistent alias `tomcat-jmx-exporter` verified on `devops-lab`; end-to-end integration pending |
+| TLS certificate and trust | Mengamankan scrape endpoint menggunakan server-side TLS | Persistent lab material installed and strict verification passed; production certificate lifecycle not determined |
 | Application health endpoint | Memberikan status aplikasi yang dapat diverifikasi Telegraf | Interface `/health` defined; implementation planned |
 | Alertmanager | Mengelola dan meneruskan alert | Planned |
 | Integration Bridge | Meneruskan alert ke TrueSight | Planned |
@@ -69,7 +69,7 @@ configuration.
 
 | Flow | Protocol | Security | Status |
 | --- | --- | --- | --- |
-| Prometheus to JMX Exporter | HTTPS ke port `9404`, path `/metrics` | Server-side TLS dan source restriction | Isolated Prometheus scrape, hostname verification, untrusted-CA failure, and recovery verified on 2026-08-25; persistent integration pending |
+| Prometheus to JMX Exporter | HTTPS ke port `9404`, path `/metrics` | Server-side TLS dan container-network-only access | Persistent strict TLS scrape and hostname verification passed on 2026-08-25; JMX metrics port is not published on the host |
 | Telegraf to application health endpoint | HTTP ke internal Tomcat port `8080`, path `/health` | Network isolation | Defined by topology; integration pending |
 | Prometheus to Telegraf | HTTP ke port internal `9273`, path `/metrics` | Network restriction pending | Configuration contract implemented locally; not runtime-verified |
 | Dashboard to Prometheus | HTTP ke host port `9090` pada lab | Trusted VPN lab; TLS dan authentication belum tersedia | Browser tablet verified through `http://edkas-pc1:9090` on 2026-08-24 |
@@ -127,6 +127,11 @@ terverifikasi melalui startup TSDB. Configuration menggunakan
 `prometheus_config` dan trust material menggunakan `prometheus_truststore`;
 keduanya dipasang read-only tanpa host bind.
 
+Persistent JMX cutover pada 2026-08-25 mempertahankan volume yang sama. New
+Prometheus menemukan healthy TSDB blocks, menyelesaikan WAL replay, dan mencapai
+readiness tanpa restart. Hasil ini membuktikan continuity pada exact named-
+volume boundary, bukan backup atau recovery policy.
+
 Default retention `15d` terlihat pada runtime log, tetapi belum diterima
 sebagai project retention policy. Capacity, growth limit, backup, dan recovery
 tetap berstatus `Not determined`.
@@ -140,8 +145,19 @@ tetap berstatus `Not determined`.
 - Private key tidak disimpan di dalam container image atau Git repository.
 - Certificate dan private key dipasang ke container Tomcat sebagai read-only
   secret.
-- Proses issuance, distribution, renewal, revocation, dan ownership certificate
-  masih harus ditetapkan.
+- Persistent lab menggunakan self-signed certificate dengan SAN
+  `DNS:tomcat-jmx-exporter`, validity 365 hari, dan renewal trigger ketika
+  remaining validity mencapai 30 hari.
+- Material persistent lab disimpan di luar source repository pada
+  `/home/eddywiyatno/.local/share/tomcat-monitoring/jmx-exporter-tls`.
+  Directory menggunakan mode `0700`; private key, password file, dan PKCS12
+  menggunakan `0600`; public certificate menggunakan `0444`.
+- Project owner memiliki lab lifecycle dan rootless Podman user memiliki
+  filesystem material. Previous material dipertahankan sampai new target
+  terbukti `up=1`; removal memerlukan exact-path inspection serta destructive
+  authorization.
+- Production issuance, distribution, renewal, revocation, dan ownership tetap
+  harus ditetapkan secara terpisah.
 
 ## Ownership Boundary
 
@@ -149,7 +165,8 @@ tetap berstatus `Not determined`.
 | --- | --- |
 | Host packages, users, container runtime, dan firewall | Infrastructure owner; not determined |
 | Container network dan persistent storage | Infrastructure owner; not determined |
-| Certificate issuance, distribution, dan renewal | Infrastructure atau PKI process; not determined |
+| Persistent lab self-signed certificate lifecycle | Project owner sebagai lab runtime owner; filesystem material dimiliki rootless Podman user |
+| Production certificate issuance, distribution, dan renewal | Infrastructure atau PKI process; not determined |
 | Generic Tomcat image dan runtime configuration | Repository `tomcat` |
 | JMX Exporter binary dan Java Agent startup contract | Repository `tomcat-jmx-exporter` |
 | Reusable JMX Agent installation and validation procedure | Root How-to; not yet published |
@@ -192,7 +209,7 @@ diimplementasikan:
 - Container network dan port allocation;
 - Persistent storage dan retention policy;
 - CPU, memory, dan storage sizing;
-- Certificate authority dan certificate lifecycle;
+- Production certificate authority dan certificate lifecycle;
 - Sumber metrics untuk container status;
 - Expected response, timeout, dan interval HTTP health check `/health`;
 - Mekanisme scrape health metrics dari Telegraf;
@@ -204,16 +221,25 @@ Rootless Podman telah tersedia dan diverifikasi pada development environment.
 Derived image `localhost/tomcat-jmx-exporter:1.0.0` dengan JMX Exporter `1.6.0`
 telah dibangun dari current source `231cb91` dan lulus local HTTPS/JVM smoke
 test pada 2026-08-25. Container image masih lokal dan belum dipublikasikan ke
-registry atau di-deploy ke target runtime.
+registry; image tersebut digunakan oleh persistent generic JMX lab target pada
+`devops-lab` tanpa host-published metrics port.
 
 Persistent lab container `prometheus` berjalan pada network `devops-lab`,
 memublikasikan host port `9090`, dan menggunakan named volumes
 `prometheus_config`, `prometheus_truststore`, serta `prometheus_data` tanpa host
 bind. Semantic configuration, readiness, mount modes, dan akses dashboard dari
-tablet melalui VPN telah diverifikasi pada 2026-08-24. System CA bundle pada
-truststore hanya membuktikan runtime trust-file contract; JMX Exporter dan
-Telegraf scrape belum diverifikasi. Alertmanager, production certificate,
-serta provisioning melalui CI/CD dan Ansible belum diimplementasikan.
+tablet melalui VPN telah diverifikasi. Pada 2026-08-25, truststore diperbarui
+dengan public self-signed certificate persistent target dan Prometheus
+menghasilkan JMX `up=1`, `jvm_memory_heap_used_bytes`, serta `tomcat_server`
+dengan `insecure_skip_verify: false`. Telegraf scrape, Alertmanager, production
+certificate, serta provisioning melalui CI/CD dan Ansible belum
+diimplementasikan.
+
+Persistent lab self-signed certificate lifecycle telah ditetapkan pada
+2026-08-25. Material aktif tersimpan pada accepted non-Git directory, dipasang
+read-only ke JMX target, dan certificate berlaku sampai 2027-08-25 dengan
+renewal trigger 30 hari sebelum expiry. Production certificate lifecycle tetap
+`Not determined`.
 
 ## Related Pages
 

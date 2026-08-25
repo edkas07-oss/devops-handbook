@@ -1,4 +1,4 @@
-# TN-011 — Build and Smoke Test Prometheus Runtime
+# TN-010 — Build and Smoke Test Prometheus Runtime
 
 | Field | Value |
 | --- | --- |
@@ -42,7 +42,7 @@ melalui container sementara.
 ## ⚠️ Scope Boundary
 
 Tidak ada `prometheus.yml` project, scrape target, rule, port host, data volume,
-network persistent, deployment, commit, push, atau image cleanup dalam TN ini.
+network persistent, deployment, commit, atau image cleanup dalam TN ini.
 Test hanya menggunakan container sementara yang dihapus otomatis.
 
 ## ⚙️ Execution Record
@@ -80,7 +80,7 @@ podman pull docker.io/prom/prometheus:v3.13.2
 
 **Purpose.** Menghilangkan operasi write yang tidak kompatibel dengan user official tanpa mengubah entrypoint atau runtime contract.
 
-**Change actually performed.** Baris `RUN chmod 0555 /usr/local/bin/prometheus-entrypoint` dihapus dari `Containerfile`. File `entrypoint.sh` telah diberi mode executable `0755` pada TN-010 dan `COPY` meneruskan mode file source.
+**Change actually performed.** Baris `RUN chmod 0555 /usr/local/bin/prometheus-entrypoint` dihapus dari `Containerfile`. File `entrypoint.sh` telah diberi mode executable `0755` pada TN-009 dan `COPY` meneruskan mode file source.
 
 **Expected result.** Build ulang dapat menyalin entrypoint executable tanpa membutuhkan privilege root.
 
@@ -125,8 +125,18 @@ Correction pada Containerfile terbatas pada penghapusan `RUN chmod`, yang tidak 
 
 ## ⚠️ Scope Boundary
 
-Hasil ini tidak membuktikan permission direktori data, configuration `prometheus.yml`, scrape JMX Exporter atau Telegraf, persistence storage, network topology, TLS, alert rule, alerting, deployment, commit, atau push. Image lokal hasil build sengaja dipertahankan; image cleanup tidak diotorisasi.
+Hasil ini tidak membuktikan permission direktori data, configuration `prometheus.yml`, scrape JMX Exporter atau Telegraf, persistence storage, network topology, TLS, alert rule, alerting, atau deployment. Image lokal hasil build sengaja dipertahankan; image cleanup tidak diotorisasi.
+
+## 🔄 Source-Control Handoff
+
+Source runtime Prometheus yang mencakup repository establishment serta hasil
+smoke test disimpan pada commit `4d90c3e`. Dokumentasi TN-009 dan TN-010
+disimpan pada commit Handbook `d394bdf` setelah metadata dan navigation
+direkonsiliasi.
 
 ## ⏭️ Next Steps
 
-Source siap untuk review dan commit melalui authorization Git terpisah. Setelah itu, atau melalui scope yang secara eksplisit mengizinkan uncommitted source, Technical Note baru dapat mendefinisikan configuration Prometheus dan static validation pada repository `tomcat-monitoring`. Runtime integration memerlukan resource, configuration, data path, network, dan cleanup plan tersendiri.
+Technical Note berikutnya dapat mendefinisikan configuration Prometheus dan
+static validation pada repository `tomcat-monitoring`. Runtime integration
+memerlukan resource, configuration, data path, network, dan cleanup plan
+tersendiri.

@@ -1,4 +1,4 @@
-# TN-014 — Implement Prometheus Scrape Configuration and Lab Access
+# TN-012 — Implement Prometheus Scrape Configuration and Lab Access
 
 | Field | Value |
 | --- | --- |
@@ -23,9 +23,9 @@ dashboard pada environment lab.
 
 ## 🌍 Background
 
-TN-013 menerima target scrape, timing, TLS trust reference, ownership, dan
+TN-011 menerima target scrape, timing, TLS trust reference, ownership, dan
 validation boundary Prometheus. Project owner kemudian menyetujui
-Implementation Gate TN-014 serta meminta agar dashboard Prometheus dapat
+Implementation Gate TN-012 serta meminta agar dashboard Prometheus dapat
 diakses dari tablet melalui VPN menggunakan hostname PC `edkas-pc1`.
 
 Browser di tablet tidak dapat menggunakan container network alias. Akses
@@ -35,26 +35,26 @@ tablet mengakses `http://edkas-pc1:<host-port>` melalui VPN.
 ## 📚 Scope
 
 - Tambahkan `config/prometheus/prometheus.yml` non-secret untuk scrape JMX
-  Exporter dan Telegraf sesuai TN-013.
+  Exporter dan Telegraf sesuai TN-011.
 - Tambahkan validator source-level Prometheus dan integrasikan dengan baseline
   validator repository `tomcat-monitoring`.
 - Perbarui documentation contract yang langsung berubah.
 - Perluas `prometheus/scripts/run.sh` agar caller dapat memberikan host port
   secara eksplisit tanpa menjadikannya default runtime.
-- Catat implementation, verification, dan residual boundary pada TN-014.
+- Catat implementation, verification, dan residual boundary pada TN-012.
 
 Build, image pull, menjalankan container, perubahan VPN atau firewall,
-certificate generation, semantic `promtool` execution, cleanup, commit, push,
+certificate generation, semantic `promtool` execution, cleanup, commit,
 publication, dan deployment tidak termasuk scope.
 
 ## 📋 Prerequisites
 
 | Prerequisite | State | Evidence |
 | --- | --- | --- |
-| Prometheus scrape contract | Satisfied | Decision Gate TN-013 berstatus `Completed`. |
+| Prometheus scrape contract | Satisfied | Decision Gate TN-011 berstatus `Completed`. |
 | Runtime ownership | Satisfied | Generic runtime berada pada repository `prometheus`; integration configuration berada pada `tomcat-monitoring`. |
 | Source repositories | Satisfied | `tomcat-monitoring` dan `prometheus` bersih sebelum implementation. |
-| Documentation worktree | Controlled | Hanya TN-013, phase index, dan navigation hasil aktivitas sebelumnya yang belum di-commit. |
+| Documentation worktree | Controlled | Hanya TN-011, phase index, dan navigation hasil aktivitas sebelumnya yang belum di-commit. |
 | Runtime verification resources | Not required | Build, container, network runtime, CA material, dan cleanup berada di luar scope. |
 
 ## ⚖️ Execution Decision
@@ -71,7 +71,7 @@ publication, dan deployment tidak termasuk scope.
 
 ## 🛠️ Scope Changes
 
-Setelah approval awal TN-014, project owner meminta perubahan
+Setelah approval awal TN-012, project owner meminta perubahan
 `prometheus/scripts/run.sh` agar dashboard lab dapat diakses dari tablet melalui
 VPN. Project owner menjelaskan bahwa PC diakses menggunakan hostname
 `edkas-pc1` dan menerima pemisahan antara container alias dengan host port
@@ -83,7 +83,7 @@ akses browser tetap membutuhkan verification scope terpisah.
 
 ## 🛠️ Implementation Plan
 
-1. Buat live TN-014 dan daftarkan navigation.
+1. Buat live TN-012 dan daftarkan navigation.
 2. Implementasikan configuration serta validator pada `tomcat-monitoring`.
 3. Implementasikan optional lab host port pada runtime Prometheus.
 4. Jalankan shell syntax, baseline validation, whitespace check, dan diff
@@ -161,7 +161,7 @@ sed -n '1,280p' scripts/test.sh
 git status --short --branch
 git diff --check
 git diff -- docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages
-sed -n '1,320p' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-013-define-prometheus-scrape-configuration-contract.md
+sed -n '1,320p' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-011-define-prometheus-scrape-configuration-contract.md
 ```
 
 ### Monitoring source implementation verification
@@ -203,13 +203,13 @@ dan whitespace check lulus; trailing-whitespace scan tidak menghasilkan match.
 ### Documentation worktree review
 
 ```bash
-rg -n '[[:blank:]]+$' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-013-define-prometheus-scrape-configuration-contract.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-014-implement-prometheus-scrape-configuration-and-lab-access.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages
+rg -n '[[:blank:]]+$' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-011-define-prometheus-scrape-configuration-contract.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-012-implement-prometheus-scrape-configuration-and-lab-access.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages
 git diff --check
 git status --short --branch
 ```
 
 Trailing-whitespace scan tidak menghasilkan match dan tracked documentation
-diff tidak memiliki whitespace error. TN-013 serta TN-014 masih untracked;
+diff tidak memiliki whitespace error. TN-011 serta TN-012 masih untracked;
 tidak ada commit yang dibuat.
 
 ### Final source and documentation review
@@ -239,14 +239,14 @@ Repository `devops-handbook`:
 
 ```bash
 git diff --check
-if rg -n '[[:blank:]]+$' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-013-define-prometheus-scrape-configuration-contract.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-014-implement-prometheus-scrape-configuration-and-lab-access.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages; then exit 1; fi
-test -f docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-013-define-prometheus-scrape-configuration-contract.md
+if rg -n '[[:blank:]]+$' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-011-define-prometheus-scrape-configuration-contract.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-012-implement-prometheus-scrape-configuration-and-lab-access.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages; then exit 1; fi
+test -f docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-011-define-prometheus-scrape-configuration-contract.md
 test -f docs/projects/tomcat-monitoring/architecture/index.md
 test -f docs/projects/tomcat-monitoring/infrastructure/index.md
-rg -n '^#|Status \||TN-014|Scope Changes|Verification|Outcome' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-014-implement-prometheus-scrape-configuration-and-lab-access.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages
+rg -n '^#|Status \||TN-012|Scope Changes|Verification|Outcome' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-012-implement-prometheus-scrape-configuration-and-lab-access.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages
 command -v mkdocs
 git status --short --branch
-sed -n '1,420p' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-014-implement-prometheus-scrape-configuration-and-lab-access.md
+sed -n '1,420p' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-012-implement-prometheus-scrape-configuration-and-lab-access.md
 ```
 
 Seluruh source-level check lulus. `command -v mkdocs` tidak menghasilkan path;
@@ -260,10 +260,15 @@ git -C /home/eddywiyatno/git/tomcat-monitoring diff --check
 git -C /home/eddywiyatno/git/prometheus diff --check
 bash -n /home/eddywiyatno/git/prometheus/entrypoint.sh /home/eddywiyatno/git/prometheus/scripts/*.sh
 git diff --check
-rg -n '^\| Status \| Completed \|$|^## (🎯 Objective|🌍 Background|📚 Scope|📋 Prerequisites|⚖️ Execution Decision|🛠️ Scope Changes|🛠️ Implementation Plan|⚙️ Implementation|✅ Verification|⚙️ Commands Executed|🧾 Outcome|⏭️ Next Steps|🔗 Related Documentation)$' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-014-implement-prometheus-scrape-configuration-and-lab-access.md
-rg -n 'TN-014-implement-prometheus-scrape-configuration-and-lab-access\.md' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages
+rg -n '^\| Status \| Completed \|$|^## (🎯 Objective|🌍 Background|📚 Scope|📋 Prerequisites|⚖️ Execution Decision|🛠️ Scope Changes|🛠️ Implementation Plan|⚙️ Implementation|✅ Verification|⚙️ Commands Executed|🧾 Outcome|⏭️ Next Steps|🔗 Related Documentation)$' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-012-implement-prometheus-scrape-configuration-and-lab-access.md
+rg -n 'TN-012-implement-prometheus-scrape-configuration-and-lab-access\.md' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages
 git status --short --branch
 ```
+
+## 🔄 Source-Control Handoff
+
+Prometheus scrape configuration, validator, dan volume-initialization contract
+pada repository `tomcat-monitoring` disimpan pada commit `0df9414`.
 
 ## 🧾 Outcome
 
@@ -284,13 +289,9 @@ Aktivitas berikutnya memerlukan authorization terpisah untuk menjalankan
 yang spesifik, serta memverifikasi akses browser melalui
 `http://edkas-pc1:9090`.
 
-Current-state root project page masih perlu dikonsolidasikan agar mencatat
-Prometheus scrape source yang kini tersedia. Commit dan push untuk tiga
-repository tetap memerlukan authorization terpisah.
-
 ## 🔗 Related Documentation
 
-- [TN-013 — Define Prometheus Scrape Configuration Contract](TN-013-define-prometheus-scrape-configuration-contract.md)
+- [TN-011 — Define Prometheus Scrape Configuration Contract](TN-011-define-prometheus-scrape-configuration-contract.md)
 - [Monitoring Integration and Runtime Deployment](index.md)
 - [Architecture](../../architecture/index.md)
 - [Infrastructure](../../infrastructure/index.md)
