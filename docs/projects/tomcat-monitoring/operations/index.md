@@ -74,7 +74,10 @@ hanya membuktikan availability UI Prometheus pada lab, bukan keberhasilan
 scrape atau monitoring Tomcat.
 
 JMX Exporter dan endpoint HTTPS `9404/metrics` telah diverifikasi secara lokal,
-tetapi belum diintegrasikan dengan Prometheus menggunakan CA actual. Telegraf
-health-check source contract tersedia dan component behavior telah diverifikasi
-secara terpisah, tetapi Prometheus belum melakukan scrape terhadap Telegraf.
-Alerting dan external integration masih menjadi target capability project.
+tetapi belum diintegrasikan dengan Prometheus menggunakan CA actual. Two-rule
+source baseline menyediakan JVM heap dan Tomcat server-info metrics untuk
+integration proof; full operational metric catalog belum diimplementasikan.
+Telegraf health-check source contract tersedia dan component behavior telah
+diverifikasi secara terpisah, tetapi Prometheus belum melakukan scrape terhadap
+Telegraf. Alerting dan external integration masih menjadi target capability
+project.

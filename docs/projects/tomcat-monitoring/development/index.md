@@ -14,8 +14,9 @@ instrumentasi, dan `tomcat-monitoring` akan mengintegrasikan Prometheus,
 Telegraf, alerting, serta deployment automation.
 
 Repository `tomcat-monitoring` telah dibuat di Gitea dan di-clone ke
-development environment. Baseline layout non-secret dan validator statis telah
-dibuat pada working tree lokal, tetapi belum memiliki commit atau publication.
+development environment. Baseline layout, component configurations, dan static
+validators tersedia; JMX Exporter baseline masih memerlukan runtime integration
+verification.
 Repository `tomcat-jmx-exporter` telah memiliki source yang dipublikasikan ke
 Gitea. Current source `231cb91` telah lulus local image build dan HTTPS/JVM
 smoke test pada 2026-08-25, sedangkan CI untuk image tersebut belum dibuat.
@@ -28,7 +29,7 @@ Source project dibagi berdasarkan lifecycle dan tanggung jawab berikut:
 | --- | --- | --- |
 | `tomcat` | Menyediakan generic Tomcat container image | Available |
 | `tomcat-jmx-exporter` | Menyediakan derived Tomcat image dengan embedded JMX Exporter | Current source published and local component build verified |
-| `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | Baseline layout created locally; configuration not started |
+| `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | JMX Exporter, Telegraf, and Prometheus source contracts implemented; runtime integration pending |
 
 Repository `tomcat-jmx-exporter` tidak menyimpan JMX Exporter JAR sebagai binary
 di Git. Build mengambil versi `1.6.0` yang telah dipin dan memverifikasi

@@ -21,3 +21,6 @@ arrange:
 - TN-014-implement-prometheus-scrape-configuration-and-lab-access.md
 - TN-015-verify-prometheus-named-volume-runtime-and-lab-access.md
 - TN-016-reconcile-and-commit-prometheus-scrape-and-lab-runtime-changes.md
+- TN-017-define-jmx-exporter-configuration-and-lab-tls-integration-contract.md
+- TN-018-implement-jmx-exporter-baseline-configuration-and-validation.md
+- TN-019-commit-jmx-exporter-baseline-configuration-and-decision-evidence.md

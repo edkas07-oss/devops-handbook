@@ -100,6 +100,21 @@ melampaui keputusan, secret boundary, atau authorization yang tersedia.
     TN-013 sampai TN-015 dalam local commit terpisah sesuai ownership
     repository.
 
+17. **[TN-017 — Define JMX Exporter Configuration and Lab TLS Integration Contract](TN-017-define-jmx-exporter-configuration-and-lab-tls-integration-contract.md)**
+
+    Menilai configuration baseline, lab TLS, isolated runtime topology, dan
+    cleanup contract sebelum JMX Exporter scrape integration diterapkan.
+
+18. **[TN-018 — Implement JMX Exporter Baseline Configuration and Validation](TN-018-implement-jmx-exporter-baseline-configuration-and-validation.md)**
+
+    Mengimplementasikan two-rule JMX Exporter integration baseline dan static
+    validator tanpa menjalankan runtime.
+
+19. **[TN-019 — Commit JMX Exporter Baseline Configuration and Decision Evidence](TN-019-commit-jmx-exporter-baseline-configuration-and-decision-evidence.md)**
+
+    Menyimpan source serta decision evidence TN-017 dan TN-018 dalam local
+    commit terpisah sesuai ownership repository.
+
 ## 🔗 Related Documentation
 
 - [Tomcat Monitoring Engineering Journal](../index.md)

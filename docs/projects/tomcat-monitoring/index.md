@@ -75,7 +75,7 @@ Bridge.
 | Tomcat monitoring instrumentation | Current-source image `localhost/tomcat-jmx-exporter:1.0.0` passed local HTTPS/JVM smoke test; deployment planned |
 | Prometheus container | Persistent lab runtime verified on 2026-08-24; dashboard accessible through VPN at `http://edkas-pc1:9090`; scrape targets not verified |
 | Container status monitoring | Metrics source not determined |
-| Monitoring implementation | Telegraf health-check and Prometheus scrape source contracts implemented; Prometheus semantic configuration, readiness, named-volume mounts, and lab dashboard access verified |
+| Monitoring implementation | JMX Exporter two-rule baseline, Telegraf health-check, and Prometheus scrape source contracts implemented; JMX scrape integration pending |
 | End-to-end verification | Not started |
 
 ## Documentation Structure
