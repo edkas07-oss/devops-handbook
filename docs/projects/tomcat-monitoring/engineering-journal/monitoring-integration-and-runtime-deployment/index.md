@@ -6,9 +6,10 @@ Fase ini menerjemahkan architecture contract yang telah diterima menjadi
 configuration contract, validation interface, dan runtime component yang
 dikonsumsi repository `tomcat-monitoring`. Baseline integration, runtime
 generik Telegraf dan Prometheus, scrape configuration, serta persistent lab
-Prometheus dengan named volumes telah tersedia. Semantic configuration,
-readiness, dan dashboard lab telah diverifikasi; target scrape dan verifikasi
-end-to-end belum diterapkan.
+Prometheus dengan named volumes telah tersedia. Isolated JMX TLS scrape,
+strict untrusted-CA failure, dan recovery telah diverifikasi tanpa mengubah
+persistent Prometheus. Runtime metric-name contract telah direkonsiliasi;
+persistent integration dan verifikasi end-to-end belum diterapkan.
 
 ## 🎯 Objective
 
@@ -114,6 +115,21 @@ melampaui keputusan, secret boundary, atau authorization yang tersedia.
 
     Menyimpan source serta decision evidence TN-017 dan TN-018 dalam local
     commit terpisah sesuai ownership repository.
+
+20. **[TN-020 — Verify Isolated JMX Exporter TLS Scrape Integration](TN-020-verify-isolated-jmx-exporter-tls-scrape-integration.md)**
+
+    Memverifikasi successful dan failed TLS scrape behavior menggunakan
+    temporary Prometheus topology, lalu membersihkan exact TN-scoped resources.
+
+21. **[TN-021 — Reconcile Tomcat Server Metric Name Contract](TN-021-reconcile-tomcat-server-metric-name-contract.md)**
+
+    Menyelaraskan source, validator, dan documentation dengan canonical
+    runtime metric name `tomcat_server` berdasarkan evidence TN-020.
+
+22. **[TN-022 — Commit JMX TLS Integration and Metric Contract Evidence](TN-022-commit-jmx-tls-integration-and-metric-contract-evidence.md)**
+
+    Menyimpan source dan documentation evidence TN-020 sampai TN-022 dalam
+    local commits terpisah sesuai repository ownership.
 
 ## 🔗 Related Documentation
 

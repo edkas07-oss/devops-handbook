@@ -24,3 +24,6 @@ arrange:
 - TN-017-define-jmx-exporter-configuration-and-lab-tls-integration-contract.md
 - TN-018-implement-jmx-exporter-baseline-configuration-and-validation.md
 - TN-019-commit-jmx-exporter-baseline-configuration-and-decision-evidence.md
+- TN-020-verify-isolated-jmx-exporter-tls-scrape-integration.md
+- TN-021-reconcile-tomcat-server-metric-name-contract.md
+- TN-022-commit-jmx-tls-integration-and-metric-contract-evidence.md

@@ -69,14 +69,18 @@ luar scope Tomcat Monitoring.
 
 Monitoring end-to-end belum diimplementasikan. Persistent lab Prometheus telah
 lulus semantic configuration dan readiness verification, serta dashboard dapat
-dibuka dari tablet melalui VPN menggunakan `http://edkas-pc1:9090`. Hasil ini
-hanya membuktikan availability UI Prometheus pada lab, bukan keberhasilan
-scrape atau monitoring Tomcat.
+dibuka dari tablet melalui VPN menggunakan `http://edkas-pc1:9090`.
 
-JMX Exporter dan endpoint HTTPS `9404/metrics` telah diverifikasi secara lokal,
-tetapi belum diintegrasikan dengan Prometheus menggunakan CA actual. Two-rule
-source baseline menyediakan JVM heap dan Tomcat server-info metrics untuk
-integration proof; full operational metric catalog belum diimplementasikan.
+Isolated Prometheus test pada 2026-08-25 berhasil mengambil JMX metrics melalui
+HTTPS dengan hostname verification aktif. Penggantian trust material dengan CA
+yang tidak dipercaya menghasilkan `up=0` dan error verifikasi certificate;
+setelah trusted CA dipulihkan, target kembali `up=1`. Test menggunakan
+temporary container dan volumes sehingga persistent Prometheus tidak berubah.
+
+JVM heap metric tersedia sesuai baseline. Tomcat MBean juga tersedia, tetapi
+Prometheus menyimpan series sebagai `tomcat_server`; nama tersebut menjadi
+canonical source dan downstream contract setelah reconciliation TN-021. Full
+operational metric catalog belum diimplementasikan.
 Telegraf health-check source contract tersedia dan component behavior telah
 diverifikasi secara terpisah, tetapi Prometheus belum melakukan scrape terhadap
 Telegraf. Alerting dan external integration masih menjadi target capability

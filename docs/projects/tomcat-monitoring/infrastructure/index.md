@@ -22,11 +22,11 @@ proses infrastructure yang telah ditetapkan.
 | Tomcat container | Menjalankan application runtime yang dimonitor | Planned |
 | JMX Exporter Java Agent | Mengekspos JVM dan Tomcat metrics secara lokal | Available in local derived image; deployment planned |
 | Reusable JMX Agent procedure | Menjelaskan pemasangan, TLS configuration, build, dan validation secara reusable | Required in root How-to; not yet published |
-| Prometheus container | Mengumpulkan dan menyimpan time-series metrics | Persistent lab runtime verified; scrape integration pending |
+| Prometheus container | Mengumpulkan dan menyimpan time-series metrics | Persistent lab runtime verified; isolated JMX TLS scrape verified without persistent-state mutation |
 | Telegraf container | Menjalankan local HTTP health check aplikasi | Configuration contract implemented locally; runtime planned |
 | Persistent metrics storage | Mempertahankan historical metrics | Named volume `prometheus_data` available; retention, sizing, backup, and recovery not determined |
-| Container network | Menghubungkan Prometheus dengan endpoint JMX Exporter | Lab network `devops-lab` available; target aliases and end-to-end integration pending |
-| TLS certificate and trust | Mengamankan scrape endpoint menggunakan server-side TLS | Read-only `prometheus_truststore` mount verified with system CA bundle; actual JMX CA lifecycle not determined |
+| Container network | Menghubungkan Prometheus dengan endpoint JMX Exporter | Alias `tomcat-jmx-exporter` verified on lab network `devops-lab`; persistent and end-to-end integration pending |
+| TLS certificate and trust | Mengamankan scrape endpoint menggunakan server-side TLS | Temporary self-signed JMX CA trust and strict failure behavior verified; production certificate lifecycle not determined |
 | Application health endpoint | Memberikan status aplikasi yang dapat diverifikasi Telegraf | Interface `/health` defined; implementation planned |
 | Alertmanager | Mengelola dan meneruskan alert | Planned |
 | Integration Bridge | Meneruskan alert ke TrueSight | Planned |
@@ -69,7 +69,7 @@ configuration.
 
 | Flow | Protocol | Security | Status |
 | --- | --- | --- | --- |
-| Prometheus to JMX Exporter | HTTPS ke port `9404`, path `/metrics` | Server-side TLS dan source restriction | Locally verified from a test client; Prometheus integration pending |
+| Prometheus to JMX Exporter | HTTPS ke port `9404`, path `/metrics` | Server-side TLS dan source restriction | Isolated Prometheus scrape, hostname verification, untrusted-CA failure, and recovery verified on 2026-08-25; persistent integration pending |
 | Telegraf to application health endpoint | HTTP ke internal Tomcat port `8080`, path `/health` | Network isolation | Defined by topology; integration pending |
 | Prometheus to Telegraf | HTTP ke port internal `9273`, path `/metrics` | Network restriction pending | Configuration contract implemented locally; not runtime-verified |
 | Dashboard to Prometheus | HTTP ke host port `9090` pada lab | Trusted VPN lab; TLS dan authentication belum tersedia | Browser tablet verified through `http://edkas-pc1:9090` on 2026-08-24 |

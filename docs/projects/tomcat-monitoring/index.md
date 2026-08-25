@@ -73,9 +73,9 @@ Bridge.
 | Tomcat container provisioning | Planned |
 | Tomcat JMX Exporter source | Current source `231cb91` published to Gitea; source validation and local image build passed on 2026-08-25 |
 | Tomcat monitoring instrumentation | Current-source image `localhost/tomcat-jmx-exporter:1.0.0` passed local HTTPS/JVM smoke test; deployment planned |
-| Prometheus container | Persistent lab runtime verified on 2026-08-24; dashboard accessible through VPN at `http://edkas-pc1:9090`; scrape targets not verified |
+| Prometheus container | Persistent lab runtime verified on 2026-08-24; dashboard accessible through VPN at `http://edkas-pc1:9090`; isolated JMX TLS scrape verified on 2026-08-25 without changing persistent runtime |
 | Container status monitoring | Metrics source not determined |
-| Monitoring implementation | JMX Exporter two-rule baseline, Telegraf health-check, and Prometheus scrape source contracts implemented; JMX scrape integration pending |
+| Monitoring implementation | Isolated JMX TLS scrape success, strict untrusted-CA failure, and recovery verified; `tomcat_server` accepted as canonical Tomcat baseline metric, while persistent integration remains pending |
 | End-to-end verification | Not started |
 
 ## Documentation Structure

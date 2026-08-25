@@ -29,7 +29,7 @@ Source project dibagi berdasarkan lifecycle dan tanggung jawab berikut:
 | --- | --- | --- |
 | `tomcat` | Menyediakan generic Tomcat container image | Available |
 | `tomcat-jmx-exporter` | Menyediakan derived Tomcat image dengan embedded JMX Exporter | Current source published and local component build verified |
-| `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | JMX Exporter, Telegraf, and Prometheus source contracts implemented; runtime integration pending |
+| `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | Source contracts implemented; isolated JMX TLS scrape path verified, persistent integration pending |
 
 Repository `tomcat-jmx-exporter` tidak menyimpan JMX Exporter JAR sebagai binary
 di Git. Build mengambil versi `1.6.0` yang telah dipin dan memverifikasi
@@ -120,8 +120,12 @@ menjadi referensi implementasi sementara.
 Current source `231cb91` dibangun menjadi image lokal
 `localhost/tomcat-jmx-exporter:1.0.0` pada 2026-08-25. Self-cleaning component
 test memverifikasi HTTPS `/metrics`, JMX scrape duration, dan JVM heap metric.
-Hasil lokal tersebut belum membuktikan registry publication, deployment, atau
-Prometheus scrape integration.
+Hasil local component tersebut belum membuktikan registry publication atau
+deployment. Isolated Prometheus integration pada 2026-08-25 kemudian
+memverifikasi strict TLS scrape, failure dengan untrusted CA, dan recovery.
+Runtime menghasilkan Tomcat series `tomcat_server`, bukan nama konfigurasi
+awal `tomcat_server_info`. Source contract kemudian direkonsiliasi untuk
+menggunakan canonical runtime name `tomcat_server`.
 
 ## Configuration Development
 
