@@ -11,8 +11,9 @@ strict untrusted-CA failure, dan recovery telah diverifikasi tanpa mengubah
 persistent Prometheus. Runtime metric-name contract telah direkonsiliasi.
 Persistent lab JMX TLS scrape kemudian diterapkan dan diverifikasi dengan data
 volume yang sama. Lab-only Tomcat health application dan persistent Telegraf
-scrape juga telah diterapkan; alerting dan full external integration tetap
-belum diterapkan.
+scrape juga telah diterapkan. Application-health alert dan missing-metric
+contract telah ditetapkan; rule implementation, Alertmanager, dan full
+external integration tetap belum diterapkan.
 
 ## 🎯 Objective
 
@@ -137,6 +138,12 @@ melampaui keputusan, secret boundary, atau authorization yang tersedia.
     Menerapkan exploded JSP lab application, controlled JMX target replacement,
     persistent Telegraf runtime, retained rollback, dan live Prometheus serta
     restart-persistence verification.
+
+23. **[TN-023 — Define Application-Health Alert and Missing-Metric Contract](TN-023-define-application-health-alert-and-missing-metric-contract.md)**
+
+    Menetapkan pemisahan signal, PromQL baseline, stable alert identity,
+    firing/resolved semantics, dan implementation handoff untuk application
+    health alert tanpa mengubah source atau runtime.
 
 ## 🔗 Related Documentation
 

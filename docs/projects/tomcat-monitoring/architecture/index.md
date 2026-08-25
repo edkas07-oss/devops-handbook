@@ -121,6 +121,15 @@ melakukan scrape terhadap JMX Exporter dan Telegraf.
 ## Current Status
 
 Deployment topology belum diverifikasi melalui implementasi end-to-end.
-Bagian JMX Exporter telah diverifikasi secara lokal melalui endpoint HTTPS
-`9404/metrics`. Integrasi Prometheus, Telegraf, dashboard, alerting, dan
-external integration belum dilaksanakan.
+Persistent lab Prometheus telah memverifikasi strict HTTPS scrape terhadap JMX
+Exporter dan mempertahankan named data volume selama controlled replacement.
+Persistent Telegraf memeriksa lab-only Tomcat JSP health endpoint melalui
+container network; Prometheus menerima application-health metrics melalui
+internal target `telegraf:9273`. Application dan metrics ports tidak
+dipublikasikan pada host, sedangkan dashboard Prometheus lab tersedia melalui
+host port `9090`.
+
+Application-health alert dan missing-metric contract telah ditetapkan, tetapi
+rule belum diimplementasikan. Production application semantics, Alertmanager,
+notification routing, TrueSight integration, serta end-to-end firing dan
+resolved flow belum diverifikasi.

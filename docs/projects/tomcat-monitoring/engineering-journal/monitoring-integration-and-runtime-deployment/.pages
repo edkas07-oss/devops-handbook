@@ -27,3 +27,4 @@ arrange:
 - TN-020-deploy-persistent-lab-jmx-tls-scrape-integration.md
 - TN-021-define-persistent-telegraf-application-health-integration-contract.md
 - TN-022-deploy-persistent-tomcat-lab-health-application-and-telegraf-integration.md
+- TN-023-define-application-health-alert-and-missing-metric-contract.md
