@@ -202,10 +202,9 @@ diimplementasikan:
 
 Rootless Podman telah tersedia dan diverifikasi pada development environment.
 Derived image `localhost/tomcat-jmx-exporter:1.0.0` dengan JMX Exporter `1.6.0`
-telah dibangun dan lulus local HTTPS smoke test pada TN-002. Current source
-`d392717` telah dipublikasikan ke Gitea setelah image tersebut dibangun, tetapi
-clean image build dari current source belum diverifikasi. Container image masih
-lokal dan belum dipublikasikan ke registry atau di-deploy ke target runtime.
+telah dibangun dari current source `231cb91` dan lulus local HTTPS/JVM smoke
+test pada 2026-08-25. Container image masih lokal dan belum dipublikasikan ke
+registry atau di-deploy ke target runtime.
 
 Persistent lab container `prometheus` berjalan pada network `devops-lab`,
 memublikasikan host port `9090`, dan menggunakan named volumes

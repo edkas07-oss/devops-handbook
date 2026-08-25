@@ -16,12 +16,9 @@ Telegraf, alerting, serta deployment automation.
 Repository `tomcat-monitoring` telah dibuat di Gitea dan di-clone ke
 development environment. Baseline layout non-secret dan validator statis telah
 dibuat pada working tree lokal, tetapi belum memiliki commit atau publication.
-Repository `tomcat-jmx-exporter` telah memiliki initial commit dan source-nya
-telah dipublikasikan ke Gitea. Local derived image dari source revision awal
-telah lulus smoke test, sedangkan CI untuk image tersebut belum dibuat.
-Self-documentation bahasa Indonesia telah di-commit sebagai `d392717` dan
-dipublikasikan ke branch `origin/main`; clean image build dari current commit
-belum diverifikasi.
+Repository `tomcat-jmx-exporter` telah memiliki source yang dipublikasikan ke
+Gitea. Current source `231cb91` telah lulus local image build dan HTTPS/JVM
+smoke test pada 2026-08-25, sedangkan CI untuk image tersebut belum dibuat.
 
 ## Repository Responsibilities
 
@@ -30,7 +27,7 @@ Source project dibagi berdasarkan lifecycle dan tanggung jawab berikut:
 | Repository | Responsibility | Status |
 | --- | --- | --- |
 | `tomcat` | Menyediakan generic Tomcat container image | Available |
-| `tomcat-jmx-exporter` | Menyediakan derived Tomcat image dengan embedded JMX Exporter | Source and Indonesian self-documentation published |
+| `tomcat-jmx-exporter` | Menyediakan derived Tomcat image dengan embedded JMX Exporter | Current source published and local component build verified |
 | `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | Baseline layout created locally; configuration not started |
 
 Repository `tomcat-jmx-exporter` tidak menyimpan JMX Exporter JAR sebagai binary
@@ -61,7 +58,7 @@ tomcat-jmx-exporter/
 | Remote repository | [Gitea `tomcat-jmx-exporter`](http://edkas-pc1:3000/gitadm/tomcat-jmx-exporter) |
 | Default development branch | `main` |
 | Initial commit | `82175bb1047272fa2ba89f28b8de9d6d7608778d` |
-| Latest published commit | `d39271715e20f527b45752831cd6e5e901743b53` |
+| Latest published commit | `231cb915cc2e058abd1fa0377877b120a9d7e2be` |
 | Working tree | Clean |
 | Upstream tracking | Not configured on local branch |
 | CI pipeline | Not implemented |
@@ -100,13 +97,10 @@ Podman. Repository lokal tersedia pada:
 /home/eddywiyatno/git/tomcat-jmx-exporter
 ```
 
-Pada `tomcat-monitoring`, branch `main` memiliki governance commit dan working
-tree berisi baseline layout non-secret yang belum di-commit. Configuration
-monitoring executable belum dibuat. Pada `tomcat-jmx-exporter`, source awal tersedia pada branch
-`main` melalui commit `82175bb`. Self-documentation bahasa Indonesia telah
-dipublikasikan melalui commit `d392717`, dan `origin/main` menunjuk commit yang
-sama. Working tree lokal bersih, tetapi branch lokal belum mencatat upstream
-tracking terhadap `origin/main`. Podman `4.9.3` tersedia dalam mode rootless.
+Pada `tomcat-jmx-exporter`, current source tersedia pada branch `main` melalui
+commit `231cb91` dan local `origin/main` menunjuk commit yang sama. Working tree
+lokal bersih, tetapi branch lokal belum mencatat upstream tracking terhadap
+`origin/main`. Podman `4.9.3` tersedia dalam mode rootless.
 
 Build dan smoke test derived image dijalankan dari repository
 `tomcat-jmx-exporter`:
@@ -122,10 +116,11 @@ pada [root How-to](../../../how-to/index.md). Selama How-to khusus JMX Exporter
 belum diterbitkan, README dan scripts pada repository `tomcat-jmx-exporter`
 menjadi referensi implementasi sementara.
 
-Local image yang telah lulus smoke test dibangun sebelum commit `d392717`.
-Karena itu, current source publication dan local image verification dicatat
-sebagai hasil berbeda sampai clean build serta smoke test current source
-dijalankan.
+Current source `231cb91` dibangun menjadi image lokal
+`localhost/tomcat-jmx-exporter:1.0.0` pada 2026-08-25. Self-cleaning component
+test memverifikasi HTTPS `/metrics`, JMX scrape duration, dan JVM heap metric.
+Hasil lokal tersebut belum membuktikan registry publication, deployment, atau
+Prometheus scrape integration.
 
 ## Configuration Development
 

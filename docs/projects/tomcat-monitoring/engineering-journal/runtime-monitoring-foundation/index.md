@@ -14,10 +14,9 @@ Infrastructure, dan CI/CD. Hasil desain kemudian diringkas pada
 keputusannya tetap dipertahankan di Engineering Journal.
 
 Implementasi pertama adalah derived Tomcat image dengan embedded JMX Exporter.
-Local image telah dibangun dan diuji sebelum perubahan self-documentation
-terbaru dipublikasikan. Current source tersedia di Gitea, tetapi clean image
-build dari current commit belum diverifikasi. Integrasi Prometheus, Telegraf,
-dan deployment end-to-end belum dilaksanakan sehingga fase masih berjalan.
+Current source `231cb91` telah dibangun menjadi local image dan lulus HTTPS/JVM
+component smoke test. Integrasi Prometheus, Telegraf, dan deployment end-to-end
+belum dilaksanakan sehingga fase masih berjalan.
 
 ## Objective
 
@@ -39,7 +38,7 @@ tersedianya komponen monitoring pertama yang terverifikasi dengan cara:
 | Architecture foundation | Topology, monitoring flow, security controls, dan keputusan embedded monitoring instrumentation tersedia | Completed |
 | Development readiness | Git, Gitea, Rootless Podman, dan repository boundary tersedia | Completed |
 | JMX Exporter infrastructure | Local derived image JMX Exporter `1.6.0` dan endpoint HTTPS `9404/metrics` telah diverifikasi pada TN-002 | Completed |
-| Component source | Current source `d392717` telah dipublikasikan dan source validation lulus; clean image build dari commit tersebut belum diverifikasi | In Progress |
+| Component source | Current source `231cb91` telah dipublikasikan, dibangun menjadi local image, dan lulus HTTPS/JVM smoke test | Completed |
 | Application health interface | Telegraf menuju `http://<tomcat-container>:8080/health`; integrasi belum dilaksanakan | Planned |
 | Monitoring platform | Prometheus, Telegraf, storage, dashboard, dan Alertmanager | Planned |
 | Delivery design | Boundary CI, CD, Ansible, dan deployment verification telah diidentifikasi | Completed |
@@ -85,13 +84,22 @@ tersedianya komponen monitoring pertama yang terverifikasi dengan cara:
     Memverifikasi commit identity dan `update by push` evidence setelah
     governance dipublikasikan ke empat repository Gitea.
 
+8. **[TN-008 — Build and Smoke Test Current Tomcat JMX Exporter Source](TN-008-build-and-smoke-test-current-tomcat-jmx-exporter-source.md)**
+
+    Membangun current source JMX Exporter dan memverifikasi HTTPS endpoint serta
+    JVM metrics melalui self-cleaning component smoke test.
+
+9. **[TN-009 — Commit Current JMX Exporter Verification Documentation](TN-009-commit-current-jmx-exporter-verification-documentation.md)**
+
+    Menyimpan TN-008, phase navigation, dan current-state consolidation dalam
+    satu local commit Handbook yang terarah.
+
 !!! note "Phase Output"
 
-    Foundation saat ini memiliki current source `d392717` pada `origin/main`
-    dan local image `localhost/tomcat-jmx-exporter:1.0.0` yang telah lulus
-    HTTPS/JVM smoke test pada TN-002. Local image tersebut dibangun sebelum
-    commit `d392717`; clean build current source tetap menjadi verification
-    berikutnya sebelum digunakan sebagai input CI.
+    Foundation saat ini memiliki current source `231cb91` pada `origin/main`
+    dan local image `localhost/tomcat-jmx-exporter:1.0.0` hasil build source
+    tersebut. HTTPS `/metrics`, JMX scrape duration, dan JVM heap metric lulus
+    self-cleaning component smoke test pada TN-008.
 
     Fase belum selesai karena Prometheus, Telegraf, container network,
     production certificate, persistent storage, Ansible, dan end-to-end

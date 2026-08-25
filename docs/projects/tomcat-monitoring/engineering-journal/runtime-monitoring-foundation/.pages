@@ -12,3 +12,5 @@ arrange:
 - TN-005-normalize-runtime-monitoring-foundation-journal.md
 - TN-006-implement-repository-agents-governance.md
 - TN-007-verify-repository-governance-publication.md
+- TN-008-build-and-smoke-test-current-tomcat-jmx-exporter-source.md
+- TN-009-commit-current-jmx-exporter-verification-documentation.md

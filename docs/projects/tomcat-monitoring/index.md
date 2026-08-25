@@ -71,8 +71,8 @@ Bridge.
 | Monitoring architecture | Topology defined; JMX flow verified locally |
 | Rootless Podman runtime | Available and verified |
 | Tomcat container provisioning | Planned |
-| Tomcat JMX Exporter source | Current source `d392717` published to Gitea; source validation passed; clean image build not verified |
-| Tomcat monitoring instrumentation | Local image from the earlier source revision passed HTTPS/JVM smoke test; current-source rebuild and deployment planned |
+| Tomcat JMX Exporter source | Current source `231cb91` published to Gitea; source validation and local image build passed on 2026-08-25 |
+| Tomcat monitoring instrumentation | Current-source image `localhost/tomcat-jmx-exporter:1.0.0` passed local HTTPS/JVM smoke test; deployment planned |
 | Prometheus container | Persistent lab runtime verified on 2026-08-24; dashboard accessible through VPN at `http://edkas-pc1:9090`; scrape targets not verified |
 | Container status monitoring | Metrics source not determined |
 | Monitoring implementation | Telegraf health-check and Prometheus scrape source contracts implemented; Prometheus semantic configuration, readiness, named-volume mounts, and lab dashboard access verified |
