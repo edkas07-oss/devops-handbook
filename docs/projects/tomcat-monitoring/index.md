@@ -70,12 +70,13 @@ Bridge.
 | --- | --- |
 | Monitoring architecture | Topology defined; persistent lab JMX flow verified |
 | Rootless Podman runtime | Available and verified |
-| Tomcat container provisioning | Generic persistent JMX lab target deployed; application provisioning planned |
+| Tomcat container provisioning | Persistent JMX lab target runs the lab-only JSP health application; production application provisioning planned |
 | Tomcat JMX Exporter source | Current source `231cb91` published to Gitea; source validation and local image build passed on 2026-08-25 |
-| Tomcat monitoring instrumentation | Current-source image `localhost/tomcat-jmx-exporter:1.0.0` deployed as persistent generic lab target with internal HTTPS metrics and no host-published metrics port |
+| Tomcat monitoring instrumentation | Current-source image `localhost/tomcat-jmx-exporter:1.0.0` deployed with internal HTTPS metrics, lab health application, and no host-published application or metrics port |
 | Prometheus container | Persistent lab runtime uses existing named volumes; dashboard and strict JMX TLS scrape verified on 2026-08-25 through `http://edkas-pc1:9090` |
+| Telegraf container | Persistent lab runtime checks the Tomcat JSP health endpoint and is scraped by Prometheus through internal `telegraf:9273` |
 | Container status monitoring | Metrics source not determined |
-| Monitoring implementation | Persistent JMX target `up=1`; `jvm_memory_heap_used_bytes` and canonical `tomcat_server` available; Telegraf, alerting, and external integration pending |
+| Monitoring implementation | Persistent JMX and Telegraf targets `up=1`; JVM, Tomcat, and successful application-health metrics available; alerting and external integration pending |
 | End-to-end verification | Not started |
 
 ## Documentation Structure

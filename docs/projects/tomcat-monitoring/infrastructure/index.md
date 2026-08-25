@@ -19,15 +19,15 @@ proses infrastructure yang telah ditetapkan.
 | Gitea | Menyimpan source dan konfigurasi project | Available |
 | Development workstation | Menjadi local development environment | Available |
 | Rootless Podman `4.9.3` | Menjalankan Tomcat dan monitoring components | Available |
-| Tomcat container | Menjalankan application runtime yang dimonitor | Generic persistent JMX lab target available; application runtime planned |
-| JMX Exporter Java Agent | Mengekspos JVM dan Tomcat metrics secara lokal | Persistent generic lab target deployed and verified; application deployment planned |
+| Tomcat container | Menjalankan application runtime yang dimonitor | Persistent JMX lab target runs lab-only JSP health application; production application planned |
+| JMX Exporter Java Agent | Mengekspos JVM dan Tomcat metrics secara lokal | Persistent lab target deployed and verified together with lab health application |
 | Reusable JMX Agent procedure | Menjelaskan pemasangan, TLS configuration, build, dan validation secara reusable | Required in root How-to; not yet published |
 | Prometheus container | Mengumpulkan dan menyimpan time-series metrics | Persistent lab runtime and strict JMX TLS scrape verified |
-| Telegraf container | Menjalankan local HTTP health check aplikasi | Configuration contract implemented locally; runtime planned |
+| Telegraf container | Menjalankan local HTTP health check aplikasi | Persistent lab runtime deployed and scraped successfully by Prometheus |
 | Persistent metrics storage | Mempertahankan historical metrics | Named volume `prometheus_data` available; retention, sizing, backup, and recovery not determined |
-| Container network | Menghubungkan Prometheus dengan endpoint JMX Exporter | Persistent alias `tomcat-jmx-exporter` verified on `devops-lab`; end-to-end integration pending |
+| Container network | Menghubungkan Prometheus, Telegraf, dan Tomcat/JMX target | Persistent aliases `tomcat-jmx-exporter` and `telegraf` verified on `devops-lab` |
 | TLS certificate and trust | Mengamankan scrape endpoint menggunakan server-side TLS | Persistent lab material installed and strict verification passed; production certificate lifecycle not determined |
-| Application health endpoint | Memberikan status aplikasi yang dapat diverifikasi Telegraf | Interface `/health` defined; implementation planned |
+| Application health endpoint | Memberikan status aplikasi yang dapat diverifikasi Telegraf | Lab-only JSP `/health` deployed and verified; production application endpoint planned |
 | Alertmanager | Mengelola dan meneruskan alert | Planned |
 | Integration Bridge | Meneruskan alert ke TrueSight | Planned |
 
@@ -70,8 +70,8 @@ configuration.
 | Flow | Protocol | Security | Status |
 | --- | --- | --- | --- |
 | Prometheus to JMX Exporter | HTTPS ke port `9404`, path `/metrics` | Server-side TLS dan container-network-only access | Persistent strict TLS scrape and hostname verification passed on 2026-08-25; JMX metrics port is not published on the host |
-| Telegraf to application health endpoint | HTTP ke internal Tomcat port `8080`, path `/health` | Network isolation | Defined by topology; integration pending |
-| Prometheus to Telegraf | HTTP ke port internal `9273`, path `/metrics` | Network restriction pending | Configuration contract implemented locally; not runtime-verified |
+| Telegraf to application health endpoint | HTTP ke internal Tomcat port `8080`, path `/health` | Container-network-only access; no host port | Persistent lab integration verified on 2026-08-25 |
+| Prometheus to Telegraf | HTTP ke port internal `9273`, path `/metrics` | Container-network-only access; no host port | Persistent target `up=1` and successful health metrics verified on 2026-08-25 |
 | Dashboard to Prometheus | HTTP ke host port `9090` pada lab | Trusted VPN lab; TLS dan authentication belum tersedia | Browser tablet verified through `http://edkas-pc1:9090` on 2026-08-24 |
 | Prometheus to Alertmanager | Not determined | Not determined | Not determined |
 | Alertmanager to Integration Bridge | Webhook; protocol not determined | Not determined | Designed, not verified |
@@ -106,8 +106,15 @@ Health path ditetapkan sebagai `/health` berdasarkan topology. Contract
 sementara menggunakan HTTP `200`, body yang menyatakan status `UP`, timeout
 `5s`, interval `30s`, dan Telegraf Prometheus client internal
 `:9273/metrics`. Target URL diberikan melalui `TOMCAT_HEALTH_URL` saat runtime.
-Nilai ini telah memiliki source contract dan static validation, tetapi belum
-runtime-verified bersama Telegraf, Prometheus, atau application endpoint nyata.
+Nilai ini memiliki source contract dan static validation. Runtime lab
+verification menggunakan application fixture dijelaskan berikutnya.
+
+Persistent lab verification pada 2026-08-25 menggunakan exploded JSP fixture
+yang diproses Tomcat. Endpoint menghasilkan HTTP `200` dan JSON
+`{"status":"UP"}`; Telegraf menghasilkan status-code match `1`, string match
+`1`, dan result code `0`; Prometheus menghasilkan target
+`telegraf-health` `up=1`. Fixture ini bukan production application health
+implementation.
 
 ## Storage Requirements
 
@@ -171,6 +178,7 @@ tetap berstatus `Not determined`.
 | JMX Exporter binary dan Java Agent startup contract | Repository `tomcat-jmx-exporter` |
 | Reusable JMX Agent installation and validation procedure | Root How-to; not yet published |
 | JMX Exporter configuration | Tomcat Monitoring project |
+| Lab-only Tomcat health application fixture | Tomcat Monitoring project |
 | Telegraf HTTP health check configuration | Tomcat Monitoring project |
 | Prometheus scrape configuration dan alert rules | Tomcat Monitoring project |
 | Dashboard dan Alertmanager configuration | Tomcat Monitoring project |
@@ -211,8 +219,6 @@ diimplementasikan:
 - CPU, memory, dan storage sizing;
 - Production certificate authority dan certificate lifecycle;
 - Sumber metrics untuk container status;
-- Expected response, timeout, dan interval HTTP health check `/health`;
-- Mekanisme scrape health metrics dari Telegraf;
 - Ownership Integration Bridge dan koneksi TrueSight.
 
 ## Current Status
@@ -231,8 +237,16 @@ bind. Semantic configuration, readiness, mount modes, dan akses dashboard dari
 tablet melalui VPN telah diverifikasi. Pada 2026-08-25, truststore diperbarui
 dengan public self-signed certificate persistent target dan Prometheus
 menghasilkan JMX `up=1`, `jvm_memory_heap_used_bytes`, serta `tomcat_server`
-dengan `insecure_skip_verify: false`. Telegraf scrape, Alertmanager, production
-certificate, serta provisioning melalui CI/CD dan Ansible belum
+dengan `insecure_skip_verify: false`.
+
+Persistent lab Tomcat target juga memuat read-only JSP health application pada
+root context. Persistent Telegraf memeriksa
+`http://tomcat-jmx-exporter:8080/health` dan menyediakan metrics pada internal
+`:9273/metrics`; Prometheus scrape pool `telegraf-health` menghasilkan `up=1`.
+Endpoint, metrics semantics, JMX continuity, no-host-port boundary, dan restart
+persistence lulus pada 2026-08-25. Stopped original JMX container dipertahankan
+sebagai `tomcat-jmx-exporter-rollback` sampai cleanup diotorisasi. Alertmanager,
+production certificate, serta provisioning melalui CI/CD dan Ansible belum
 diimplementasikan.
 
 Persistent lab self-signed certificate lifecycle telah ditetapkan pada

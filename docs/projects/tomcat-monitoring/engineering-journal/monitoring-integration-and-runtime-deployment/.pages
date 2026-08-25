@@ -25,3 +25,5 @@ arrange:
 - TN-018-define-persistent-lab-jmx-scrape-integration-contract.md
 - TN-019-define-persistent-lab-self-signed-certificate-lifecycle.md
 - TN-020-deploy-persistent-lab-jmx-tls-scrape-integration.md
+- TN-021-define-persistent-telegraf-application-health-integration-contract.md
+- TN-022-deploy-persistent-tomcat-lab-health-application-and-telegraf-integration.md

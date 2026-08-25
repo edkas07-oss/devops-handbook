@@ -10,7 +10,9 @@ Prometheus dengan named volumes telah tersedia. Isolated JMX TLS scrape,
 strict untrusted-CA failure, dan recovery telah diverifikasi tanpa mengubah
 persistent Prometheus. Runtime metric-name contract telah direkonsiliasi.
 Persistent lab JMX TLS scrape kemudian diterapkan dan diverifikasi dengan data
-volume yang sama; verifikasi end-to-end tetap belum diterapkan.
+volume yang sama. Lab-only Tomcat health application dan persistent Telegraf
+scrape juga telah diterapkan; alerting dan full external integration tetap
+belum diterapkan.
 
 ## 🎯 Objective
 
@@ -123,6 +125,18 @@ melampaui keputusan, secret boundary, atau authorization yang tersedia.
     Menerapkan persistent JMX TLS target dan controlled Prometheus replacement,
     lalu memverifikasi strict scrape, baseline metrics, dashboard readiness,
     serta data-volume continuity.
+
+21. **[TN-021 — Define Persistent Telegraf Application-Health Integration Contract](TN-021-define-persistent-telegraf-application-health-integration-contract.md)**
+
+    Menilai application-health provider, ownership, URL injection, topology,
+    prerequisite, dan verification boundary sebelum persistent Telegraf
+    implementation mendapatkan Decision Gate.
+
+22. **[TN-022 — Deploy Persistent Tomcat Lab Health Application and Telegraf Integration](TN-022-deploy-persistent-tomcat-lab-health-application-and-telegraf-integration.md)**
+
+    Menerapkan exploded JSP lab application, controlled JMX target replacement,
+    persistent Telegraf runtime, retained rollback, dan live Prometheus serta
+    restart-persistence verification.
 
 ## 🔗 Related Documentation
 

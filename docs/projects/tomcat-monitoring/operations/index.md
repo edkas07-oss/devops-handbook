@@ -85,7 +85,14 @@ Tomcat MBean tersedia sebagai canonical series `tomcat_server` setelah
 reconciliation TN-017. Full operational metric catalog belum
 diimplementasikan.
 
-Telegraf health-check source contract tersedia dan component behavior telah
-diverifikasi secara terpisah, tetapi Prometheus belum melakukan scrape terhadap
-Telegraf. Alerting dan external integration masih menjadi target capability
-project.
+Persistent lab Telegraf memeriksa JSP application endpoint
+`http://tomcat-jmx-exporter:8080/health` melalui `devops-lab`. Direct endpoint
+menghasilkan HTTP `200` dan JSON `{"status":"UP"}`. Telegraf menghasilkan
+status-code match `1`, string match `1`, dan result code `0`; Prometheus scrape
+pool `telegraf-health` menghasilkan `up=1`. Endpoint, Telegraf metrics, dan JMX
+metrics pulih setelah controlled restart tanpa host-published port baru.
+
+Health result ini membuktikan lab fixture diproses Tomcat dari local container
+network. Ia tidak membuktikan production application dependencies atau jalur
+akses eksternal. Alerting dan external integration masih menjadi target
+capability project.
