@@ -94,5 +94,8 @@ metrics pulih setelah controlled restart tanpa host-published port baru.
 
 Health result ini membuktikan lab fixture diproses Tomcat dari local container
 network. Ia tidak membuktikan production application dependencies atau jalur
-akses eksternal. Alerting dan external integration masih menjadi target
+akses eksternal. Application-health alert rules telah dimuat pada persistent
+Prometheus dan lulus isolated firing/resolved verification untuk non-zero
+result, missing health series, dan Telegraf scrape unavailable. Alertmanager,
+notification delivery, dan external integration masih menjadi target
 capability project.

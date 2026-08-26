@@ -12,7 +12,8 @@ persistent Prometheus. Runtime metric-name contract telah direkonsiliasi.
 Persistent lab JMX TLS scrape kemudian diterapkan dan diverifikasi dengan data
 volume yang sama. Lab-only Tomcat health application dan persistent Telegraf
 scrape juga telah diterapkan. Application-health alert dan missing-metric
-contract telah ditetapkan; rule implementation, Alertmanager, dan full
+rules telah diimplementasikan, dimuat pada persistent Prometheus, dan lulus
+semantic serta isolated firing/resolved verification. Alertmanager dan full
 external integration tetap belum diterapkan.
 
 ## 🎯 Objective
@@ -144,6 +145,12 @@ melampaui keputusan, secret boundary, atau authorization yang tersedia.
     Menetapkan pemisahan signal, PromQL baseline, stable alert identity,
     firing/resolved semantics, dan implementation handoff untuk application
     health alert tanpa mengubah source atau runtime.
+
+24. **[TN-024 — Implement and Verify Prometheus Application-Health Alert Rules](TN-024-implement-and-verify-prometheus-application-health-alert-rules.md)**
+
+    Mengimplementasikan tiga application-health alert rules dan memverifikasi
+    semantic contract, persistent loading, isolated firing/resolved behavior,
+    serta scrape dan data continuity.
 
 ## 🔗 Related Documentation
 

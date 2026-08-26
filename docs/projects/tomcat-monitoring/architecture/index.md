@@ -129,7 +129,9 @@ internal target `telegraf:9273`. Application dan metrics ports tidak
 dipublikasikan pada host, sedangkan dashboard Prometheus lab tersedia melalui
 host port `9090`.
 
-Application-health alert dan missing-metric contract telah ditetapkan, tetapi
-rule belum diimplementasikan. Production application semantics, Alertmanager,
-notification routing, TrueSight integration, serta end-to-end firing dan
-resolved flow belum diverifikasi.
+Tiga application-health alert rules telah diimplementasikan, dimuat pada
+persistent Prometheus, dan lulus `promtool`, synthetic rule-unit test, serta
+isolated firing/resolved verification. Application failed, missing metric, dan
+Telegraf scrape unavailable terbukti menjadi state yang terpisah. Production
+application semantics, Alertmanager, notification routing, TrueSight
+integration, serta end-to-end notification flow belum diverifikasi.

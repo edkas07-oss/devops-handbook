@@ -98,7 +98,7 @@ Fixture tidak dipromosikan sebagai production application.
 | Application source | `/home/eddywiyatno/git/tomcat-monitoring/fixtures/tomcat-health-app` |
 | Application mount | Read-only bind to `/usr/local/tomcat/webapps/ROOT` |
 | Active application/JMX container | `tomcat-jmx-exporter` |
-| Rollback container | `tomcat-jmx-exporter-rollback`, stopped and retained on successful cutover |
+| Rollback container | `tomcat-jmx-exporter-rollback`, stopped and retained on successful cutover; removed on 2026-08-26 after separate cleanup authorization |
 | Application/JMX image | `localhost/tomcat-jmx-exporter:1.0.0` |
 | Application URL | `http://tomcat-jmx-exporter:8080/health` on `devops-lab` |
 | JMX endpoint | Existing internal `https://tomcat-jmx-exporter:9404/metrics` |
@@ -492,6 +492,19 @@ curl --fail --silent --show-error --get --data-urlencode 'query=up{job="tomcat-j
 podman inspect tomcat-jmx-exporter --format 'id={{.Id}} status={{.State.Status}} ports={{json .HostConfig.PortBindings}}'
 podman inspect telegraf --format 'id={{.Id}} status={{.State.Status}} user={{.Config.User}} ports={{json .HostConfig.PortBindings}}'
 podman inspect tomcat-jmx-exporter-rollback --format 'id={{.Id}} status={{.State.Status}}'
+
+# Authorized successful-cutover cleanup on 2026-08-26
+test "$(podman inspect tomcat-jmx-exporter-rollback --format '{{.Id}}')" = a5e42f2719d76b37ac38678ee7a4ec50724da7497c4a88f2e1200ef6da470196
+test "$(podman inspect tomcat-jmx-exporter-rollback --format '{{.State.Status}}')" = exited
+test "$(podman inspect tomcat-jmx-exporter --format '{{.Id}}')" = 30da6d70bd638b174196f53020ef345fc8a4a9dc66859da9c98ea9b4190b8712
+podman rm a5e42f2719d76b37ac38678ee7a4ec50724da7497c4a88f2e1200ef6da470196
+! podman container exists tomcat-jmx-exporter-rollback
+podman image exists localhost/tomcat-jmx-exporter:1.0.0
+podman exec prometheus wget -qO- http://127.0.0.1:9090/-/ready
+podman exec prometheus wget -qO- 'http://127.0.0.1:9090/api/v1/query?query=up%7Bjob%3D%22tomcat-jmx-exporter%22%7D'
+podman exec prometheus wget -qO- 'http://127.0.0.1:9090/api/v1/query?query=up%7Bjob%3D%22telegraf-health%22%7D'
+podman exec prometheus wget -qO- 'http://127.0.0.1:9090/api/v1/query?query=http_response_result_code%7Bjob%3D%22telegraf-health%22%2Cservice%3D%22tomcat%22%2Ccheck%3D%22application-health%22%7D'
+podman exec prometheus wget -qO- http://127.0.0.1:9090/api/v1/alerts
 ```
 
 Kedua trailing-whitespace scans tidak menghasilkan temuan dan karena itu
@@ -533,10 +546,14 @@ diterapkan. Application endpoint, direct Telegraf metrics, Prometheus scrape,
 JMX continuity, no-host-port boundary, dan restart persistence memenuhi
 expected result. Prometheus container serta named volumes tidak diganti.
 
-Rollback tidak diperlukan. Original JMX container tetap dihentikan dengan nama
-`tomcat-jmx-exporter-rollback`; penghapusannya memerlukan successful-cutover
-cleanup authorization terpisah. JSP fixture hanya membuktikan lab integration
-dan tidak menyatakan production application dependencies sehat.
+Rollback tidak diperlukan. Original JMX container dihentikan dengan nama
+`tomcat-jmx-exporter-rollback`, dipertahankan selama cutover verification, lalu
+dihapus pada 2026-08-26 setelah exact-target inspection dan successful-cutover
+cleanup authorization terpisah. Image, bind files, TLS material, dan active
+replacement tidak dihapus. Post-cleanup verification menghasilkan JMX dan
+Telegraf `up=1`, application-health result `0`, serta alert API kosong. JSP
+fixture hanya membuktikan lab integration dan tidak menyatakan production
+application dependencies sehat.
 
 ## ⏭️ Next Steps
 

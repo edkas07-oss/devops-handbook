@@ -21,9 +21,9 @@ memory yang masih tersedia pada host, project dapat menyediakan monitoring
 ringan tanpa menambah biaya dan administrasi full observability platform.
 
 Project ini bersifat *platform-agnostic*, artinya alert tidak terikat pada satu
-notification channel atau event management system tertentu. Pada implementasi
-saat ini, alert diteruskan ke TrueSight melalui Alertmanager dan Integration
-Bridge.
+notification channel atau event management system tertentu. Target integrasi
+saat ini akan meneruskan alert ke TrueSight melalui Alertmanager dan
+Integration Bridge; routing tersebut belum diimplementasikan.
 
 ## Project Objectives
 
@@ -76,7 +76,7 @@ Bridge.
 | Prometheus container | Persistent lab runtime uses existing named volumes; dashboard and strict JMX TLS scrape verified on 2026-08-25 through `http://edkas-pc1:9090` |
 | Telegraf container | Persistent lab runtime checks the Tomcat JSP health endpoint and is scraped by Prometheus through internal `telegraf:9273` |
 | Container status monitoring | Metrics source not determined |
-| Monitoring implementation | Persistent JMX and Telegraf targets `up=1`; JVM, Tomcat, and successful application-health metrics available; alerting and external integration pending |
+| Monitoring implementation | Persistent JMX and Telegraf targets `up=1`; three application-health alert rules are loaded and passed isolated firing/resolved verification on 2026-08-26; Alertmanager and external integration pending |
 | End-to-end verification | Not started |
 
 ## Documentation Structure

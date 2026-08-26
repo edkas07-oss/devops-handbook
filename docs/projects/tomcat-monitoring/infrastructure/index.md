@@ -244,10 +244,13 @@ root context. Persistent Telegraf memeriksa
 `http://tomcat-jmx-exporter:8080/health` dan menyediakan metrics pada internal
 `:9273/metrics`; Prometheus scrape pool `telegraf-health` menghasilkan `up=1`.
 Endpoint, metrics semantics, JMX continuity, no-host-port boundary, dan restart
-persistence lulus pada 2026-08-25. Stopped original JMX container dipertahankan
-sebagai `tomcat-jmx-exporter-rollback` sampai cleanup diotorisasi. Alertmanager,
-production certificate, serta provisioning melalui CI/CD dan Ansible belum
-diimplementasikan.
+persistence lulus pada 2026-08-25. Stopped original JMX container sempat
+dipertahankan sebagai `tomcat-jmx-exporter-rollback`, lalu dihapus pada
+2026-08-26 setelah exact-target inspection dan successful-cutover cleanup
+authorization. Active replacement, image, bind files, dan TLS material tetap
+tersedia; post-cleanup JMX dan Telegraf tetap `up=1` dengan application-health
+result `0`. Alertmanager, production certificate, serta provisioning melalui
+CI/CD dan Ansible belum diimplementasikan.
 
 Persistent lab self-signed certificate lifecycle telah ditetapkan pada
 2026-08-25. Material aktif tersimpan pada accepted non-Git directory, dipasang

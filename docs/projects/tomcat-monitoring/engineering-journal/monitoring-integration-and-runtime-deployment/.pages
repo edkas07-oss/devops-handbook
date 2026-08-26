@@ -28,3 +28,4 @@ arrange:
 - TN-021-define-persistent-telegraf-application-health-integration-contract.md
 - TN-022-deploy-persistent-tomcat-lab-health-application-and-telegraf-integration.md
 - TN-023-define-application-health-alert-and-missing-metric-contract.md
+- TN-024-implement-and-verify-prometheus-application-health-alert-rules.md
