@@ -13,8 +13,14 @@ Persistent lab JMX TLS scrape kemudian diterapkan dan diverifikasi dengan data
 volume yang sama. Lab-only Tomcat health application dan persistent Telegraf
 scrape juga telah diterapkan. Application-health alert dan missing-metric
 rules telah diimplementasikan, dimuat pada persistent Prometheus, dan lulus
-semantic serta isolated firing/resolved verification. Alertmanager dan full
-external integration tetap belum diterapkan.
+semantic serta isolated firing/resolved verification. Persistent Alertmanager
+dan full external integration tetap belum diterapkan. Runtime ownership, internal lab
+interface, routing baseline, receiver boundary, dan secret reference contract
+Alertmanager telah ditetapkan. Source repository runtime generik Alertmanager
+kemudian dibentuk, lulus static validation, dan menghasilkan local image yang
+lulus Alertmanager, `amtool`, serta non-root smoke tests. Non-secret routing
+configuration, static validator, dan Prometheus API v2 delivery reference telah
+diimplementasikan dan lulus disposable semantic validation.
 
 ## 🎯 Objective
 
@@ -151,6 +157,30 @@ melampaui keputusan, secret boundary, atau authorization yang tersedia.
     Mengimplementasikan tiga application-health alert rules dan memverifikasi
     semantic contract, persistent loading, isolated firing/resolved behavior,
     serta scrape dan data continuity.
+
+25. **[TN-025 — Define Alertmanager Runtime Ownership and Notification Integration Contract](TN-025-define-alertmanager-runtime-ownership-and-notification-integration-contract.md)**
+
+    Menetapkan repository runtime generik Alertmanager, upstream pin, internal
+    interface, routing baseline, receiver dan secret boundary, validation
+    layers, serta decision gate sebelum implementation.
+
+26. **[TN-026 — Establish Alertmanager Runtime Repository](TN-026-establish-alertmanager-runtime-repository.md)**
+
+    Membentuk source runtime Alertmanager generik dengan upstream pin,
+    governance, lifecycle interfaces, dan static verification tanpa build atau
+    runtime execution.
+
+27. **[TN-027 — Build and Smoke Test Alertmanager Runtime](TN-027-build-and-smoke-test-alertmanager-runtime.md)**
+
+    Membangun local image Alertmanager dan memverifikasi Alertmanager,
+    `amtool`, inherited non-root runtime contract, image identity, serta
+    disposable cleanup.
+
+28. **[TN-028 — Implement Alertmanager Configuration and Validation Contract](TN-028-implement-alertmanager-configuration-and-validation-contract.md)**
+
+    Mengimplementasikan non-secret Alertmanager routing, Prometheus API v2
+    delivery reference, static validators, dan disposable semantic validation
+    tanpa persistent runtime atau external endpoint.
 
 ## 🔗 Related Documentation
 

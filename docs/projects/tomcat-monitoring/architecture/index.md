@@ -133,5 +133,17 @@ Tiga application-health alert rules telah diimplementasikan, dimuat pada
 persistent Prometheus, dan lulus `promtool`, synthetic rule-unit test, serta
 isolated firing/resolved verification. Application failed, missing metric, dan
 Telegraf scrape unavailable terbukti menjadi state yang terpisah. Production
-application semantics, Alertmanager, notification routing, TrueSight
+application semantics, persistent Alertmanager, receiver behavior, TrueSight
 integration, serta end-to-end notification flow belum diverifikasi.
+
+Alertmanager runtime akan dimiliki repository generik terpisah, sedangkan
+configuration, routing, validation, Prometheus delivery, dan orchestration
+tetap dimiliki `tomcat-monitoring`. Lab contract menggunakan internal
+`alertmanager:9093`, stable alert labels, grouping baseline, dan webhook
+`send_resolved: true` menuju Integration Bridge dengan endpoint dari runtime
+secret file. Generic runtime source telah dibentuk dengan upstream pin
+`v0.34.0`; local image build, Alertmanager dan `amtool` version, serta official
+non-root contract telah diverifikasi. Non-secret routing configuration dan
+Prometheus API v2 reference telah diimplementasikan dan lulus `amtool` serta
+`promtool`. Receiver behavior, persistent runtime, dan external flow belum
+diimplementasikan atau diverifikasi.

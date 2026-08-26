@@ -29,3 +29,7 @@ arrange:
 - TN-022-deploy-persistent-tomcat-lab-health-application-and-telegraf-integration.md
 - TN-023-define-application-health-alert-and-missing-metric-contract.md
 - TN-024-implement-and-verify-prometheus-application-health-alert-rules.md
+- TN-025-define-alertmanager-runtime-ownership-and-notification-integration-contract.md
+- TN-026-establish-alertmanager-runtime-repository.md
+- TN-027-build-and-smoke-test-alertmanager-runtime.md
+- TN-028-implement-alertmanager-configuration-and-validation-contract.md

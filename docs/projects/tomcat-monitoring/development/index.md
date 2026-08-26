@@ -29,7 +29,8 @@ Source project dibagi berdasarkan lifecycle dan tanggung jawab berikut:
 | --- | --- | --- |
 | `tomcat` | Menyediakan generic Tomcat container image | Available |
 | `tomcat-jmx-exporter` | Menyediakan derived Tomcat image dengan embedded JMX Exporter | Current source published and local component build verified |
-| `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | Source contracts implemented; isolated JMX TLS scrape path verified, persistent integration pending |
+| `alertmanager` | Menyediakan generic Alertmanager container image dan lifecycle runtime | Local image `1.0.0` built; Alertmanager, `amtool`, and non-root smoke test passed |
+| `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | Alertmanager routing and Prometheus API v2 delivery source passed static and semantic validation; persistent integration pending |
 
 Repository `tomcat-jmx-exporter` tidak menyimpan JMX Exporter JAR sebagai binary
 di Git. Build mengambil versi `1.6.0` yang telah dipin dan memverifikasi

@@ -76,7 +76,7 @@ Integration Bridge; routing tersebut belum diimplementasikan.
 | Prometheus container | Persistent lab runtime uses existing named volumes; dashboard and strict JMX TLS scrape verified on 2026-08-25 through `http://edkas-pc1:9090` |
 | Telegraf container | Persistent lab runtime checks the Tomcat JSP health endpoint and is scraped by Prometheus through internal `telegraf:9273` |
 | Container status monitoring | Metrics source not determined |
-| Monitoring implementation | Persistent JMX and Telegraf targets `up=1`; three application-health alert rules are loaded and passed isolated firing/resolved verification on 2026-08-26; Alertmanager and external integration pending |
+| Monitoring implementation | Persistent JMX and Telegraf targets `up=1`; three application-health alert rules passed isolated firing/resolved verification; local Alertmanager routing source and Prometheus API v2 delivery reference passed static and semantic validation on 2026-08-26; persistent and external integration pending |
 | End-to-end verification | Not started |
 
 ## Documentation Structure
