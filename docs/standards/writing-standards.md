@@ -192,7 +192,57 @@ Gunakan alignment bawaan Markdown.
 
 ## 🗺️ Diagrams
 
-Gunakan diagram text apabila sudah cukup menjelaskan hubungan antar komponen.
+Gunakan diagram ketika hubungan, urutan, perubahan state, atau batas scope akan
+lebih mudah dipahami secara visual daripada melalui paragraf atau daftar saja.
+Diagram harus membantu pembaca membentuk mental model, bukan sekadar menjadi
+dekorasi.
+
+### Kapan Diagram Diperlukan
+
+Tambahkan diagram apabila dokumentasi menjelaskan satu atau lebih kondisi
+berikut:
+
+- tiga atau lebih langkah yang saling bergantung;
+- alur data, request, alert, deployment, rollback, atau approval;
+- perubahan state, seperti `Planned` → `Approved` → `Implemented` → `Verified`;
+- satu komponen yang memengaruhi beberapa komponen atau jalur berikutnya;
+- topology, ownership, network boundary, atau hubungan antarkomponen;
+- perbedaan antara current state, target state, dan bagian yang belum
+  diverifikasi; atau
+- rangkaian Technical Note atau next step yang harus dikerjakan secara
+  berurutan.
+
+Diagram tidak wajib untuk satu fakta, satu tindakan, atau daftar sederhana yang
+sudah jelas tanpa visualisasi.
+
+Gunakan alur berikut ketika menentukan kebutuhan visual:
+
+```mermaid
+flowchart TD
+    A[Review informasi yang akan ditulis] --> B{Ada hubungan, urutan, state, atau boundary?}
+    B -- Tidak --> C[Gunakan prose atau daftar ringkas]
+    B -- Ya --> D{Dapat dipahami sekali baca tanpa visual?}
+    D -- Ya --> E[Diagram opsional]
+    D -- Tidak --> F[Tambahkan diagram]
+    F --> G{Alur sederhana dan linear?}
+    G -- Ya --> H[Gunakan text flow]
+    G -- Tidak --> I[Gunakan Mermaid yang sesuai]
+```
+
+### Pemilihan Bentuk Visual
+
+| Informasi | Bentuk yang Direkomendasikan |
+| --- | --- |
+| Urutan linear sederhana | Text flow |
+| Workflow dengan cabang atau approval gate | Mermaid flowchart |
+| Interaksi berdasarkan waktu antarkomponen | Mermaid sequence diagram |
+| Perubahan lifecycle atau status | Mermaid state diagram |
+| Topology, ownership, atau network boundary | Mermaid architecture atau flowchart |
+| Mapping field atau perbandingan berulang | Tabel |
+| Layout visual yang tidak dapat diwakili Markdown atau Mermaid | Gambar |
+
+Gunakan diagram text apabila sudah cukup menjelaskan alur atau hubungan
+antarkomponen.
 
 Contoh:
 
@@ -209,7 +259,59 @@ Jenkins
 NGINX
 ```
 
-Gunakan diagram gambar apabila diagram text tidak lagi memadai.
+Gunakan Mermaid apabila alur memiliki cabang, beberapa actor, perubahan state,
+atau label hubungan yang akan sulit dibaca sebagai diagram text. Gunakan
+diagram gambar hanya apabila text, tabel, dan Mermaid tidak lagi memadai.
+
+### Aturan Penyajian
+
+- Letakkan diagram sedekat mungkin dengan penjelasan yang didukungnya.
+- Berikan heading atau kalimat pengantar yang menjelaskan tujuan diagram.
+- Gunakan arah panah secara konsisten dan beri label pada hubungan penting,
+  seperti protocol, port, approval, atau hasil transisi.
+- Bedakan dengan jelas `current`, `target`, `verified`, `planned`, dan
+  `unverified`; jangan menampilkan target seolah-olah sudah diterapkan.
+- Setelah diagram, tulis ringkasan singkat mengenai kesimpulan atau batas yang
+  harus dipahami pembaca.
+- Jaga diagram tetap fokus. Pecah diagram jika satu visual memuat beberapa alur
+  independen atau terlalu padat untuk dibaca.
+- Jangan memasukkan password, token, private endpoint, personal recipient, atau
+  material sensitif ke dalam diagram.
+- Pastikan nama component, arah alur, port, dan status konsisten dengan source
+  of truth serta penjelasan prose.
+
+### Next Steps dan Technical Notes
+
+Bagian `Next Steps` sebaiknya memiliki flow diagram ketika memuat beberapa
+tahap berurutan, approval gate, atau perbedaan antara hasil Technical Note saat
+ini dan target aktivitas berikutnya. Diagram minimum harus menunjukkan:
+
+```text
+Current verified state
+          |
+          v
+Decision atau prerequisite
+          |
+          v
+Implementation berikutnya
+          |
+          v
+Verification target
+```
+
+Gunakan prose setelah diagram untuk menjelaskan exclusion, authorization yang
+masih diperlukan, dan hal yang belum diverifikasi. Diagram tidak menggantikan
+evidence atau penjelasan scope.
+
+### Diagram Review Checklist
+
+- Apakah diagram membuat hubungan atau urutan lebih cepat dipahami?
+- Apakah current state dan target state dapat dibedakan?
+- Apakah arah panah serta label hubungan tidak ambigu?
+- Apakah diagram konsisten dengan prose, tabel, dan implementation aktual?
+- Apakah diagram menghindari klaim bahwa pekerjaan planned sudah verified?
+- Apakah diagram dapat disederhanakan atau diganti tabel/prose tanpa kehilangan
+  kejelasan?
 
 ---
 
