@@ -21,9 +21,14 @@ memory yang masih tersedia pada host, project dapat menyediakan monitoring
 ringan tanpa menambah biaya dan administrasi full observability platform.
 
 Project ini bersifat *platform-agnostic*, artinya alert tidak terikat pada satu
-notification channel atau event management system tertentu. Target integrasi
-saat ini akan meneruskan alert ke TrueSight melalui Alertmanager dan
-Integration Bridge; routing tersebut belum diimplementasikan.
+notification channel atau event management system tertentu. Target lab
+isolated email capture menggunakan Mailpit lokal telah diverifikasi tanpa
+Google credential atau external delivery. Gmail App Password tidak lagi
+menjadi baseline. Integrasi TrueSight melalui Integration Bridge dipertahankan
+sebagai desain masa depan dan tidak dikerjakan pada lab saat ini. Routing
+webhook historis dan active Mailpit email receiver sama-sama memiliki isolated
+firing/resolved evidence; persistent Alertmanager dan external delivery belum
+diimplementasikan.
 
 ## Project Objectives
 
@@ -45,7 +50,7 @@ Integration Bridge; routing tersebut belum diimplementasikan.
 | Metrics collection | Mengumpulkan dan menyimpan metrics runtime sebagai time-series untuk melihat kondisi saat ini maupun riwayat sebelumnya. |
 | Visualization | Menampilkan current dan historical data mengenai kondisi serta performa runtime Tomcat dan JVM. |
 | Alerting | Mengevaluasi kondisi JVM, aplikasi, dan monitoring signal, kemudian menghasilkan alert ketika terjadi gangguan serta resolved notification setelah kondisi kembali normal. |
-| External integration | Meneruskan alert ke notification channel atau event management system. Implementasi saat ini mendukung integrasi dengan TrueSight. |
+| External integration | Meneruskan alert ke notification channel atau event management system. Lab memisahkan local email capture dari external delivery; integrasi TrueSight ditunda. |
 | Security | Mengamankan komunikasi metrics menggunakan HTTPS dengan server-side TLS serta membatasi akses hanya dari sumber monitoring yang diizinkan. |
 | Exclusion | Tidak mencakup Tomcat non-container, business metrics, distributed tracing, centralized log management, maupun jalur akses eksternal aplikasi. |
 
@@ -60,8 +65,9 @@ Integration Bridge; routing tersebut belum diimplementasikan.
 | Application Health | Telegraf | Memeriksa HTTP health endpoint aplikasi dari container network yang sama |
 | Visualization | Metrics Dashboard | Memvisualisasikan kondisi dan historical metrics |
 | Alert Management | Alertmanager | Melakukan grouping, deduplication, dan routing alert |
+| Notification Verification | Mailpit | Direct-upstream `v1.31.0` immutable image retained; source and disposable firing/resolved SMTP capture verified on 2026-08-27 |
 | External Integration | Integration Bridge | Mengonversi webhook untuk integrasi TrueSight |
-| Event Management | TrueSight | Menerima dan mengelola event pada implementasi saat ini |
+| Event Management | TrueSight | Menjadi target desain masa depan dan tidak tersedia pada lab saat ini |
 | Documentation | MkDocs | Menerbitkan dokumentasi project |
 
 ## Current Status
@@ -76,7 +82,7 @@ Integration Bridge; routing tersebut belum diimplementasikan.
 | Prometheus container | Persistent lab runtime uses existing named volumes; dashboard and strict JMX TLS scrape verified on 2026-08-25 through `http://edkas-pc1:9090` |
 | Telegraf container | Persistent lab runtime checks the Tomcat JSP health endpoint and is scraped by Prometheus through internal `telegraf:9273` |
 | Container status monitoring | Metrics source not determined |
-| Monitoring implementation | Persistent JMX and Telegraf targets `up=1`; three application-health alert rules passed isolated firing/resolved verification; local Alertmanager routing source and Prometheus API v2 delivery reference passed static and semantic validation on 2026-08-26; persistent and external integration pending |
+| Monitoring implementation | Persistent JMX and Telegraf targets `up=1`; three application-health alert rules passed isolated firing/resolved verification; local Alertmanager routing source and Prometheus API v2 delivery reference passed static and semantic validation on 2026-08-26; isolated webhook behavior and Mailpit firing/resolved SMTP capture passed on 2026-08-27; external delivery and TrueSight deferred |
 | End-to-end verification | Not started |
 
 ## Documentation Structure
@@ -117,7 +123,10 @@ kondisi serta prosedur yang berlaku saat ini.
   sama dan menyediakan hasilnya kepada Prometheus.
 - Dashboard menampilkan kondisi, performa, dan historical metrics Tomcat.
 - Alert firing dan resolved diproses oleh Alertmanager.
-- Alert dapat diteruskan ke TrueSight melalui Integration Bridge.
+- Alertmanager email dapat ditangkap dan diperiksa secara lokal tanpa
+  credential atau external delivery melalui disposable Mailpit integration.
+- Integrasi TrueSight melalui Integration Bridge dapat ditambahkan kemudian
+  ketika environment target tersedia.
 - Status scrape, container, dan endpoint HTTP dapat dibedakan setelah sumber
   container status metrics ditetapkan.
 - Hilangnya HTTP health metrics dapat dibedakan dari hasil health check yang

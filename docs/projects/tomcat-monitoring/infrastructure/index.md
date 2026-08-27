@@ -28,8 +28,9 @@ proses infrastructure yang telah ditetapkan.
 | Container network | Menghubungkan Prometheus, Telegraf, dan Tomcat/JMX target | Persistent aliases `tomcat-jmx-exporter` and `telegraf` verified on `devops-lab` |
 | TLS certificate and trust | Mengamankan scrape endpoint menggunakan server-side TLS | Persistent lab material installed and strict verification passed; production certificate lifecycle not determined |
 | Application health endpoint | Memberikan status aplikasi yang dapat diverifikasi Telegraf | Lab-only JSP `/health` deployed and verified; production application endpoint planned |
-| Alertmanager | Mengelola dan meneruskan alert | Local image `1.0.0` built; non-secret routing source passed static and `amtool` validation; deployment not verified |
-| Integration Bridge | Meneruskan alert ke TrueSight | Planned |
+| Alertmanager | Mengelola dan meneruskan alert | Local image `1.0.0` built; non-secret routing and isolated firing/resolved webhook behavior verified; deployment not verified |
+| Mailpit SMTP capture | Menangkap email Alertmanager pada disposable lab topology | Direct-upstream `v1.31.0` source integration and firing/resolved capture verified; image retained after exact runtime cleanup |
+| Integration Bridge | Meneruskan alert ke TrueSight | Deferred; TrueSight tidak tersedia pada lab |
 
 `Available` menunjukkan komponen telah tersedia pada kondisi project saat ini.
 `Planned` menunjukkan komponen termasuk dalam desain tetapi belum
@@ -74,7 +75,8 @@ configuration.
 | Prometheus to Telegraf | HTTP ke port internal `9273`, path `/metrics` | Container-network-only access; no host port | Persistent target `up=1` and successful health metrics verified on 2026-08-25 |
 | Dashboard to Prometheus | HTTP ke host port `9090` pada lab | Trusted VPN lab; TLS dan authentication belum tersedia | Browser tablet verified through `http://edkas-pc1:9090` on 2026-08-24 |
 | Prometheus to Alertmanager | HTTP ke internal `alertmanager:9093` | Container-network-only access; no host port baseline | API v2 source reference passed `promtool`; runtime delivery not verified |
-| Alertmanager to Integration Bridge | Webhook dengan URL dari runtime secret file | Endpoint, authentication, dan TLS contract belum ditentukan | Receiver boundary defined; not implemented |
+| Alertmanager to Mailpit | Internal `mailpit:1025` pada network `tm-tn033-mailpit`; SMTP tidak dipublikasikan | Mailpit API `127.0.0.1:18025` dan Alertmanager API `127.0.0.1:19093`; no external relay, credential, atau personal recipient | Source, semantic configuration, image identity, firing/resolved capture, and exact cleanup verified on 2026-08-27 |
+| Alertmanager to Integration Bridge | Webhook dengan URL dari runtime secret file | Endpoint, authentication, dan TLS contract belum ditentukan | Deferred for lab; synthetic receiver passed isolated firing/resolved verification |
 | Integration Bridge to TrueSight | SNMP Trap atau `msend` | Not determined | Designed, not verified |
 
 Hostname, container network, firewall rule, dan port komponen monitoring yang
@@ -183,6 +185,7 @@ tetap berstatus `Not determined`.
 | Prometheus scrape configuration dan alert rules | Tomcat Monitoring project |
 | Generic Alertmanager image dan runtime lifecycle | Planned repository `alertmanager` |
 | Dashboard dan Alertmanager configuration | Tomcat Monitoring project |
+| Mailpit disposable verification utility | Upstream owns image lifecycle; `tomcat-monitoring` owns immutable reference, verification integration, and exact cleanup |
 | Integration Bridge dan TrueSight mapping | Tomcat Monitoring project dan TrueSight owner |
 | Runtime service continuity | Container runtime or service manager; not determined |
 
@@ -220,7 +223,10 @@ diimplementasikan:
 - CPU, memory, dan storage sizing;
 - Production certificate authority dan certificate lifecycle;
 - Sumber metrics untuk container status;
-- Ownership Integration Bridge dan koneksi TrueSight.
+- External SMTP relay, provider identity, sender, authentication, TLS, secret
+  lifecycle, dan recipient handling bila inbox delivery kembali diperlukan.
+- Ownership Integration Bridge dan koneksi TrueSight ketika future target
+  tersedia.
 
 ## Current Status
 
@@ -256,8 +262,19 @@ accepted runtime ownership, lab integration contract, dan statically verified
 generic runtime source. Local image `localhost/alertmanager:1.0.0` telah lulus
 Alertmanager, `amtool`, serta non-root component smoke test. Non-secret routing
 configuration dan Prometheus delivery reference lulus static serta semantic
-validation; named volumes, persistent container, receiver behavior, dan
-external delivery belum dibuat atau diverifikasi.
+validation. Synthetic receiver menangkap payload firing dan resolved dengan
+stable grouping labels pada isolated verification 2026-08-27; named volumes,
+persistent container, actual Integration Bridge, dan external delivery belum
+dibuat atau diverifikasi.
+
+Direct Gmail email sempat dipilih sebagai next lab notification path, kemudian
+digantikan oleh Mailpit lokal pada 2026-08-27. Current lab implementation hanya
+mencakup disposable SMTP capture tanpa Google credential, personal recipient,
+atau external delivery. Active receiver source, semantic configuration,
+immutable Mailpit `v1.31.0` manifest identity pada `linux/amd64`, dan synthetic
+firing/resolved capture telah diverifikasi. SMTP tetap internal di
+`mailpit:1025`; exact containers, network, temporary files, dan loopback
+listeners dibersihkan tanpa mengubah volume state. Mailpit image dipertahankan.
 
 Persistent lab self-signed certificate lifecycle telah ditetapkan pada
 2026-08-25. Material aktif tersimpan pada accepted non-Git directory, dipasang

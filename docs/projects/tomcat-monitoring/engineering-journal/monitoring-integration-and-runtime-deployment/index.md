@@ -20,7 +20,15 @@ Alertmanager telah ditetapkan. Source repository runtime generik Alertmanager
 kemudian dibentuk, lulus static validation, dan menghasilkan local image yang
 lulus Alertmanager, `amtool`, serta non-root smoke tests. Non-secret routing
 configuration, static validator, dan Prometheus API v2 delivery reference telah
-diimplementasikan dan lulus disposable semantic validation.
+diimplementasikan dan lulus disposable semantic validation. Receiver lokal
+disposable kemudian membuktikan payload firing/resolved dan stable grouping
+labels tanpa persistent runtime atau external delivery. Direct Gmail email
+sempat dipilih sebagai lab notification channel, kemudian digantikan oleh
+Mailpit lokal agar SMTP capture tidak memerlukan Google credential atau
+external delivery. Direct-upstream exception, immutable `v1.31.0` image,
+disposable topology, dan cleanup contract telah diterima. Source email receiver,
+semantic configuration, immutable image identity, isolated firing/resolved SMTP
+capture, serta exact cleanup kemudian diverifikasi pada TN-033.
 
 ## 🎯 Objective
 
@@ -181,6 +189,33 @@ melampaui keputusan, secret boundary, atau authorization yang tersedia.
     Mengimplementasikan non-secret Alertmanager routing, Prometheus API v2
     delivery reference, static validators, dan disposable semantic validation
     tanpa persistent runtime atau external endpoint.
+
+29. **[TN-029 — Verify Isolated Alertmanager Firing and Resolved Webhook Behavior](TN-029-verify-isolated-alertmanager-firing-and-resolved-webhook-behavior.md)**
+
+    Memverifikasi webhook firing dan resolved melalui receiver lokal serta
+    Alertmanager disposable tanpa persistent runtime atau external endpoint.
+
+30. **[TN-030 — Define Alertmanager Email Notification Channel Contract](TN-030-define-alertmanager-email-notification-channel-contract.md)**
+
+    Menetapkan direct email sebagai lab notification channel beserta SMTP,
+    TLS, authentication, secret, recipient, dan verification boundary sebelum
+    implementation.
+
+31. **[TN-031 — Replace Gmail Lab Delivery with Local Mailpit Capture Contract](TN-031-replace-gmail-lab-delivery-with-local-mailpit-capture-contract.md)**
+
+    Menggantikan Gmail App Password sebagai baseline lab dengan Mailpit lokal
+    untuk isolated SMTP capture tanpa credential atau external delivery.
+
+32. **[TN-032 — Define Mailpit Runtime Ownership and Disposable Verification Contract](TN-032-define-mailpit-runtime-ownership-and-disposable-verification-contract.md)**
+
+    Menerima direct-upstream ownership, immutable image identity, disposable
+    topology, exact resources, security, dan cleanup contract Mailpit tanpa
+    menarik image atau menjalankan runtime.
+
+33. **[TN-033 — Implement and Verify Alertmanager Mailpit SMTP Capture](TN-033-implement-and-verify-alertmanager-mailpit-smtp-capture.md)**
+
+    Mengimplementasikan Mailpit email receiver dan memverifikasi isolated
+    firing/resolved SMTP capture menggunakan exact disposable resources.
 
 ## 🔗 Related Documentation
 

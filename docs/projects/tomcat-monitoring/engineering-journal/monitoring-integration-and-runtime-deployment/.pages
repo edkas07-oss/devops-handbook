@@ -33,3 +33,8 @@ arrange:
 - TN-026-establish-alertmanager-runtime-repository.md
 - TN-027-build-and-smoke-test-alertmanager-runtime.md
 - TN-028-implement-alertmanager-configuration-and-validation-contract.md
+- TN-029-verify-isolated-alertmanager-firing-and-resolved-webhook-behavior.md
+- TN-030-define-alertmanager-email-notification-channel-contract.md
+- TN-031-replace-gmail-lab-delivery-with-local-mailpit-capture-contract.md
+- TN-032-define-mailpit-runtime-ownership-and-disposable-verification-contract.md
+- TN-033-implement-and-verify-alertmanager-mailpit-smtp-capture.md
