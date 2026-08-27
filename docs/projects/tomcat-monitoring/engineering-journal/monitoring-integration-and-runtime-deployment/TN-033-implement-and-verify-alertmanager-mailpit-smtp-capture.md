@@ -158,6 +158,12 @@ rg -n "TN-033|Mailpit|mailpit|Pending|not yet pulled|belum diimplementasikan|bel
 rg -n 'Mailpit.*(pending|not implemented|not verified)|source integration, image pull|runtime belum dikerjakan|implementation pending|source, image, and runtime not implemented' docs/projects/tomcat-monitoring -g '*.md'
 rg -n 'Status \| Completed|message_body_group_labels|exit `0`|TN-033-implement-and-verify' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-033-implement-and-verify-alertmanager-mailpit-smtp-capture.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages
 if command -v mkdocs >/dev/null; then mkdocs --version; else echo 'mkdocs=not-installed'; fi
+
+# Post-push diagram clarification
+git status --short --branch
+sed -n '175,235p' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-033-implement-and-verify-alertmanager-mailpit-smtp-capture.md
+git -C /home/eddywiyatno/git/tomcat-monitoring status --short --branch
+git -C /home/eddywiyatno/git/tomcat-monitoring log -1 --oneline
 ```
 
 Runtime verification dijalankan empat kali. Dua run pertama berhasil menangkap
@@ -175,8 +181,9 @@ Project owner memberikan authorization commit terpisah setelah implementation
 dan verification selesai pada 2026-08-27. Source repository
 `tomcat-monitoring` dicatat dalam commit `f380636` (`feat: add Alertmanager
 delivery verification`). Engineering Journal dan current-state documentation
-disimpan melalui commit terpisah pada repository `devops-handbook`. Push tetap
-tidak diotorisasi dan tidak dilakukan.
+disimpan melalui commit `de08cb3` pada repository `devops-handbook`. Project
+owner kemudian melakukan push; kedua local branch telah terkonfirmasi sejajar
+dengan `origin/main`.
 
 ## 🧾 Outcome
 
@@ -200,10 +207,73 @@ Bridge, TrueSight, commit, atau push.
 
 ## ⏭️ Next Steps
 
-Tentukan activity berikutnya melalui Technical Note baru. Kandidat terdekat
-adalah persistent Alertmanager integration atau Prometheus delivery
-verification; keduanya memerlukan topology, continuity, rollback, exact runtime
-resources, dan authorization tersendiri. External delivery tetap deferred.
+### Batas yang Sudah Dibuktikan TN-033
+
+```text
+Synthetic alert dari verification script
+                |
+                v
+Disposable Alertmanager
+                |
+                | SMTP internal: mailpit:1025
+                v
+Disposable Mailpit
+                |
+                v
+Mailpit API memverifikasi firing dan resolved email
+
+Setelah verification:
+Alertmanager container + Mailpit container + network -> dihapus
+Mailpit image                                      -> dipertahankan
+```
+
+Alur tersebut membuktikan fungsi email receiver Alertmanager secara isolated.
+Ia belum membuktikan bahwa persistent Prometheus benar-benar mengirim alert ke
+Alertmanager.
+
+### Target Alur Berikutnya
+
+```text
+Persistent Prometheus
+        |
+        | alert firing/resolved melalui API v2
+        v
+Persistent Alertmanager
+        |
+        | SMTP internal
+        v
+Mailpit verification target
+        |
+        v
+Operator memeriksa email firing dan resolved
+```
+
+### Urutan Technical Note yang Direkomendasikan
+
+```text
+TN-033 Completed
+        |
+        v
+TN-034 Decision Contract
+  - tetapkan persistent topology dan exact resources
+  - pilih Mailpit temporary atau persistent
+  - tetapkan storage, continuity, rollback, dan cleanup
+  - tetapkan verification boundary dan authorization
+        |
+        | project-owner approval
+        v
+TN-035 Implementation and Verification
+  - deploy persistent Alertmanager
+  - hubungkan persistent Prometheus ke alertmanager:9093
+  - hasilkan alert firing dan resolved
+  - buktikan delivery sampai Mailpit
+  - verifikasi continuity atau jalankan rollback
+```
+
+Rekomendasi terdekat adalah memulai TN-034. TN-034 merupakan decision dan
+implementation contract, bukan izin langsung mengubah persistent runtime.
+External inbox delivery, Gmail, Integration Bridge, dan TrueSight tetap
+deferred serta berada di luar alur ini.
 
 ## 🔗 Related Documentation
 
