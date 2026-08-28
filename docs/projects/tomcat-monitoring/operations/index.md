@@ -96,6 +96,8 @@ Health result ini membuktikan lab fixture diproses Tomcat dari local container
 network. Ia tidak membuktikan production application dependencies atau jalur
 akses eksternal. Application-health alert rules telah dimuat pada persistent
 Prometheus dan lulus isolated firing/resolved verification untuk non-zero
-result, missing health series, dan Telegraf scrape unavailable. Alertmanager,
-notification delivery, dan external integration masih menjadi target
-capability project.
+result, missing health series, dan Telegraf scrape unavailable. Persistent
+Prometheus mengirim real Telegraf scrape-unavailable firing/resolved state ke
+persistent Alertmanager pada 2026-08-28; lab-only Mailpit menangkap kedua email
+dan baseline Telegraf, JMX, rules, serta health metric pulih. External
+notification dan Integration Bridge masih menjadi target capability project.

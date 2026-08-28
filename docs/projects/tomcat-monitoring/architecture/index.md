@@ -6,8 +6,8 @@ Arsitektur Tomcat Monitoring menempatkan JMX Exporter sebagai Java Agent di
 dalam JVM Tomcat. Prometheus berjalan sebagai container terpisah di dalam
 monitoring stack project dan mengambil metrics melalui endpoint HTTPS. Telegraf
 memeriksa HTTP health endpoint aplikasi melalui container network yang sama
-dengan Tomcat. Mailpit lokal menjadi target disposable email capture lab tanpa
-external delivery. TrueSight berada di luar deployment boundary project
+dengan Tomcat. Mailpit lokal menjadi persistent lab-only email capture target
+tanpa external delivery. TrueSight berada di luar deployment boundary project
 sebagai future event-management integration dan tidak tersedia pada lab saat
 ini.
 
@@ -104,7 +104,7 @@ melakukan scrape terhadap JMX Exporter dan Telegraf.
 | Telegraf | Memeriksa HTTP status, response time, timeout, dan response body aplikasi |
 | Dashboard and Alert | Melakukan query ke Prometheus serta menampilkan metrics dan status alert |
 | Alertmanager | Mengelompokkan, melakukan deduplication, dan meneruskan alert |
-| Mailpit | Menangkap email firing dan resolved pada disposable lab topology tanpa external delivery |
+| Mailpit | Menangkap email firing dan resolved pada persistent lab-only topology tanpa external delivery |
 | Integration Bridge | Mengubah webhook menjadi event yang diterima TrueSight |
 
 ## Security Controls
@@ -136,8 +136,8 @@ Tiga application-health alert rules telah diimplementasikan, dimuat pada
 persistent Prometheus, dan lulus `promtool`, synthetic rule-unit test, serta
 isolated firing/resolved verification. Application failed, missing metric, dan
 Telegraf scrape unavailable terbukti menjadi state yang terpisah. Production
-application semantics, persistent Alertmanager, actual Integration Bridge,
-TrueSight integration, serta end-to-end notification flow belum diverifikasi.
+application semantics, actual Integration Bridge, TrueSight integration, serta
+external end-to-end notification flow belum diverifikasi.
 
 Alertmanager runtime dimiliki repository generik terpisah, sedangkan
 configuration, routing, validation, Prometheus delivery, dan orchestration
@@ -151,15 +151,20 @@ Prometheus API v2 reference telah diimplementasikan dan lulus `amtool` serta
 `promtool`. Historical webhook receiver menangkap payload firing dan resolved
 dengan lima stable group labels. Active Mailpit receiver kemudian menangkap
 email firing dan resolved dengan sender serta recipient synthetic pada
-2026-08-27. Persistent runtime, Prometheus delivery, actual Integration Bridge,
-dan external flow belum diimplementasikan atau diverifikasi.
+2026-08-27. Pada 2026-08-28, persistent Prometheus mengirim real
+`TelegrafHealthScrapeUnavailable` firing/resolved state ke persistent
+Alertmanager dan Mailpit menangkap kedua matching email. Prometheus serta
+Alertmanager kembali ready setelah controlled replacement dan restart;
+Telegraf, JMX scrape, rules, dan health metric juga pulih ke baseline. Actual
+Integration Bridge dan external flow belum diimplementasikan atau
+diverifikasi.
 
 Project owner sempat menetapkan direct Gmail email sebagai next lab
 notification path, kemudian menggantinya dengan Mailpit lokal pada 2026-08-27
 agar email capture tidak memerlukan Google credential atau external delivery.
-Mailpit hanya menjadi disposable verification utility dan tidak menggantikan
+Mailpit menjadi persistent lab-only verification utility dan tidak menggantikan
 future notification-channel architecture. Direct-upstream exception,
-immutable `v1.31.0` pin, isolated topology, exact resources, dan cleanup
-contract telah diterima. Source integration serta isolated runtime capture
-telah diverifikasi; exact containers, network, temporary files, dan listeners
-dibersihkan, sedangkan immutable image dipertahankan.
+immutable `v1.31.0` pin, no-volume storage boundary, loopback-only API, dan
+exact persistent resources telah diterima. SMTP tetap internal pada
+`mailpit:1025`; message history bukan source of truth dan host-reboot recovery
+belum diklaim.

@@ -13,10 +13,10 @@ Persistent lab JMX TLS scrape kemudian diterapkan dan diverifikasi dengan data
 volume yang sama. Lab-only Tomcat health application dan persistent Telegraf
 scrape juga telah diterapkan. Application-health alert dan missing-metric
 rules telah diimplementasikan, dimuat pada persistent Prometheus, dan lulus
-semantic serta isolated firing/resolved verification. Persistent Alertmanager
-dan full external integration tetap belum diterapkan. Runtime ownership, internal lab
-interface, routing baseline, receiver boundary, dan secret reference contract
-Alertmanager telah ditetapkan. Source repository runtime generik Alertmanager
+semantic serta isolated firing/resolved verification. Runtime ownership,
+internal lab interface, routing baseline, receiver boundary, dan secret
+reference contract Alertmanager telah ditetapkan. Source repository runtime
+generik Alertmanager
 kemudian dibentuk, lulus static validation, dan menghasilkan local image yang
 lulus Alertmanager, `amtool`, serta non-root smoke tests. Non-secret routing
 configuration, static validator, dan Prometheus API v2 delivery reference telah
@@ -28,7 +28,11 @@ Mailpit lokal agar SMTP capture tidak memerlukan Google credential atau
 external delivery. Direct-upstream exception, immutable `v1.31.0` image,
 disposable topology, dan cleanup contract telah diterima. Source email receiver,
 semantic configuration, immutable image identity, isolated firing/resolved SMTP
-capture, serta exact cleanup kemudian diverifikasi pada TN-033.
+capture, serta exact cleanup kemudian diverifikasi pada TN-033. Persistent
+topology dan rollback boundary diterima pada TN-034. TN-035 kemudian
+menerapkan persistent Prometheus–Alertmanager–Mailpit flow dan membuktikan real
+application-health firing/resolved delivery beserta recovery baseline. Full
+external integration tetap belum diterapkan.
 
 ## 🎯 Objective
 
@@ -216,6 +220,18 @@ melampaui keputusan, secret boundary, atau authorization yang tersedia.
 
     Mengimplementasikan Mailpit email receiver dan memverifikasi isolated
     firing/resolved SMTP capture menggunakan exact disposable resources.
+
+34. **[TN-034 — Define Persistent Alertmanager and Prometheus Delivery Integration Contract](TN-034-define-persistent-alertmanager-and-prometheus-delivery-integration-contract.md)**
+
+    Menilai persistent topology, ownership, storage, rollback, dan real
+    Prometheus delivery verification boundary sebelum Decision Gate serta
+    implementation authorization.
+
+35. **[TN-035 — Implement and Verify Persistent Prometheus–Alertmanager–Mailpit Delivery](TN-035-implement-and-verify-persistent-prometheus-alertmanager-mailpit-delivery.md)**
+
+    Menerapkan persistent Alertmanager serta Mailpit, menghubungkan persistent
+    Prometheus, dan memverifikasi real application-health firing/resolved
+    delivery beserta recovery baseline.
 
 ## 🔗 Related Documentation
 

@@ -38,3 +38,5 @@ arrange:
 - TN-031-replace-gmail-lab-delivery-with-local-mailpit-capture-contract.md
 - TN-032-define-mailpit-runtime-ownership-and-disposable-verification-contract.md
 - TN-033-implement-and-verify-alertmanager-mailpit-smtp-capture.md
+- TN-034-define-persistent-alertmanager-and-prometheus-delivery-integration-contract.md
+- TN-035-implement-and-verify-persistent-prometheus-alertmanager-mailpit-delivery.md

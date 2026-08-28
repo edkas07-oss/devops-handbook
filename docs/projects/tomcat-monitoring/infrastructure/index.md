@@ -28,8 +28,8 @@ proses infrastructure yang telah ditetapkan.
 | Container network | Menghubungkan Prometheus, Telegraf, dan Tomcat/JMX target | Persistent aliases `tomcat-jmx-exporter` and `telegraf` verified on `devops-lab` |
 | TLS certificate and trust | Mengamankan scrape endpoint menggunakan server-side TLS | Persistent lab material installed and strict verification passed; production certificate lifecycle not determined |
 | Application health endpoint | Memberikan status aplikasi yang dapat diverifikasi Telegraf | Lab-only JSP `/health` deployed and verified; production application endpoint planned |
-| Alertmanager | Mengelola dan meneruskan alert | Local image `1.0.0` built; non-secret routing and isolated firing/resolved webhook behavior verified; deployment not verified |
-| Mailpit SMTP capture | Menangkap email Alertmanager pada disposable lab topology | Direct-upstream `v1.31.0` source integration and firing/resolved capture verified; image retained after exact runtime cleanup |
+| Alertmanager | Mengelola dan meneruskan alert | Persistent local image `1.0.0` runtime uses named configuration/data volumes; real Prometheus firing/resolved delivery verified |
+| Mailpit SMTP capture | Menangkap email Alertmanager pada persistent lab-only topology | Direct-upstream `v1.31.0` runs without named volume; loopback API and real firing/resolved capture verified |
 | Integration Bridge | Meneruskan alert ke TrueSight | Deferred; TrueSight tidak tersedia pada lab |
 
 `Available` menunjukkan komponen telah tersedia pada kondisi project saat ini.
@@ -74,8 +74,8 @@ configuration.
 | Telegraf to application health endpoint | HTTP ke internal Tomcat port `8080`, path `/health` | Container-network-only access; no host port | Persistent lab integration verified on 2026-08-25 |
 | Prometheus to Telegraf | HTTP ke port internal `9273`, path `/metrics` | Container-network-only access; no host port | Persistent target `up=1` and successful health metrics verified on 2026-08-25 |
 | Dashboard to Prometheus | HTTP ke host port `9090` pada lab | Trusted VPN lab; TLS dan authentication belum tersedia | Browser tablet verified through `http://edkas-pc1:9090` on 2026-08-24 |
-| Prometheus to Alertmanager | HTTP ke internal `alertmanager:9093` | Container-network-only access; no host port baseline | API v2 source reference passed `promtool`; runtime delivery not verified |
-| Alertmanager to Mailpit | Internal `mailpit:1025` pada network `tm-tn033-mailpit`; SMTP tidak dipublikasikan | Mailpit API `127.0.0.1:18025` dan Alertmanager API `127.0.0.1:19093`; no external relay, credential, atau personal recipient | Source, semantic configuration, image identity, firing/resolved capture, and exact cleanup verified on 2026-08-27 |
+| Prometheus to Alertmanager | HTTP ke internal `alertmanager:9093` pada `devops-lab` | Container-network-only access; no Alertmanager host port | Healthy active target and real application-health firing/resolved delivery verified on 2026-08-28 |
+| Alertmanager to Mailpit | Internal `mailpit:1025` pada `devops-lab`; SMTP tidak dipublikasikan | Mailpit API/UI hanya `127.0.0.1:8025`; no external relay, credential, atau personal recipient | Persistent lab-only firing/resolved capture verified on 2026-08-28 |
 | Alertmanager to Integration Bridge | Webhook dengan URL dari runtime secret file | Endpoint, authentication, dan TLS contract belum ditentukan | Deferred for lab; synthetic receiver passed isolated firing/resolved verification |
 | Integration Bridge to TrueSight | SNMP Trap atau `msend` | Not determined | Designed, not verified |
 
@@ -141,6 +141,15 @@ Prometheus menemukan healthy TSDB blocks, menyelesaikan WAL replay, dan mencapai
 readiness tanpa restart. Hasil ini membuktikan continuity pada exact named-
 volume boundary, bukan backup atau recovery policy.
 
+Persistent Alertmanager menggunakan `alertmanager_config` read-only dan
+`alertmanager_data` read-write. Controlled restart mempertahankan exact data
+volume, persisted `nflog` dan `silences`, serta tidak menghasilkan duplicate
+Mailpit message. Persistent Mailpit tidak memakai named volume; captured
+message history boleh hilang pada replacement dan Technical Note menjadi
+source evidence. Protected `prometheus_config_tn035_rollback` serta stopped
+`prometheus-tn035-rollback` dipertahankan sampai stability acceptance dan
+exact destructive cleanup authorization tersedia.
+
 Default retention `15d` terlihat pada runtime log, tetapi belum diterima
 sebagai project retention policy. Capacity, growth limit, backup, dan recovery
 tetap berstatus `Not determined`.
@@ -183,9 +192,9 @@ tetap berstatus `Not determined`.
 | Lab-only Tomcat health application fixture | Tomcat Monitoring project |
 | Telegraf HTTP health check configuration | Tomcat Monitoring project |
 | Prometheus scrape configuration dan alert rules | Tomcat Monitoring project |
-| Generic Alertmanager image dan runtime lifecycle | Planned repository `alertmanager` |
+| Generic Alertmanager image dan runtime lifecycle | Repository `alertmanager` |
 | Dashboard dan Alertmanager configuration | Tomcat Monitoring project |
-| Mailpit disposable verification utility | Upstream owns image lifecycle; `tomcat-monitoring` owns immutable reference, verification integration, and exact cleanup |
+| Mailpit persistent lab-only verification utility | Upstream owns image lifecycle; `tomcat-monitoring` owns immutable reference, persistent integration, verification, and exact cleanup |
 | Integration Bridge dan TrueSight mapping | Tomcat Monitoring project dan TrueSight owner |
 | Runtime service continuity | Container runtime or service manager; not determined |
 
@@ -256,25 +265,27 @@ dipertahankan sebagai `tomcat-jmx-exporter-rollback`, lalu dihapus pada
 2026-08-26 setelah exact-target inspection dan successful-cutover cleanup
 authorization. Active replacement, image, bind files, dan TLS material tetap
 tersedia; post-cleanup JMX dan Telegraf tetap `up=1` dengan application-health
-result `0`. Alertmanager, production certificate, serta provisioning melalui
-CI/CD dan Ansible belum diimplementasikan. Alertmanager sekarang memiliki
+result `0`. Production certificate serta provisioning melalui CI/CD dan
+Ansible belum diimplementasikan. Alertmanager sekarang memiliki
 accepted runtime ownership, lab integration contract, dan statically verified
 generic runtime source. Local image `localhost/alertmanager:1.0.0` telah lulus
 Alertmanager, `amtool`, serta non-root component smoke test. Non-secret routing
 configuration dan Prometheus delivery reference lulus static serta semantic
-validation. Synthetic receiver menangkap payload firing dan resolved dengan
-stable grouping labels pada isolated verification 2026-08-27; named volumes,
-persistent container, actual Integration Bridge, dan external delivery belum
-dibuat atau diverifikasi.
+validation. Pada 2026-08-28, persistent container memakai
+`alertmanager_config` dan `alertmanager_data`; controlled restart kembali ready
+tanpa duplicate notification. Replacement Prometheus melihat satu healthy
+active Alertmanager dan real `TelegrafHealthScrapeUnavailable` menghasilkan
+matching firing/resolved email. Actual Integration Bridge dan external
+delivery belum dibuat atau diverifikasi.
 
 Direct Gmail email sempat dipilih sebagai next lab notification path, kemudian
-digantikan oleh Mailpit lokal pada 2026-08-27. Current lab implementation hanya
-mencakup disposable SMTP capture tanpa Google credential, personal recipient,
-atau external delivery. Active receiver source, semantic configuration,
-immutable Mailpit `v1.31.0` manifest identity pada `linux/amd64`, dan synthetic
-firing/resolved capture telah diverifikasi. SMTP tetap internal di
-`mailpit:1025`; exact containers, network, temporary files, dan loopback
-listeners dibersihkan tanpa mengubah volume state. Mailpit image dipertahankan.
+digantikan oleh Mailpit lokal pada 2026-08-27. Current lab implementation
+menggunakan persistent Mailpit tanpa Google credential, personal recipient,
+named volume, atau external delivery. Immutable Mailpit `v1.31.0` manifest
+identity pada `linux/amd64` berjalan pada `devops-lab`; SMTP tetap internal di
+`mailpit:1025` dan API/UI hanya dipublikasikan pada `127.0.0.1:8025`.
+Synthetic isolated capture tetap menjadi regression evidence, sedangkan real
+Prometheus firing/resolved capture lulus pada 2026-08-28.
 
 Persistent lab self-signed certificate lifecycle telah ditetapkan pada
 2026-08-25. Material aktif tersimpan pada accepted non-Git directory, dipasang
