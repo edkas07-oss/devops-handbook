@@ -172,21 +172,36 @@ operator menerjemahkan lifecycle tersebut menjadi `normal`, `warning`, atau
 | Firing dengan rule severity warning | `warning` | Orange |
 | Firing dengan rule severity critical | `critical` | Red |
 
-Subject dan body menggunakan operator severity serta presentation alert name
-yang sama. Sebagai contoh, internal
-`TelegrafHealthScrapeUnavailable` ditampilkan dengan nama yang sama ketika
-critical, tetapi menjadi `TelegrafHealthScrapeAvailable` ketika normal. Body
-selalu memakai key `Alert name`, `Instance`, `Job`, `Severity`, `Service`,
-`Check`, dan `Description`; hanya value yang berubah menurut kondisi.
+Subject wajib mengikuti format Enterprise SRE `[<RESOLVED|CRITICAL|WARNING>]
+[LAB] Tomcat Service: <presentation-alert-name> (Instance: <instance>)`.
+Sebagai contoh, internal `TelegrafHealthScrapeUnavailable` ditampilkan dengan
+nama yang sama saat critical, tetapi menjadi `TelegrafHealthScrapeAvailable` saat
+normal / recovery.
 
-Source contract juga menetapkan Telegraf scrape unavailable sebagai critical
-karena monitoring target mati dan application-health state tidak dapat
-ditentukan. Seluruh application-health rules menyediakan stable `service` dan
-`check` labels agar email tidak memiliki field kosong. Disposable template
-rendering serta Prometheus config/rule tests telah lulus. Contract kemudian
-dipromosikan ke persistent runtime dan real scrape-down/recovery cycle
-menghasilkan matching critical/normal email; project-owner visual acceptance
-tetap dicatat terpisah.
+Body mengadopsi format Modern SRE & Incident Operations yang terstruktur dalam
+beberapa bagian:
+
+1. **Header Banner**: Menampilkan level status, judul layanan, dan badge
+   `LAB Environment`.
+2. **Alert / Recovery Summary**: Kotak ringkasan insiden atau pemulihan dengan
+   aksen warna status.
+3. **Technical Details**: Grid key-value rapi untuk `Alert Name`, `Service / Check`,
+   `Target Instance`, `Severity`, dan `Status` (`FIRING / ACTIVE` atau
+   `RESOLVED / HEALTHY`).
+4. **Impact & Recommended Actions**: Informasi dampak operasional dan langkah
+   penanganan/diagnosis cepat bagi operator on-call.
+5. **Footer Metadata**: Keterangan notifikasi otomatis platform tanpa link
+   internal yang tidak dapat diakses.
+
+Source contract menetapkan Telegraf scrape unavailable sebagai critical karena
+monitoring target mati dan application-health state tidak dapat ditentukan.
+Seluruh application-health rules menyediakan stable `service` dan `check` labels
+agar email tidak memiliki field kosong. Disposable template rendering dan
+Prometheus config/rule tests telah lulus. Contract dipromosikan ke persistent
+runtime dan real scrape-down/recovery cycle menghasilkan matching
+critical/resolved email enterprise baru. Project owner menerima exact
+Enterprise SRE visual evidence pada 2026-08-28 setelah critical dan resolved
+rendering diperiksa melalui Mailpit.
 
 Project owner sempat menetapkan direct Gmail email sebagai next lab
 notification path, kemudian menggantinya dengan Mailpit lokal pada 2026-08-27
