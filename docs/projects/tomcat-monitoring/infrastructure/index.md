@@ -278,6 +278,17 @@ active Alertmanager dan real `TelegrafHealthScrapeUnavailable` menghasilkan
 matching firing/resolved email. Actual Integration Bridge dan external
 delivery belum dibuat atau diverifikasi.
 
+Alert-template contract sekarang menetapkan operator severity
+`normal`, `warning`, dan `critical`; positive resolved alert names; identical
+body keys; serta green/orange/red visual mapping. Telegraf scrape unavailable
+menjadi critical dan seluruh application-health rules menyediakan `service`
+serta `check`. Disposable Alertmanager-Mailpit rendering dan Prometheus
+config/rule tests untuk contract telah lulus. Contract telah dipromosikan ke
+persistent Alertmanager dan Prometheus; controlled Telegraf cycle menghasilkan
+critical `TelegrafHealthScrapeUnavailable` dan normal
+`TelegrafHealthScrapeAvailable` sebagai message ketujuh dan kedelapan. Enam
+earlier messages tetap merupakan rejected historical evidence.
+
 Direct Gmail email sempat dipilih sebagai next lab notification path, kemudian
 digantikan oleh Mailpit lokal pada 2026-08-27. Current lab implementation
 menggunakan persistent Mailpit tanpa Google credential, personal recipient,

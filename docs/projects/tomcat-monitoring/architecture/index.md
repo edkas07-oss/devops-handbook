@@ -159,6 +159,35 @@ Telegraf, JMX scrape, rules, dan health metric juga pulih ke baseline. Actual
 Integration Bridge dan external flow belum diimplementasikan atau
 diverifikasi.
 
+## Alert Notification Presentation Contract
+
+Internal Prometheus alert identity tetap stabil selama firing/resolved
+lifecycle untuk menjaga grouping, deduplication, dan correlation. Email
+operator menerjemahkan lifecycle tersebut menjadi `normal`, `warning`, atau
+`critical` tanpa mengubah source labels.
+
+| Internal State | Operator Severity | Visual |
+| --- | --- | --- |
+| Resolved | `normal` | Green |
+| Firing dengan rule severity warning | `warning` | Orange |
+| Firing dengan rule severity critical | `critical` | Red |
+
+Subject dan body menggunakan operator severity serta presentation alert name
+yang sama. Sebagai contoh, internal
+`TelegrafHealthScrapeUnavailable` ditampilkan dengan nama yang sama ketika
+critical, tetapi menjadi `TelegrafHealthScrapeAvailable` ketika normal. Body
+selalu memakai key `Alert name`, `Instance`, `Job`, `Severity`, `Service`,
+`Check`, dan `Description`; hanya value yang berubah menurut kondisi.
+
+Source contract juga menetapkan Telegraf scrape unavailable sebagai critical
+karena monitoring target mati dan application-health state tidak dapat
+ditentukan. Seluruh application-health rules menyediakan stable `service` dan
+`check` labels agar email tidak memiliki field kosong. Disposable template
+rendering serta Prometheus config/rule tests telah lulus. Contract kemudian
+dipromosikan ke persistent runtime dan real scrape-down/recovery cycle
+menghasilkan matching critical/normal email; project-owner visual acceptance
+tetap dicatat terpisah.
+
 Project owner sempat menetapkan direct Gmail email sebagai next lab
 notification path, kemudian menggantinya dengan Mailpit lokal pada 2026-08-27
 agar email capture tidak memerlukan Google credential atau external delivery.

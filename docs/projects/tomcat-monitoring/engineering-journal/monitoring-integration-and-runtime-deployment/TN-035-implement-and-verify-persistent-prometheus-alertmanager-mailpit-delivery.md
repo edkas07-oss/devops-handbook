@@ -651,6 +651,8 @@ untuk menghapus keduanya.
 | Persistent components | Exact inspect, readiness, mounts, ports, network, restart continuity | Contract TN-034 terpenuhi. | Passed | Exact IDs, `devops-lab`, accepted mounts/ports, readiness, immutable Mailpit identity, and Alertmanager restart passed. |
 | Prometheus delivery | API active Alertmanager dan real alert observation | Healthy target dan alert diterima Alertmanager. | Passed | Exactly one active API v2 URL; real scrape-unavailable rule reached `firing`. |
 | Notification flow | Mailpit API/message assertions | Matching firing dan resolved email tersedia. | Passed | Exactly two messages with expected firing/resolved subjects, synthetic identities, and matching alert tokens. |
+| Corrected notification body | Static, isolated, and persistent real-rule firing/resolved verification | Firing memakai red banner dan active description; resolved memakai green banner dan recovery message tanpa stale firing description; inaccessible Alertmanager link absent. | Passed | `status_color_rendering=passed`, `resolved_stale_description=absent`, newest persistent pair passed exact HTML assertions, and runtime recovery passed. |
+| Unified operator alert-template | Static validation, disposable semantic/render tests, controlled persistent deployment, and real-rule cycle | Subject/body memakai normal/warning/critical, positive resolved names, identical keys, complete labels, dan critical scrape-down severity. | Passed automated source, disposable, deployment, and persistent runtime verification; operator review pending | Component/aggregate validators and `git diff --check` passed; disposable pair passed; mounted checksums matched source; persistent messages `2V6shq4dGekDSAOt2iXOZI` and `2IfpN1RgUUkx8JMwe9RxhX` passed exact HTML assertions. |
 | Recovery | Target, rules, metric, TSDB, dan Telegraf checks | Baseline pulih tanpa data-volume replacement. | Passed after criterion correction | Two targets `up`, three rules `inactive/ok`, health result `0`, same data volume, and historical pre-cutover query available. |
 | Cleanup boundary | Exact resource audit | Temporary resources absent; retained state tetap tersedia. | Passed | Four exact temporary containers absent; persistent runtime, rollback container, and six intended volumes retained. |
 | Source and documentation review | Shell/static checks, diff review, navigation, links, and stale-state scan | Seluruh changed source dan documentation konsisten. | Passed | Aggregate validation and `git diff --check` exit `0`; navigation and relative targets present; stale current-state patterns absent. |
@@ -658,16 +660,16 @@ untuk menghapus keduanya.
 
 ## ✅ Operator Validation
 
-Technical objective TN-035 berstatus `Completed`, tetapi project-owner review
-terhadap captured email belum dicatat. Validation ini tidak mengubah runtime
-dan harus diselesaikan sebelum stability acceptance atau rollback-state cleanup
-diberikan.
+Initial runtime objective TN-035 telah selesai, tetapi seluruh tiga earlier
+captured pairs ditolak sebagai operator acceptance evidence. Enam earlier
+messages merupakan historical evidence; unified deployment sekarang menambah
+critical/normal pair ketujuh dan kedelapan sebagai target review baru.
 
 | Item | Value |
 | --- | --- |
-| State | Ready for operator validation |
+| State | Unified persistent pair passed automated verification; project-owner visual review pending |
 | Owner | Project owner |
-| Validation target | Satu firing dan satu resolved email untuk `TelegrafHealthScrapeUnavailable` |
+| Validation target | Messages `2V6shq4dGekDSAOt2iXOZI` (critical) dan `2IfpN1RgUUkx8JMwe9RxhX` (normal) with identical body keys |
 | Access boundary | Mailpit API/UI hanya tersedia pada host loopback `127.0.0.1:8025` |
 | Evidence retention | Mailpit tidak memakai named volume; review harus dilakukan sebelum container replacement |
 | Closure record | Project owner menyatakan `Accepted` atau `Rejected` beserta finding |
@@ -678,12 +680,14 @@ diberikan.
 
 ### Confirm Mailpit Evidence Availability
 
-Pastikan Mailpit masih ready dan kedua captured messages belum hilang sebelum
-membuka UI.
+Pastikan Mailpit masih ready dan historical messages belum hilang sebelum
+membuka UI. Langkah ini hanya memastikan evidence retention, bukan menerima
+kontrak baru.
 
 1. Jalankan readiness dan message-list query pada `edkas-pc1`.
-2. Pastikan API dapat diakses dan `total` bernilai `2`.
-3. Pastikan daftar memuat satu subject `firing` dan satu subject `resolved`.
+2. Pastikan API dapat diakses dan `total` bernilai `8`.
+3. Pastikan dua message terbaru adalah unified critical/normal pair dan enam
+   earlier messages tetap tersedia sebagai historical rejected evidence.
 
 ```bash
 curl --fail --silent --show-error http://127.0.0.1:8025/api/v1/info \
@@ -694,8 +698,8 @@ curl --fail --silent --show-error http://127.0.0.1:8025/api/v1/messages \
 
 !!! success "Expected Result"
 
-    Mailpit API merespons, message total bernilai `2`, dan firing serta resolved
-    subjects tersedia untuk direview.
+    Mailpit API merespons, message total bernilai `8`, dua message terbaru
+    merupakan unified evidence, dan enam earlier messages tetap tersedia.
 
 Readiness check pada 2026-08-28 menemukan Mailpit `v1.31.0` running dan kedua
 subjects berikut masih tersedia:
@@ -704,6 +708,35 @@ subjects berikut masih tersedia:
 [Tomcat Monitoring][firing] TelegrafHealthScrapeUnavailable - telegraf:9273
 [Tomcat Monitoring][resolved] TelegrafHealthScrapeUnavailable - telegraf:9273
 ```
+
+Initial dua message tersebut merupakan pre-correction evidence. Project owner
+menemukan resolved message masih menampilkan static firing description sebagai
+body utama dan default `View in Alertmanager` mengarah ke internal container
+hostname yang tidak operator-accessible. Evidence ini dipertahankan untuk
+histori finding tetapi tidak dapat digunakan untuk menerima corrected
+notification contract.
+
+First corrected persistent cycle menambahkan dua intermediate messages berikut:
+
+| State | Message ID | Created (UTC) |
+| --- | --- | --- |
+| Firing | `0hparwQ9ljUTe0ZKEoEBla` | `2026-08-28T07:35:12.208Z` |
+| Resolved | `08sZsOZDAP5ECXI28dtDM6` | `2026-08-28T07:40:02.202Z` |
+
+Project owner juga menolak intermediate pair tersebut karena custom body masih
+menampilkan firing description pada resolved message dan tidak mempertahankan
+red/green visual status. Visual-corrected cycle kemudian menambahkan pasangan
+berikut:
+
+| State | Message ID | Created (UTC) | Visual Contract |
+| --- | --- | --- | --- |
+| Firing | `48qTLY3XaYk8NcDXLwpORP` | `2026-08-28T07:52:42.842Z` | Red banner and firing description |
+| Resolved | `3hIN8Z2K7qQn7xkcnA7V8O` | `2026-08-28T07:57:32.838Z` | Green banner and recovery text; no firing description |
+
+Project owner menolak pasangan ini karena normal email masih memakai internal
+resolved name `TelegrafHealthScrapeUnavailable` dan severity `warning`. Gunakan
+created time atau message ID tersebut hanya untuk histori finding; pasangan ini
+bukan target acceptance.
 
 </div>
 
@@ -729,17 +762,17 @@ atau mengubah container hanya untuk operator review.
 
 !!! success "Expected Result"
 
-    Mailpit inbox tampil dan memperlihatkan satu firing serta satu resolved
-    message tanpa mengubah network atau container configuration.
+    Mailpit inbox tampil dan mempertahankan enam historical messages tanpa
+    mengubah network atau container configuration.
 
 </div>
 
 <div class="procedure-step" markdown>
 
-### Inspect Firing and Resolved Messages
+### Inspect Historical Rejected Messages
 
-Review kedua message secara terpisah agar state transition dan receiver
-contract dapat diterima oleh project owner.
+Review kedua message hanya bila histori finding perlu dikonfirmasi. Jangan
+mencatatnya sebagai accepted unified-template evidence.
 
 1. Buka message dengan subject `[Tomcat Monitoring][firing]
    TelegrafHealthScrapeUnavailable - telegraf:9273`.
@@ -756,16 +789,70 @@ contract dapat diterima oleh project owner.
     | Job | `telegraf-health` |
     | Severity | `warning` |
 
-4. Pastikan message pertama menyatakan `Firing` dan message kedua menyatakan
-   `Resolved`.
-5. Pastikan description menjelaskan Prometheus tidak dapat scrape target
-   Telegraf dan application health menjadi unknown.
+4. Pastikan firing message memiliki red banner, heading `[1] Firing`, current
+   state aktif, dan Prometheus failure description.
+5. Pastikan resolved message memiliki green banner, heading `[1] Resolved`, dan
+   pesan `The alert condition has cleared. The monitoring rule is no longer
+   firing.`.
+6. Pastikan resolved message tidak menampilkan `Description`, `Alert condition
+   context`, atau kalimat `Prometheus cannot scrape`.
+7. Pastikan kedua body tidak menampilkan `View in Alertmanager` atau hostname/ID
+   internal container. Persistent Alertmanager API tidak dipublikasikan ke
+   host; Mailpit merupakan interface review operator.
 
 !!! success "Expected Result"
 
-    Project owner dapat membuktikan melalui UI bahwa kedua email memiliki
-    identity, labels, description, dan firing/resolved transition yang sesuai
-    contract TN-035.
+    Historical pair dapat direkonstruksi, termasuk alasan penolakannya: normal
+    presentation masih memakai negative alert name dan severity `warning`.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Validate Unified Critical and Normal Pair
+
+Verified unified candidate telah dipromosikan secara terkontrol ke persistent
+Prometheus serta Alertmanager. Gunakan exact message IDs agar evidence baru
+tidak tertukar dengan six-message historical baseline.
+
+1. Pastikan deployment evidence mencatat source/runtime checksums dan hasil
+   semantic checks yang sama.
+2. Pastikan controlled real-rule cycle menghasilkan tepat satu pasangan baru
+   setelah six-message historical baseline:
+
+    | State | Message ID | Created (UTC) |
+    | --- | --- | --- |
+    | Critical | `2V6shq4dGekDSAOt2iXOZI` | `2026-08-28T10:04:32.436Z` |
+    | Normal | `2IfpN1RgUUkx8JMwe9RxhX` | `2026-08-28T10:09:32.437Z` |
+3. Buka critical message dan cocokkan subject:
+   `[Tomcat Monitoring][critical] TelegrafHealthScrapeUnavailable -
+   telegraf:9273`.
+4. Buka normal message dan cocokkan subject:
+   `[Tomcat Monitoring][normal] TelegrafHealthScrapeAvailable -
+   telegraf:9273`.
+5. Pada kedua body, pastikan urutan key identik: `Alert name`, `Instance`,
+   `Job`, `Severity`, `Service`, `Check`, dan `Description`.
+6. Pastikan critical values memakai negative alert name, severity `critical`,
+   red banner, dan active failure description.
+7. Pastikan normal values memakai positive alert name, severity `normal`,
+   green banner, dan positive recovery description.
+8. Pastikan `Instance`, `Job`, `Service`, dan `Check` tetap identik serta tidak
+   kosong pada kedua messages.
+9. Pastikan body tidak memuat internal lifecycle value sebagai severity, stale
+   failure description pada normal message, `View in Alertmanager`, atau
+   internal container hostname.
+
+!!! success "Expected Result"
+
+    Pasangan baru memakai subject dan body semantics yang sama, body keys
+    identik, serta hanya mengganti values sesuai kondisi critical atau normal.
+    Pasangan baru dapat diajukan kepada project owner sebagai acceptance
+    evidence.
+
+**Actual Result:** full HTML assertions lulus untuk exact critical/normal pair.
+Subject, name, severity, descriptions, red/green colors, service/check values,
+dan identical key layout sesuai contract; stale critical content serta
+inaccessible Alertmanager link absent pada normal message.
 
 </div>
 
@@ -795,6 +882,530 @@ failure injection.
 
 </div>
 
+## 🛠️ Post-validation Correction
+
+Project owner menolak initial visual evidence pada 2026-08-28 karena resolved
+email berwarna hijau tetapi body tetap menyampaikan static firing description
+seolah-olah kondisi masih aktif. Default `View in Alertmanager` link juga
+memakai internal container hostname walaupun Alertmanager API tidak
+dipublikasikan ke host. Project owner menyetujui source correction; persistent
+Alertmanager configuration replacement dan real failure injection tidak
+termasuk authorization tersebut.
+
+Project owner kemudian menyetujui persistent deployment dan real-rule
+revalidation pada 2026-08-28. Scope tambahannya terbatas pada backup current
+configuration, overwrite `alertmanager_config`, restart exact `alertmanager`,
+bounded stop/start exact `telegraf`, dan verification tanpa memublikasikan port
+Alertmanager, mengganti Mailpit, atau menghapus retained evidence dan volumes.
+
+Project owner menolak first corrected persistent pair pada 2026-08-28 karena
+resolved body masih menampilkan firing-condition context dan custom template
+tidak mempertahankan red firing serta green resolved visual status. Project
+owner menyetujui visual/content correction dan deployment ulang dengan runtime
+boundary yang sama; seluruh earlier evidence tetap dipertahankan.
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Implement Status-specific Notification Body
+
+1. Tambahkan conditional HTML berdasarkan Alertmanager `.Status`.
+2. Nyatakan current state secara eksplisit untuk firing dan resolved.
+3. Pertahankan annotation `description` sebagai `Alert condition context`.
+4. Tampilkan alert name, instance, job, severity, service, dan check sebagai
+   field terpisah.
+5. Hilangkan default `View in Alertmanager` link karena URL-nya menggunakan
+   internal container hostname sementara Alertmanager API sengaja tidak
+   dipublikasikan ke host.
+6. Perbarui static validator, isolated Mailpit assertions, dan configuration
+   contract documentation.
+
+!!! success "Expected Result"
+
+    Source membedakan notification state dari static alert-rule annotation dan
+    tetap mempertahankan operator-facing alert identity.
+
+**Actual Result:** `config/alertmanager/alertmanager.yml` sekarang merender
+`Alert condition is active` untuk firing dan `Alert condition is no longer
+active` untuk resolved. Static description tetap tersedia dengan label
+`Alert condition context`; custom body tidak lagi menampilkan inaccessible
+`View in Alertmanager` link atau internal container hostname.
+
+**Evidence:** configuration, validator, isolated verification fixture, dan
+Alertmanager README berubah bersama pada source worktree `tomcat-monitoring`.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Validate Corrected Firing and Resolved Rendering
+
+1. Jalankan shell dan aggregate source validation.
+2. Jalankan isolated Alertmanager–Mailpit firing/resolved verification.
+3. Koreksi fixture ketika failed assertion membuktikan synthetic payload belum
+   memuat `description`.
+4. Koreksi body-field assertions ketika custom template tidak lagi memakai
+   raw default-label layout.
+5. Ulangi verification dan audit exact disposable cleanup.
+
+```bash
+bash -n scripts/*.sh
+./scripts/validate-alertmanager.sh
+./scripts/validate.sh
+./scripts/verify-alertmanager-mailpit.sh
+```
+
+!!! success "Expected Result"
+
+    Source validation lulus; firing dan resolved body memuat state-specific
+    text serta seluruh required fields; disposable resources dibersihkan tanpa
+    mengubah persistent runtime.
+
+**Actual Result:** dua percobaan awal gagal secara informatif pada fixture dan
+legacy assertion, lalu final regression test lulus untuk sequence, identities,
+subjects, status-specific body, labels, semantic configuration, serta cleanup.
+
+**Evidence:** final output memuat `mailpit_sequence=firing,resolved`,
+`status_specific_body=passed`, `message_body_group_labels=passed`,
+`semantic_config=passed`, dan `cleanup_result=passed`. Persistent `mailpit` serta
+dua pre-correction messages tidak menjadi target isolated test. Post-test audit
+menemukan exact persistent containers `alertmanager` (`ff2d4b2f…`) dan
+`mailpit` (`e357c1f3…`) tetap running serta Mailpit tetap menyimpan tepat dua
+pre-correction messages.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Deploy Corrected Persistent Configuration
+
+1. Verifikasi exact Alertmanager, Mailpit, dan Telegraf identities serta
+   persistent mounts dan port boundary.
+2. Salin active configuration ke protected temporary rollback file.
+3. Inisialisasi ulang `alertmanager_config` dari corrected source.
+4. Restart exact Alertmanager dan verifikasi ID, readiness, semantic config,
+   source/runtime checksum, no-host-port boundary, dan retained Mailpit count.
+
+```bash
+podman cp alertmanager:/etc/alertmanager/alertmanager.yml \
+  /tmp/tm-tn035-alertmanager-body-rollback.yml
+chmod 0600 /tmp/tm-tn035-alertmanager-body-rollback.yml
+sha256sum /tmp/tm-tn035-alertmanager-body-rollback.yml \
+  config/alertmanager/alertmanager.yml
+./scripts/initialize-alertmanager-volumes.sh
+podman restart alertmanager
+podman exec alertmanager /bin/sh -c \
+  'wget -qO- http://127.0.0.1:9093/-/ready'
+podman exec alertmanager amtool check-config \
+  /etc/alertmanager/alertmanager.yml
+podman exec alertmanager sha256sum \
+  /etc/alertmanager/alertmanager.yml
+```
+
+!!! success "Expected Result"
+
+    Corrected configuration aktif pada exact persistent Alertmanager tanpa
+    mengubah container identity, data volume, Mailpit evidence, atau host-port
+    boundary.
+
+**Actual Result:** source/runtime checksum cocok pada `9c6c5350…`; exact
+Alertmanager ID `ff2d4b2f…` tetap running dan ready; `amtool` menghasilkan
+`SUCCESS`; port state tetap `{"9093/tcp":null}`; Mailpit tetap memiliki dua
+pre-correction messages sebelum revalidation.
+
+**Evidence:** prior configuration dipertahankan di
+`/tmp/tm-tn035-alertmanager-body-rollback.yml` dengan checksum `6bb7905e…`.
+Temporary initializer absent setelah deployment dan `alertmanager_data` tidak
+diganti.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Repeat Real-rule Delivery and Verify Corrected HTML
+
+1. Pastikan exact Telegraf running, rule inactive, scrape `up=1`, dan Mailpit
+   baseline berjumlah dua.
+2. Stop exact Telegraf dengan recovery guard dan poll rule sambil mencatat
+   container state pada setiap iteration.
+3. Setelah rule firing dan message ketiga tersedia, start kembali Telegraf.
+4. Tunggu scrape `up=1`, rule inactive, dan resolved message keempat.
+5. Ambil full HTML dua message terbaru dan jalankan required-field serta
+   negative-link assertions.
+6. Audit targets, rules, persistent IDs, runtime checksum, port boundary, dan
+   temporary-resource absence.
+
+```bash
+podman stop telegraf
+curl --fail --silent --show-error \
+  'http://127.0.0.1:9090/api/v1/rules?type=alert'
+curl --fail --silent --show-error \
+  http://127.0.0.1:8025/api/v1/messages
+podman start telegraf
+curl --fail --silent --show-error \
+  'http://127.0.0.1:9090/api/v1/query?query=up%7Bjob%3D%22telegraf-health%22%7D'
+curl --fail --silent --show-error \
+  'http://127.0.0.1:9090/api/v1/targets?state=active'
+```
+
+!!! success "Expected Result"
+
+    Corrected persistent firing/resolved pair tersedia; current-state text dan
+    alert context benar; inaccessible Alertmanager link absent; seluruh
+    monitoring baseline pulih.
+
+**Actual Result:** clean diagnostic cycle mempertahankan Telegraf `exited`
+selama pending, mencapai firing pada poll ke-10, menerima firing message ketiga,
+memulihkan Telegraf, mencapai rule inactive dengan `up=1`, dan menerima
+resolved message keempat setelah accepted group interval. Dua earlier guarded
+attempts tidak menghasilkan message dan berakhir dengan Telegraf running;
+Podman event/process audit memastikan tidak ada restart policy, timer, service,
+watcher, atau polling process tertinggal sebelum clean cycle.
+
+**Evidence:** persistent message IDs `0hparwQ9ljUTe0ZKEoEBla` (firing) dan
+`08sZsOZDAP5ECXI28dtDM6` (resolved) lulus exact HTML assertions. Output memuat
+`persistent_status_specific_body=passed`,
+`persistent_inaccessible_alertmanager_link=absent`, two targets `up`, three
+rules `inactive`, `mailpit_total=4`, dan `alertmanager_host_port=false`.
+Container hostname hanya ditemukan pada MIME `Message-ID`, bukan body atau
+hyperlink.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Refine Visual and Resolved-content Contract
+
+1. Gunakan HTML email card dengan inline styling yang kompatibel dengan email
+   client.
+2. Render red banner `#c62828`, heading `[1] Firing`, active state, dan rule
+   description hanya untuk firing.
+3. Render green banner `#2e7d32`, heading `[1] Resolved`, dan explicit recovery
+   message hanya untuk resolved.
+4. Jangan render firing description atau `Alert condition context` pada
+   resolved body.
+5. Pertahankan alert identity fields dan inaccessible-link exclusion.
+6. Perketat static serta isolated HTML assertions untuk warna dan stale-content
+   absence.
+
+!!! success "Expected Result"
+
+    Firing dan resolved dapat dibedakan melalui warna serta isi; resolved body
+    tidak lagi menyampaikan kondisi gangguan sebagai current atau contextual
+    message.
+
+**Actual Result:** template menggunakan red/green status banner dan conditional
+content. Firing memuat `Description`; resolved memuat `Resolution: The alert
+condition has cleared. The monitoring rule is no longer firing.` tanpa firing
+description.
+
+**Evidence:** static validation lulus; isolated output memuat
+`status_color_rendering=passed`, `resolved_stale_description=absent`,
+`status_specific_body=passed`, dan `cleanup_result=passed`.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Deploy Visual-corrected Alertmanager Revision
+
+1. Pastikan exact Alertmanager tetap running, no-host-port boundary berlaku,
+   dan Mailpit masih memiliki empat earlier messages.
+2. Backup first corrected runtime configuration ke exact rollback file kedua.
+3. Overwrite `alertmanager_config`, restart exact Alertmanager, dan verifikasi
+   readiness, semantic config, checksum, ID, port, serta evidence retention.
+
+```bash
+podman cp alertmanager:/etc/alertmanager/alertmanager.yml \
+  /tmp/tm-tn035-alertmanager-body-v1-rollback.yml
+chmod 0600 /tmp/tm-tn035-alertmanager-body-v1-rollback.yml
+./scripts/initialize-alertmanager-volumes.sh
+podman restart alertmanager
+podman exec alertmanager /bin/sh -c \
+  'wget -qO- http://127.0.0.1:9093/-/ready'
+podman exec alertmanager amtool check-config \
+  /etc/alertmanager/alertmanager.yml
+```
+
+!!! success "Expected Result"
+
+    Visual-corrected configuration aktif pada exact persistent Alertmanager;
+    earlier messages, data volume, container identity, dan port boundary tidak
+    berubah.
+
+**Actual Result:** prior revision checksum `9c6c5350…` dipertahankan pada
+`/tmp/tm-tn035-alertmanager-body-v1-rollback.yml`; active source/runtime
+checksum menjadi `a6e44ba5…`. Alertmanager ID `ff2d4b2f…` tetap running dan
+ready dengan `{"9093/tcp":null}`; Mailpit tetap memiliki empat messages sebelum
+visual revalidation.
+
+**Evidence:** `amtool` menghasilkan `SUCCESS`, initializer absent setelah
+deployment, dan `alertmanager_data` tidak diganti.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Verify Persistent Red and Green Notification Pair
+
+1. Stop exact Telegraf dengan recovery guard dan pertahankan state `exited`
+   sampai rule firing.
+2. Tunggu firing message kelima, lalu start kembali Telegraf.
+3. Tunggu scrape `up=1`, rule inactive, dan resolved message keenam.
+4. Periksa full HTML dua messages terbaru untuk status colors, conditional
+   content, alert fields, stale-description absence, dan inaccessible-link
+   absence.
+5. Audit final targets, rules, container states, runtime checksum, port
+   boundary, dan temporary-resource absence.
+
+```bash
+podman stop telegraf
+curl --fail --silent --show-error \
+  'http://127.0.0.1:9090/api/v1/rules?type=alert'
+curl --fail --silent --show-error \
+  http://127.0.0.1:8025/api/v1/messages
+podman start telegraf
+curl --fail --silent --show-error \
+  'http://127.0.0.1:9090/api/v1/query?query=up%7Bjob%3D%22telegraf-health%22%7D'
+curl --fail --silent --show-error \
+  'http://127.0.0.1:9090/api/v1/targets?state=active'
+```
+
+!!! success "Expected Result"
+
+    Message kelima memiliki red firing visual dan active description; message
+    keenam memiliki green resolved visual serta recovery message tanpa stale
+    firing description; monitoring baseline pulih.
+
+**Actual Result:** Telegraf tetap `exited` selama pending, rule mencapai firing,
+message kelima diterima, Telegraf dipulihkan, scrape kembali `up=1`, rule
+inactive, dan resolved message keenam diterima setelah group interval.
+
+**Evidence:** message `48qTLY3XaYk8NcDXLwpORP` (firing) dan
+`3hIN8Z2K7qQn7xkcnA7V8O` (resolved) lulus exact persistent HTML assertions.
+Output memuat `persistent_status_color_rendering=passed`,
+`persistent_resolved_stale_description=absent`,
+`persistent_inaccessible_alertmanager_link=absent`, two targets `up`, three
+rules `inactive`, all persistent containers running, `mailpit_total=6`, dan
+`alertmanager_host_port=false`.
+
+Project owner kemudian menolak pasangan ini sebagai acceptance evidence:
+resolved presentation masih memakai negative name
+`TelegrafHealthScrapeUnavailable` dan severity `warning`, sehingga subject dan
+body tidak menyatakan kondisi normal secara konsisten.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Define Unified Operator Alert-template Contract
+
+1. Pisahkan internal Alertmanager lifecycle dari operator-facing status tanpa
+   mengubah internal `alertname` yang dipakai grouping dan correlation.
+2. Tetapkan operator severity `critical` untuk firing scrape-down dan `normal`
+   untuk resolved notification.
+3. Map resolved presentation menjadi positive name:
+   `TelegrafHealthScrapeAvailable`,
+   `TomcatApplicationHealthMetricsAvailable`, atau
+   `TomcatApplicationHealthNormal` sesuai internal alert.
+4. Gunakan satu subject format:
+   `[Tomcat Monitoring][<normal|warning|critical>]
+   <presentation-alert-name> - <instance>`.
+5. Gunakan body keys yang identik untuk seluruh states: `Alert name`,
+   `Instance`, `Job`, `Severity`, `Service`, `Check`, dan `Description`; hanya
+   values yang berubah mengikuti kondisi.
+6. Pertahankan green `#2e7d32`, orange `#ef6c00`, dan red `#c62828` sebagai
+   normal, warning, dan critical visual contract.
+7. Lengkapi Prometheus labels `service` dan `check`, ubah Telegraf scrape-down
+   rule menjadi `critical`, serta selaraskan rule tests dan validators.
+8. Dokumentasikan kontrak pada Alertmanager README, Prometheus README,
+   Architecture, Infrastructure, dan TN-035.
+
+!!! success "Expected Result"
+
+    Subject dan body menyampaikan semantic status yang sama; normal email tidak
+    memuat negative alert name, warning/critical severity, atau stale failure
+    description; critical dan normal memakai body key layout yang identik.
+
+**Actual Result:** source candidate menerapkan unified subject/body mapping,
+positive resolved names, complete labels, identical body keys, dan three-color
+contract. Internal rule name tetap stabil untuk Alertmanager correlation.
+
+**Evidence:** contract tersedia pada source-facing README dan current-state
+Architecture/Infrastructure; exact static assertions ditambahkan untuk subject,
+name mapping, severity, color, labels, descriptions, key layout, dan absence of
+inaccessible Alertmanager link.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Validate Unified Alert-template Candidate
+
+1. Jalankan syntax validation untuk seluruh scripts.
+2. Jalankan Alertmanager, Prometheus, dan aggregate static validators.
+3. Periksa whitespace errors pada source diff.
+4. Jalankan disposable Alertmanager-Mailpit test untuk semantic config, exact
+   subject/body render, warna, stale-content absence, dan cleanup audit.
+5. Jalankan disposable Prometheus `promtool` config, rule, dan rule-fixture
+   tests.
+6. Pisahkan hasil disposable dari persistent runtime claims; jangan menyatakan
+   candidate deployed sebelum exact runtime promotion benar-benar dilakukan.
+
+```bash
+bash -n scripts/*.sh
+./scripts/validate-alertmanager.sh
+./scripts/validate-prometheus.sh
+./scripts/validate.sh
+git diff --check
+./scripts/verify-alertmanager-mailpit.sh
+podman run --rm --pull=never \
+  --volume /home/eddywiyatno/git/tomcat-monitoring/config/prometheus:/etc/prometheus:ro \
+  --workdir /etc/prometheus localhost/prometheus:1.0.0 /bin/sh -c \
+  '/bin/promtool check rules rules/application-health.yml &&
+   /bin/promtool check config prometheus.yml &&
+   /bin/promtool test rules tests/application-health.test.yml'
+```
+
+!!! success "Expected Result"
+
+    Static contract, semantic Alertmanager rendering, dan Prometheus rule tests
+    lulus; persistent deployment dan real-rule email pair tetap dicatat
+    terpisah sesuai evidence yang benar-benar dijalankan.
+
+**Actual Result:** seluruh syntax/static validators, disposable
+Alertmanager-Mailpit rendering, combined `promtool` checks, dan
+`git diff --check` lulus. Source candidate belum dipromosikan ke persistent
+runtime.
+
+**Evidence:** output memuat `semantic_config=passed`,
+`operator_status_subjects=critical,normal`, `unified_key_layout=passed`,
+`status_color_rendering=passed`, `resolved_stale_description=absent`, dan
+`cleanup_result=passed`; `promtool` menemukan tiga rules serta menyatakan config
+dan rule tests `SUCCESS`. Active runtime tetap pada rejected visual-corrected
+revision dan Mailpit tetap memiliki six historical messages.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Deploy Unified Alert-template to Persistent Runtime
+
+1. Inspect exact `alertmanager`, `prometheus`, `mailpit`, dan `telegraf`
+   identities, states, mounts, ports, serta six-message Mailpit baseline.
+2. Backup active Alertmanager configuration dan Prometheus rule ke exact
+   rollback files baru tanpa menimpa earlier backups.
+3. Isi `alertmanager_config` melalui accepted initializer.
+4. Isi hanya `prometheus_config` melalui exact temporary updater; jangan mount
+   atau ubah `prometheus_data` dan `prometheus_truststore`.
+5. Jalankan `amtool` dan `promtool` terhadap mounted files, lalu cocokkan source
+   dan mounted checksums.
+6. Restart exact `alertmanager` dan `prometheus`, kemudian verifikasi readiness,
+   container identity, port boundary, targets, rules, serta updater absence.
+
+```bash
+podman cp alertmanager:/etc/alertmanager/alertmanager.yml \
+  /tmp/tm-tn035-alertmanager-unified-rollback.yml
+podman cp prometheus:/etc/prometheus/rules/application-health.yml \
+  /tmp/tm-tn035-prometheus-unified-rule-rollback.yml
+chmod 0600 /tmp/tm-tn035-alertmanager-unified-rollback.yml \
+  /tmp/tm-tn035-prometheus-unified-rule-rollback.yml
+./scripts/initialize-alertmanager-volumes.sh
+podman create --name prometheus-config-update-tn035 --user 0 \
+  --entrypoint /bin/sh --volume prometheus_config:/staging/config \
+  localhost/prometheus:1.0.0 \
+  -c 'chmod 0755 /staging/config /staging/config/rules;
+      chmod 0444 /staging/config/prometheus.yml
+        /staging/config/rules/application-health.yml'
+podman cp config/prometheus/prometheus.yml \
+  prometheus-config-update-tn035:/staging/config/prometheus.yml
+podman cp config/prometheus/rules/application-health.yml \
+  prometheus-config-update-tn035:/staging/config/rules/application-health.yml
+podman start --attach prometheus-config-update-tn035
+podman rm prometheus-config-update-tn035
+podman exec alertmanager amtool check-config \
+  /etc/alertmanager/alertmanager.yml
+podman exec prometheus /bin/promtool check config \
+  /etc/prometheus/prometheus.yml
+podman exec prometheus /bin/promtool check rules \
+  /etc/prometheus/rules/application-health.yml
+podman restart alertmanager prometheus
+```
+
+!!! success "Expected Result"
+
+    Verified source aktif pada exact persistent config volumes; semantic checks,
+    readiness, identity, dan port contract lulus; data/truststore volumes serta
+    six historical messages tidak berubah.
+
+**Actual Result:** Alertmanager dan Prometheus semantic checks lulus sebelum
+restart. Source dan mounted checksums sama: Alertmanager `be333a8c…`, Prometheus
+main config `79e08fbe…`, dan rule `472ca3a3…`. Exact container IDs tetap
+`ff2d4b2f…` dan `897f4ec3…`; Alertmanager tetap tidak memiliki host port.
+Temporary updater absent dan baseline pulih ke two targets `up`, three rules
+`inactive/ok`, health result `0`, serta six Mailpit messages.
+
+**Evidence:** rollback checksums `a6e44ba5…` dan `492c6a26…` tersedia pada
+`/tmp/tm-tn035-alertmanager-unified-rollback.yml` dan
+`/tmp/tm-tn035-prometheus-unified-rule-rollback.yml`. Prometheus data dan
+truststore volumes tidak dipasang pada updater.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Verify Persistent Unified Critical and Normal Pair
+
+1. Stop exact `telegraf` dari verified six-message baseline.
+2. Pertahankan Telegraf stopped sampai scrape down dan
+   `TelegrafHealthScrapeUnavailable` mencapai `firing` dengan severity
+   `critical`.
+3. Pastikan critical message ketujuh diterima sebelum start kembali Telegraf.
+4. Start exact `telegraf`, lalu tunggu target `up`, seluruh rules
+   `inactive/ok`, dan normal message kedelapan setelah accepted group interval.
+5. Ambil full HTML dua exact message terbaru dan periksa subject, identical body
+   keys, status-specific values, colors, stale-content absence, dan
+   inaccessible-link absence.
+6. Audit final checksums, container identities/states, ports, targets, dan
+   rules.
+
+```bash
+podman stop telegraf
+curl --fail --silent --show-error \
+  'http://127.0.0.1:9090/api/v1/rules?type=alert'
+curl --fail --silent --show-error \
+  http://127.0.0.1:8025/api/v1/messages
+podman start telegraf
+curl --fail --silent --show-error \
+  'http://127.0.0.1:9090/api/v1/targets?state=active'
+curl --fail --silent --show-error \
+  'http://127.0.0.1:9090/api/v1/rules?type=alert'
+```
+
+!!! success "Expected Result"
+
+    Critical email memakai negative failure name, severity critical, dan red
+    banner; normal email memakai positive recovery name, severity normal, dan
+    green banner. Kedua body memakai exact key layout yang sama dan baseline
+    pulih sepenuhnya.
+
+**Actual Result:** rule berpindah `inactive` → `pending` → `firing`; message
+ketujuh diterima, Telegraf dipulihkan, target kembali `up`, seluruh rules
+`inactive/ok`, dan message kedelapan diterima. Full HTML assertions lulus.
+
+**Evidence:** critical message `2V6shq4dGekDSAOt2iXOZI` dibuat
+`2026-08-28T10:04:32.436Z`; normal message `2IfpN1RgUUkx8JMwe9RxhX`
+dibuat `2026-08-28T10:09:32.437Z`. Output memuat
+`persistent_unified_html=passed`, `persistent_key_layout=identical`,
+`persistent_colors=critical-red,normal-green`, dan
+`persistent_inaccessible_alertmanager_link=absent`. Empat persistent containers
+running, two targets `up`, three rules `inactive/ok`, dan Mailpit total `8`.
+
+</div>
+
+</div>
+
 ## 🖥️ Commands Executed
 
 Seluruh command aktual ditempatkan pada procedure step tempat command tersebut
@@ -812,6 +1423,17 @@ dari purpose, expected result, actual result, dan evidence.
 | 7 | [Verify Final Persistent State](#verify-final-persistent-state) | Runtime, persistence, cleanup-boundary, dan listener audit |
 | 8 | [Consolidate and Review Documentation](#consolidate-and-review-documentation) | Source/docs validation, navigation, stale-state, dan render availability |
 | Handoff | [Operator Validation](#operator-validation) | Read-only access, visual message review, dan acceptance criteria |
+| Correction source | [Implement Status-specific Notification Body](#implement-status-specific-notification-body) | Status-specific HTML, inaccessible-link removal, validator, fixture, dan documentation |
+| Correction test | [Validate Corrected Firing and Resolved Rendering](#validate-corrected-firing-and-resolved-rendering) | Failed fixture assertions, final isolated regression, dan cleanup audit |
+| Correction deploy | [Deploy Corrected Persistent Configuration](#deploy-corrected-persistent-configuration) | Exact preflight, backup, volume overwrite, restart, checksum, readiness, dan port audit |
+| Correction runtime | [Repeat Real-rule Delivery and Verify Corrected HTML](#repeat-real-rule-delivery-and-verify-corrected-html) | Guarded Telegraf cycle, polling, HTML assertions, recovery, dan final state audit |
+| Visual correction | [Refine Visual and Resolved-content Contract](#refine-visual-and-resolved-content-contract) | Red/green email card, conditional content, dan stricter HTML assertions |
+| Visual deploy | [Deploy Visual-corrected Alertmanager Revision](#deploy-visual-corrected-alertmanager-revision) | Second backup, volume overwrite, restart, semantic validation, dan evidence retention |
+| Visual runtime | [Verify Persistent Red and Green Notification Pair](#verify-persistent-red-and-green-notification-pair) | Guarded real-rule cycle, color/content assertions, recovery, dan final audit |
+| Unified contract | [Define Unified Operator Alert-template Contract](#define-unified-operator-alert-template-contract) | Normal/warning/critical semantics, positive resolved names, identical keys, labels, dan documentation |
+| Unified static validation | [Validate Unified Alert-template Candidate](#validate-unified-alert-template-candidate) | Syntax, component validators, aggregate validator, diff check, dan evidence boundary |
+| Unified deployment | [Deploy Unified Alert-template to Persistent Runtime](#deploy-unified-alert-template-to-persistent-runtime) | Exact preflight, backups, config-only volume updates, semantic checks, restart, dan baseline recovery |
+| Unified runtime | [Verify Persistent Unified Critical and Normal Pair](#verify-persistent-unified-critical-and-normal-pair) | Controlled Telegraf cycle, critical/normal delivery, exact HTML assertions, dan final state audit |
 
 ## 🧾 Outcome
 
@@ -832,22 +1454,49 @@ serta relative links tersedia dan current-state pages telah dikonsolidasikan.
 MkDocs render berstatus `Not verified` karena executable tidak tersedia;
 dependency tidak dipasang.
 
+Initial operator validation berstatus `Rejected` karena resolved body tidak
+membedakan current state dari static firing description serta default
+Alertmanager link memakai internal container hostname yang tidak dapat diakses
+operator. First corrected pair juga ditolak karena resolved masih memuat
+firing-condition context dan red/green visual status hilang. Visual-corrected
+pair mempertahankan warna tetapi kembali ditolak karena normal message masih
+memakai negative alert name `TelegrafHealthScrapeUnavailable` dan severity
+`warning`.
+
+Unified alert-template telah diperbaiki pada source dan persistent runtime:
+firing
+scrape-down dipresentasikan sebagai `critical`, resolved sebagai `normal`
+dengan positive name `TelegrafHealthScrapeAvailable`, dan kedua body memakai
+key yang identik. Static validation, disposable semantic/render test, dan
+Prometheus config/rule tests lulus. Controlled deployment serta real-rule cycle
+juga lulus exact HTML and recovery assertions. Messages ketujuh dan kedelapan
+menjadi unified evidence baru; enam earlier messages tetap historical rejected
+evidence.
+
 ## ⏭️ Next Steps
 
-Project owner memeriksa firing dan resolved email melalui Operator Validation,
-lalu mencatat acceptance atau finding. Setelah validation diterima, project
-owner menilai stability window sebelum memberi exact destructive authorization
-untuk `prometheus-tn035-rollback` dan
-`prometheus_config_tn035_rollback`. Restart policy serta host-boot
-orchestration tetap menjadi deferred operability decision; external delivery
-membutuhkan contract dan authorization terpisah.
+Project owner mereview exact critical/normal pair baru melalui Operator
+Validation dan mencatat hasil sebagai `Accepted` atau `Rejected`.
+
+Setelah unified evidence diterima, project owner menilai stability window
+sebelum memberi exact destructive authorization untuk
+`/tmp/tm-tn035-alertmanager-body-rollback.yml`,
+`/tmp/tm-tn035-alertmanager-body-v1-rollback.yml`,
+`/tmp/tm-tn035-alertmanager-unified-rollback.yml`,
+`/tmp/tm-tn035-prometheus-unified-rule-rollback.yml`,
+`prometheus-tn035-rollback`, dan `prometheus_config_tn035_rollback`. Restart
+policy serta host-boot orchestration tetap menjadi deferred operability
+decision; external delivery membutuhkan contract dan authorization terpisah.
 
 ## ❓ Open Questions
 
 | Question | State | Owner | Closure Condition | Blocked Activity |
 | --- | --- | --- | --- | --- |
-| Apakah firing dan resolved email evidence diterima project owner? | Open | Project owner | Operator Validation selesai dan hasil dicatat sebagai `Accepted`, atau finding dicatat sebagai `Rejected`. | Stability acceptance dan cleanup authorization. |
-| Kapan retained original Prometheus dan protected configuration snapshot boleh dibersihkan? | Open | Project owner | Operator Validation accepted, stability diterima, dan exact destructive cleanup diotorisasi terpisah. | Cleanup retained rollback state only. |
+| Apakah initial firing dan resolved email evidence diterima project owner? | Answered — Rejected on 2026-08-28 | Project owner | Resolved body masih menyajikan static firing description sebagai current message dan Alertmanager link memakai inaccessible internal hostname; source correction disetujui. | Initial evidence tidak dapat digunakan untuk acceptance. |
+| Apakah first corrected persistent evidence diterima project owner? | Answered — Rejected on 2026-08-28 | Project owner | Resolved body masih memuat firing-condition context dan red/green visual status hilang; visual correction disetujui. | Intermediate evidence tidak dapat digunakan untuk acceptance. |
+| Apakah visual-corrected persistent firing dan resolved evidence diterima project owner? | Answered — Rejected on 2026-08-28 | Project owner | Normal message masih memakai `TelegrafHealthScrapeUnavailable` dan severity `warning`; unified contract correction disetujui. | Visual-corrected evidence tidak dapat digunakan untuk acceptance. |
+| Apakah unified critical dan normal notification evidence diterima project owner? | Open — automated verification passed | Project owner | Review exact messages `2V6shq4dGekDSAOt2iXOZI` dan `2IfpN1RgUUkx8JMwe9RxhX`; catat `Accepted` atau `Rejected`. | Stability acceptance dan cleanup authorization. |
+| Kapan retained original Prometheus dan protected configuration snapshots boleh dibersihkan? | Open | Project owner | Operator Validation accepted, stability diterima, dan exact destructive cleanup diotorisasi terpisah. | Cleanup exact TN-035 rollback files, retained Prometheus container, dan rollback volume only. |
 | Apakah restart policy atau host-boot orchestration diperlukan? | Deferred | Project owner | Availability expectation dan orchestration owner ditetapkan. | Future operability work only. |
 
 ## 🔗 Related Documentation
