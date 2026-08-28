@@ -635,9 +635,9 @@ dapat mengikuti konteks, aktivitas, dan hasil secara logis.
 | Activity Type | Conditional Sections |
 | --- | --- |
 | Discovery and Assessment | Inputs, Findings, Assumptions, Alternatives, Risks, Open Questions, Recommendation, Decision Handoff |
-| Implementation | Prerequisites, Execution Decision, Architecture jika diperlukan, Implementation Plan, Implementation, Verification, Troubleshooting, Scope Changes |
+| Implementation | Prerequisites, Execution Decision, Architecture jika diperlukan, Implementation Plan, Implementation, Verification, Operator Validation jika diperlukan, Troubleshooting, Scope Changes |
 | Experiment | Prerequisites, Hypothesis, Experiment Setup, Method, Expected Result, Actual Result, Conclusion |
-| Deployment or Migration | Prerequisites, Execution Decision, Change Plan, Rollback Plan, Deployment or Migration, Verification, Rollback Result, Scope Changes |
+| Deployment or Migration | Prerequisites, Execution Decision, Change Plan, Rollback Plan, Deployment or Migration, Verification, Operator Validation jika diperlukan, Rollback Result, Scope Changes |
 | Verification or Audit | Criteria, Method, Evidence, Findings, Exceptions, Conclusion |
 | Troubleshooting or Recovery | Symptom, Impact, Investigation, Hypotheses, Root Cause, Resolution or Recovery, Re-verification |
 | Documentation Consolidation | Source Inputs, Documentation Mapping, Changes, Review Result |
@@ -663,6 +663,12 @@ Gunakan komponen `procedure` ketika implementasi terdiri dari beberapa langkah
 operasional yang harus dibaca atau dijalankan secara berurutan. Jangan gunakan
 komponen ini untuk daftar keputusan, alasan, pilihan konfigurasi, katalog, atau
 informasi lain yang tidak membentuk urutan kerja.
+
+Aturan ini berlaku untuk seluruh section yang berisi alur kerja, termasuk
+`Implementation`, `Deployment or Migration`, `Recovery`, dan
+`Operator Validation`. Jangan memindahkan urutan kerja ke daftar command
+terpisah karena pembaca harus dapat memahami tujuan, tindakan, dan hasil setiap
+langkah tanpa merekonstruksi chronology dari command log.
 
 ```markdown
 <div class="procedure" markdown>
@@ -759,6 +765,11 @@ dalam Technical Note.
   Daftar `Commands Executed` tetap menjadi indeks atau pelengkap, bukan
   pengganti chronology. Command cleanup dicatat setelah resource yang menjadi
   target cleanup.
+- Jangan menggunakan `Commands Executed` sebagai satu code block panjang yang
+  mencampur discovery, implementation, deployment, verification, failure, dan
+  cleanup. Bila seluruh command sudah tercatat pada procedure step, tampilkan
+  section tersebut sebagai indeks ringkas yang menautkan step serta menjelaskan
+  command scope. Jangan menduplikasi command hanya untuk mengisi indeks.
 
 ### Decisions
 
@@ -795,6 +806,46 @@ conditional section. Section tersebut mencatat metode pemeriksaan, hasil yang
 diharapkan, actual result, dan evidence. Admonition per langkah tidak
 menggantikan actual result dan tidak boleh digunakan sebagai bukti bahwa
 verifikasi telah dilakukan.
+
+### Operator validation and handoff
+
+Tambahkan section `## ✅ Operator Validation` ketika hasil teknis masih perlu
+diperiksa atau diterima langsung oleh operator, project owner, atau pengguna.
+Contohnya meliputi review email, dashboard, UI, report, notification, atau
+perilaku lain yang tidak cukup diwakili oleh automated verification.
+
+Section ini harus dapat dijalankan tanpa pembaca menebak konteks dari
+`Commands Executed`. Minimum content-nya adalah:
+
+| Element | Requirement |
+| --- | --- |
+| State | Nyatakan apakah evidence siap direview, belum tersedia, atau sudah diterima. |
+| Owner | Sebutkan pihak yang melakukan review dan memberi keputusan. |
+| Validation target | Sebutkan artifact, message, screen, atau behavior yang harus diperiksa. |
+| Access method | Berikan URL, host, tunnel, working directory, atau navigation path yang aman dan tepat. |
+| Evidence lifetime | Nyatakan apabila evidence bersifat sementara atau dapat hilang akibat restart, replacement, atau cleanup. |
+| Acceptance criteria | Sebutkan field, value, state transition, atau tampilan yang harus cocok. |
+| Closure record | Minta keputusan eksplisit, misalnya `Accepted` atau `Rejected` beserta finding. |
+
+Jika validasi memiliki beberapa tindakan, gunakan sequential procedure dan
+urutkan minimal sebagai berikut:
+
+1. Pastikan evidence dan endpoint masih tersedia.
+2. Buka atau akses interface menggunakan boundary yang benar.
+3. Periksa artifact dan cocokkan acceptance criteria.
+4. Catat keputusan serta tindakan aman setelah review.
+
+Command pada section ini merupakan instruksi untuk operator, bukan klaim bahwa
+command telah dijalankan. Readiness check yang benar-benar dijalankan oleh
+penulis harus dibedakan sebagai `Actual Result` atau `Evidence`, lengkap dengan
+tanggal atau environment bila hasilnya mudah berubah. Jangan meminta operator
+mengulang mutation, failure injection, deployment, atau destructive cleanup
+hanya untuk memperoleh evidence tanpa authorization yang sesuai.
+
+`Operator Validation` tidak menggantikan technical `Verification`. Technical
+Note boleh berstatus selesai secara teknis sementara operator acceptance masih
+open, tetapi status handoff, blocked follow-up, dan evidence-retention risk
+harus dinyatakan pada `Outcome`, `Next Steps`, atau `Open Questions`.
 
 ## 🔄 Repository Workflow
 
@@ -923,8 +974,10 @@ standar. Hasil pemeriksaan yang benar-benar dijalankan harus dicatat pada
 | Execution context | Implementation atau deployment harus menjelaskan environment dan konteks pelaksanaannya. | Implementation dan Deployment or Migration |
 | Procedure | Procedure hanya digunakan untuk tindakan berurutan dan nomor langkah tidak ditulis secara manual. | Aktivitas yang menggunakan sequential procedure |
 | Step result | Setiap procedure step harus memiliki `Expected Result` yang dapat diperiksa. | Aktivitas yang menggunakan sequential procedure |
+| Command placement | Command harus berada pada procedure step sesuai chronology; `Commands Executed` hanya menjadi indeks atau pelengkap dan tidak menjadi raw command dump. | Aktivitas yang menjalankan command berurutan |
 | Verification evidence | Method, expected result, actual result, dan evidence harus dapat dibedakan. | Aktivitas yang memerlukan verification |
 | Result boundary | `Expected Result` per langkah tidak boleh digunakan sebagai pengganti actual result. | Aktivitas yang menggunakan procedure dan verification |
+| Operator handoff | Target, access method, acceptance criteria, evidence lifetime, owner, dan closure record harus tersedia. | Aktivitas yang memerlukan review operator atau project owner |
 
 ### Discovery and decision requirements
 

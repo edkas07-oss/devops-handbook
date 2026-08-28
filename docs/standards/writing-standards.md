@@ -137,6 +137,7 @@ Gunakan ikon pada heading level dua (`##`) sesuai dengan jenis informasi yang di
 | Deployment | 🚀 |
 | Backup and Recovery | 💾 |
 | Verification | ✅ |
+| Operator Validation | ✅ |
 | Troubleshooting | 🛠️ |
 | Best Practices | ⭐ |
 | Release History | 📦 |

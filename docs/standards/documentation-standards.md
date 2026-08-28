@@ -183,6 +183,7 @@ Untuk menjaga konsistensi visual di seluruh DevOps Engineering Handbook, gunakan
 | Deployment | 🚀 | Deployment ke environment target. |
 | Backup and Recovery | 💾 | Backup dan pemulihan. |
 | Verification | ✅ | Verifikasi hasil implementasi. |
+| Operator Validation | ✅ | Instruksi pemeriksaan dan acceptance oleh operator atau project owner. |
 | Troubleshooting | 🛠️ | Pemecahan masalah umum. |
 | Best Practices | ⭐ | Rekomendasi implementasi. |
 | Release History | 📦 | Riwayat perubahan atau rilis. |
