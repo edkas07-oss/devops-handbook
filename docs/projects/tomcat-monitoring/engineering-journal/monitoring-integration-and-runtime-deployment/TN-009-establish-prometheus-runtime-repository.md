@@ -10,6 +10,7 @@
 | Activity Date | 2026-08-22 |
 | Recorded Date | 2026-08-22 |
 | Owner | Project owner |
+| Working Mode | Write |
 | Authorization Status | Approved |
 | Approved By | Project owner |
 | Approval Date | 2026-08-22 |
@@ -17,6 +18,13 @@
 ## 🎯 Objective
 
 Membentuk repository `prometheus` sebagai OCI runtime generik terpisah sebelum configuration scrape dan integrasi Prometheus dimulai pada `tomcat-monitoring`.
+
+## 🌍 Background
+
+Telegraf telah memiliki repository runtime generik, sedangkan Prometheus belum
+memiliki source owner untuk upstream pin, image build, smoke test, run, dan
+cleanup. Konfigurasi scrape tetap harus dimiliki `tomcat-monitoring` agar image
+runtime dapat digunakan kembali tanpa target atau secret project.
 
 ## ⚖️ Runtime Component Ownership Gate
 
@@ -32,17 +40,23 @@ Membentuk repository `prometheus` sebagai OCI runtime generik terpisah sebelum c
 
 Repository `prometheus` hanya akan berisi metadata image, Containerfile, entrypoint generik, README, dan script local lifecycle. `prometheus.yml`, scrape target JMX Exporter/Telegraf, alert rules, credentials, TLS material, data volume, port host, target deployment, dan publication berada di luar scope TN ini.
 
-## ⚙️ Execution Plan
+## 🧭 Implementation Plan
 
-1. Catat discovery repository dan sumber upstream resmi.
-2. Tambahkan governance repository dan metadata upstream pin.
-3. Tambahkan Containerfile, entrypoint, serta build/test/run/clean interface generik tanpa configuration project.
-4. Jalankan static syntax dan integrity checks saja.
-5. Catat hasil aktual dan handoff untuk build/smoke test terpisah.
+| Tahap | Rencana |
+| --- | --- |
+| **Inspect Repository Availability and the Runtime Pattern** | Memeriksa repository kosong dan mempelajari pola lifecycle Telegraf. |
+| **Verify the Official Upstream Selection** | Memilih Prometheus LTS dan memeriksa mount contract resmi. |
+| **Implement the Generic Runtime Source** | Menambahkan metadata, Containerfile, entrypoint, dan lifecycle scripts tanpa konfigurasi project. |
+| **Apply Executable Modes and Run Static Validation** | Memeriksa permission, shell syntax, whitespace, dan file inventory. |
+| **Record the Runtime Handoff** | Mencatat hasil source-level dan batas sebelum build serta smoke test. |
 
-## 📝 Commands Executed
+## ⚙️ Implementation
 
-### 1. Inspect repository availability and runtime pattern
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Inspect Repository Availability and the Runtime Pattern
 
 **Purpose.** Memastikan repository target tersedia serta membandingkan contract generik Telegraf tanpa menyalin configuration integration.
 
@@ -58,31 +72,63 @@ sed -n '1,240p' /home/eddywiyatno/git/telegraf/scripts/run.sh
 sed -n '1,220p' /home/eddywiyatno/git/telegraf/scripts/test.sh
 ```
 
-**Expected result.** Repository Prometheus tersedia, tidak ada source awal, dan pattern runtime generik dapat direview.
+!!! success "Expected Result"
 
-**Actual result and evidence.** Directory tersedia. Git menyatakan `No commits yet on main...origin/main [gone]`; pencarian tidak menemukan source atau `AGENTS.md` pada repository baru. Telegraf direview hanya sebagai pattern lifecycle, bukan sebagai source yang disalin.
+    Repository Prometheus tersedia, tidak ada source awal, dan pattern runtime
+    generik dapat direview.
 
-### 2. Verify official upstream selection
+**Actual Result:** directory tersedia dan belum memiliki source awal.
+
+**Evidence:** Git menyatakan `No commits yet on main...origin/main [gone]`;
+pencarian source kosong dan repository Telegraf hanya direview sebagai pola.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Verify the Official Upstream Selection
 
 **Purpose.** Memilih versi upstream yang stabil dan dipin sebelum source image dibuat.
 
 **Method actually used.** Halaman Download dan Installation Prometheus resmi direview pada 2026-08-22.
 
-**Expected result.** Versi upstream dan contract mount configuration/data dapat dibuktikan tanpa menjalankan image.
+!!! success "Expected Result"
 
-**Actual result and evidence.** Halaman Download resmi mencantumkan `3.13.2` sebagai Latest LTS dan `3.14.0` sebagai Latest. Halaman Installation resmi menyatakan image tersedia melalui registry, configuration dapat di-bind-mount ke `/etc/prometheus/prometheus.yml`, dan data berada di `/prometheus`. TN ini memilih LTS `v3.13.2` dan tidak membuat mount atau volume apapun.
+    Versi upstream dan contract mount configuration/data dapat dibuktikan tanpa
+    menjalankan image.
 
-### 3. Implement generic runtime source
+**Actual Result:** Prometheus `v3.13.2` dipilih sebagai LTS tanpa menjalankan
+image atau membuat volume.
+
+**Evidence:** halaman Download dan Installation resmi mencatat versi serta
+mount path `/etc/prometheus/prometheus.yml` dan `/prometheus`.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Implement the Generic Runtime Source
 
 **Purpose.** Menyediakan lifecycle image reusable tanpa memasukkan configuration atau deployment contract milik solution monitoring.
 
 **Implementation actually performed.** Source berikut ditambahkan pada repository `/home/eddywiyatno/git/prometheus`: `AGENTS.md`, `PROJECT`, `VERSION`, `CONFIG`, `.containerignore`, `Containerfile`, `entrypoint.sh`, `README.md`, serta `scripts/build.sh`, `scripts/test.sh`, `scripts/run.sh`, dan `scripts/clean.sh`.
 
-**Expected result.** Runtime pin, image identity, entrypoint, dan lifecycle interface tersedia; scrape configuration, alert rule, credential, TLS, port host, dan data runtime project tidak ikut masuk source.
+!!! success "Expected Result"
 
-**Actual result and evidence.** `CONFIG` mem-pin `docker.io/prom/prometheus:v3.13.2`. Entrypoint hanya meneruskan argumen ke `/bin/prometheus`. `run.sh` mewajibkan caller memberikan path `prometheus.yml` dan direktori data yang sudah ada; ia tidak memiliki target scrape, retention, port publish, atau volume default. `clean.sh` hanya menargetkan nama container dan tidak menghapus direktori data atau volume.
+    Runtime pin, image identity, entrypoint, dan lifecycle interface tersedia;
+    konfigurasi serta data runtime project tidak ikut masuk source.
 
-### 4. Apply executable mode and run static validation
+**Actual Result:** source runtime generik berhasil dibuat tanpa konfigurasi atau
+data project.
+
+**Evidence:** `CONFIG` mem-pin `docker.io/prom/prometheus:v3.13.2`; entrypoint
+dan lifecycle scripts mempertahankan input configuration/data dari caller.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Apply Executable Modes and Run Static Validation
 
 **Purpose.** Memastikan entrypoint dan lifecycle scripts dapat dijalankan dan memiliki sintaks shell yang valid sebelum image build diotorisasi.
 
@@ -95,11 +141,48 @@ git -C /home/eddywiyatno/git/prometheus diff --check
 git -C /home/eddywiyatno/git/prometheus status --short
 ```
 
-**Expected result.** Files executable; tidak ada syntax atau whitespace error; status hanya menampilkan source runtime baru yang belum di-commit.
+!!! success "Expected Result"
 
-**Actual result and evidence.** `chmod`, `bash -n`, dan `git diff --check` lulus tanpa output error. Status menampilkan tepat `.containerignore`, `AGENTS.md`, `CONFIG`, `Containerfile`, `PROJECT`, `README.md`, `VERSION`, `entrypoint.sh`, dan `scripts/` sebagai untracked source baru.
+    File executable; tidak ada syntax atau whitespace error; status hanya
+    menampilkan source runtime baru yang belum di-commit.
 
-## ✅ Outcome
+**Actual Result:** permission, shell syntax, dan whitespace check lulus.
+
+**Evidence:** status menampilkan tepat source runtime baru sebagai untracked
+files dan tidak menampilkan artifact di luar scope.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Record the Runtime Handoff
+
+1. Catat artifact source yang telah tersedia.
+2. Catat bahwa build, image pull, smoke test, dan runtime belum dilakukan.
+3. Tautkan ADR ownership dan TN build berikutnya.
+
+!!! success "Expected Result"
+
+    Pembaca dapat membedakan source yang telah divalidasi dari image dan runtime
+    yang belum diuji.
+
+**Actual Result:** repository generik tersedia dan lulus static validation;
+build serta runtime tetap menjadi scope TN-010.
+
+**Evidence:** Outcome, Next Steps, dan TM-ADR-0002 mencatat handoff serta batas
+hasil.
+
+</div>
+
+</div>
+
+## 🖥️ Commands Executed
+
+Command aktual tersedia pada empat procedure step pertama. Tahap `Record the
+Runtime Handoff` mengonsolidasikan evidence dan tidak menambahkan runtime
+command baru.
+
+## 🧾 Outcome
 
 Repository Prometheus generik telah tersedia dan lolos static validation. Ia belum dibangun, dipull, diuji sebagai image, atau dijalankan. Karena itu tidak ada klaim bahwa binary Prometheus, permission data runtime, scrape, storage, atau monitoring end-to-end sudah terverifikasi.
 
@@ -109,6 +192,7 @@ Langkah paling dekat adalah local build dan smoke test image Prometheus pada sco
 
 ## 🔗 Related Documentation
 
+- [TM-ADR-0002 — Separate Generic Runtime Images from Monitoring Integration Configuration](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0002.md)
 - [Prometheus Download](https://prometheus.io/download/)
 - [Prometheus Installation](https://prometheus.io/docs/prometheus/latest/installation/)
 - [TN-006 — Establish Telegraf Runtime Repository](TN-006-establish-telegraf-runtime-repository.md)

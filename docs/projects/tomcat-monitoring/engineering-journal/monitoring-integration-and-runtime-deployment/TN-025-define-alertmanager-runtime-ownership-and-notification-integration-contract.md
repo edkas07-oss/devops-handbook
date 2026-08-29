@@ -211,10 +211,13 @@ runtime baru `alertmanager`, upstream pin `v0.34.0`, repository boundaries,
 internal lab interface, routing baseline, `send_resolved: true`, dan
 file-based webhook secret reference ditetapkan sebagai contract planning.
 
-Contract ini menerapkan TM-ADR-0001 tanpa mengubah accepted topology atau
-external-integration boundary, sehingga ADR baru tidak diperlukan. Ia tidak
-memberikan authorization untuk membuat repository, source, image, runtime,
-volume, receiver, secret, atau external event.
+Contract ini menerapkan TM-ADR-0001. Retrospective ADR review pada 2026-08-29
+menemukan bahwa pemisahan repository runtime dan integration configuration
+memiliki alternatif bermakna serta dampak lintas repository. Keputusan tersebut
+kemudian dicatat pada
+[TM-ADR-0002](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0002.md).
+Acceptance TN-025 tidak memberikan authorization untuk membuat repository,
+source, image, runtime, volume, receiver, secret, atau external event.
 
 ## ⚙️ Commands Executed
 
@@ -345,6 +348,7 @@ external notification tidak boleh dimulai hanya berdasarkan approval TN-025.
 - [Development](../../development/index.md)
 - [Infrastructure](../../infrastructure/index.md)
 - [TM-ADR-0001](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0001.md)
+- [TM-ADR-0002 — Separate Generic Runtime Images from Monitoring Integration Configuration](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0002.md)
 - [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/)
 - [Alertmanager Configuration](https://prometheus.io/docs/alerting/latest/configuration/)
 - [Prometheus Download](https://prometheus.io/download/)

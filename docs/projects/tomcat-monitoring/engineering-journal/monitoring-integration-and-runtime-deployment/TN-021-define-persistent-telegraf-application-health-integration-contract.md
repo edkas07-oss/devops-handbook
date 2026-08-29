@@ -109,9 +109,11 @@ Decision Gate diterima:
 | Implementation prerequisite | Image/revision aplikasi, container atau service name, endpoint behavior, owner, lifecycle, rollback, dan cleanup target harus spesifik. |
 | Verification boundary | Uji URL dari Telegraf network, healthy/mismatch/unreachable behavior, metrics scrape Prometheus, persistence/restart, dan exact cleanup atau retained-state handoff. |
 
-Recommendation ini tidak memerlukan ADR baru karena memperjelas penerapan
-ownership dan runtime injection di dalam arsitektur TM-ADR-0001 tanpa mengubah
-topology atau keputusan arsitektur yang telah accepted.
+Recommendation ini menerapkan TM-ADR-0001. Retrospective ADR review pada
+2026-08-29 menemukan bahwa ownership endpoint, runtime URL injection, dan
+pemisahan application health dari generic runtime memiliki alternatif bermakna
+serta dampak jangka panjang. Keputusan tersebut kemudian dicatat pada
+[TM-ADR-0004](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0004.md).
 
 ## ❓ Open Questions
 
@@ -299,3 +301,4 @@ temporary fixture atau generic Tomcat target.
 - [TN-008 — Verify Telegraf Health Check with Edkas-pc1 Alias](TN-008-verify-telegraf-health-check-with-edkas-pc1-alias.md)
 - [Infrastructure](../../infrastructure/index.md)
 - [TM-ADR-0001](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0001.md)
+- [TM-ADR-0004 — Separate Application Failure from Monitoring Signal Loss](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0004.md)

@@ -30,6 +30,33 @@ Hindari penggunaan istilah yang ambigu atau tidak konsisten.
 
 Gunakan istilah teknis yang umum digunakan dalam industri.
 
+### Explain technical terms in plain language
+
+Dokumentasi harus tetap dapat dipahami oleh pembaca yang tidak mengerjakan
+implementasi secara langsung. Ketika istilah teknis, singkatan, atau kata
+bahasa Inggris belum umum bagi target pembaca, berikan penjelasan sederhana
+dalam tanda kurung pada penyebutan pertama.
+
+Contoh:
+
+- `cutover (pergantian dari runtime lama ke runtime baru)`;
+- `rootless container (container yang berjalan tanpa hak root)`;
+- `immutable identity (identitas artifact yang tidak berubah)`; dan
+- `semantic validation (pemeriksaan bahwa konfigurasi dapat dipahami oleh
+  aplikasi)`.
+
+Terapkan aturan berikut:
+
+- Jelaskan arti dalam konteks pembaca, bukan membuat definisi kamus yang lebih
+  teknis daripada istilah aslinya.
+- Penjelasan pada penyebutan pertama sudah cukup; jangan mengulang tanda kurung
+  pada setiap kemunculan jika konteksnya tidak berubah.
+- Nama command, file, field konfigurasi, status, dan identifier tetap ditulis
+  sesuai source agar dapat ditelusuri.
+- Jika satu paragraf memerlukan banyak istilah teknis untuk menjelaskan satu
+  hasil sederhana, tulis ulang paragraf tersebut menggunakan akibat yang dapat
+  diamati pembaca.
+
 ---
 
 ## 📝 Headings

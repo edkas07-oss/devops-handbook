@@ -201,9 +201,11 @@ resolved behavior, message baseline, secret lifecycle, dan layered
 verification ditetapkan sebagai planning contract.
 
 Contract ini menggunakan generic Notification Channel branch yang sudah ada
-dan menunda TrueSight tanpa menghapus future architecture boundary, sehingga
-ADR baru tidak diperlukan. Exact sender Gmail account dan account eligibility
-masih menjadi prerequisite. Approval TN-030 tidak mengizinkan source
+dan menunda TrueSight tanpa menghapus future architecture boundary. Arah Gmail
+yang dipilih pada TN-030 kemudian digantikan oleh keputusan Mailpit pada
+[TM-ADR-0005](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0005.md).
+Exact sender Gmail account dan account eligibility pada saat itu masih menjadi
+prerequisite. Approval TN-030 tidak mengizinkan source
 implementation, App Password creation, secret file, network preflight,
 container, persistent runtime, atau actual email delivery.
 
@@ -250,7 +252,7 @@ git status --short --branch
 git diff --stat
 ```
 
-## 🧩 Outcome
+## 🧾 Outcome
 
 TN-030 selesai sebagai discovery dan planning contract. Direct email melalui
 Gmail dipilih sebagai lab notification channel; TrueSight tetap deferred.

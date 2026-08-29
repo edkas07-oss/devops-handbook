@@ -47,13 +47,15 @@ certificate, credential, production target, Prometheus, atau deployment.
 
 ## 🧪 Method
 
-1. Pull image official yang dipin dan buat temporary directory test.
-2. Jalankan fixture HTTP pada network test dengan respons sehat, lalu jalankan
-   Telegraf memakai configuration project dan environment target fixture.
-3. Ambil metrics Telegraf dari network test menggunakan client sementara.
-4. Ulangi dengan body dan status fixture yang tidak memenuhi contract.
-5. Hapus fixture, Telegraf, network, dan temporary directory pada semua jalur
-   keluar aktivitas.
+| Tahap | Metode |
+| --- | --- |
+| **Obtain the Pinned Images** | Menyediakan exact Telegraf dan BusyBox images. |
+| **Run the Default Image Startup** | Memeriksa apakah official entrypoint dapat berjalan pada Rootless Podman. |
+| **Inspect the Failed Startup** | Mencatat status, exit code, dan log kegagalan. |
+| **Verify the Binary with an Isolated Override** | Memastikan binary benar sebelum melanjutkan diagnostic override. |
+| **Start the Fixture and Telegraf Override** | Menjalankan fixture dan Telegraf pada network sementara. |
+| **Query Metrics from the Test Network** | Mengambil metrics dari client sementara untuk melanjutkan condition tests. |
+| **Clean Up Every Test Attempt** | Menghapus exact container, network, dan temporary directory pada semua jalur keluar. |
 
 ## 🔍 Findings
 
@@ -68,7 +70,115 @@ certificate, credential, production target, Prometheus, atau deployment.
   `telegraf-verify` pada network test, sehingga metrics endpoint belum dapat
   diambil dan tiga response condition belum dapat dievaluasi.
 
-## ⚙️ Execution Record
+## ⚙️ Implementation
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Obtain the Pinned Images
+
+!!! success "Expected Result"
+
+    Exact Telegraf dan BusyBox images tersedia secara lokal.
+
+**Actual Result:** kedua image berhasil di-pull.
+
+**Evidence:** sequence 1 pada Detailed Execution Evidence.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Run the Default Image Startup
+
+!!! success "Expected Result"
+
+    Telegraf memulai listener menggunakan official entrypoint.
+
+**Actual Result:** container keluar dengan exit code `126`.
+
+**Evidence:** error `setpriv: failed to execute telegraf: Operation not
+permitted` pada sequence 2.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Inspect the Failed Startup
+
+!!! success "Expected Result"
+
+    Penyebab startup failure memiliki status, exit code, dan log yang dapat
+    ditelusuri.
+
+**Actual Result:** rootless entrypoint failure berhasil dikonfirmasi.
+
+**Evidence:** inspect dan log pada sequence 3.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Verify the Binary with an Isolated Override
+
+!!! success "Expected Result"
+
+    Binary melaporkan exact version ketika dijalankan dengan override terbatas.
+
+**Actual Result:** output menunjukkan `Telegraf 1.39.3`.
+
+**Evidence:** disposable version check pada sequence 4.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Start the Fixture and Telegraf Override
+
+!!! success "Expected Result"
+
+    Configuration dimuat dan metrics listener tersedia pada `:9273`.
+
+**Actual Result:** fixture serta Telegraf berjalan; kedua plugin aktif dan
+listener siap.
+
+**Evidence:** container commands dan Telegraf log pada sequence 5.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Query Metrics from the Test Network
+
+!!! success "Expected Result"
+
+    Client sementara dapat mengambil health metrics melalui alias network.
+
+**Actual Result:** alias `telegraf-verify` tidak dapat di-resolve sehingga
+metrics tidak diperoleh dan condition tests tidak dilanjutkan.
+
+**Evidence:** failed `wget` pada sequence 6; activity tetap `Blocked`.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Clean Up Every Test Attempt
+
+!!! success "Expected Result"
+
+    Tidak ada container, network, atau temporary directory test yang tertinggal.
+
+**Actual Result:** cleanup trap berjalan setelah setiap attempt.
+
+**Evidence:** exact removal commands pada sequence 7 dan Exceptions.
+
+</div>
+
+</div>
+
+### Detailed Execution Evidence
 
 | Sequence | Purpose | Command actually executed | Expected / actual result |
 | --- | --- | --- | --- |

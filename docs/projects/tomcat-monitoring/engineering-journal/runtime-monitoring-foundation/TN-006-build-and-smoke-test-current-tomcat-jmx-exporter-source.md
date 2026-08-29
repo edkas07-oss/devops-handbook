@@ -67,19 +67,22 @@ scope.
 
 ## 🧪 Method
 
-1. Verifikasi source identity, tool, base image, target image, dan collision
-   temporary container sebelum mutation.
-2. Jalankan shell syntax dan source-level checks.
-3. Bangun image dari current source menggunakan interface repository.
-4. Inspeksi image identity dan labels hasil build.
-5. Jalankan self-cleaning smoke test dan verifikasi tidak ada resource
-   sementara yang tertinggal.
-6. Catat actual result dan perbarui current-state documentation hanya
-   berdasarkan evidence aktivitas ini.
+| Tahap | Metode |
+| --- | --- |
+| **Review the Handoff and Approval Gate** | Memeriksa source, governance, scope, dan image yang tersedia sebelum mutation. |
+| **Validate Build Readiness and Source** | Memeriksa commit, tool, artifact checksum, shell syntax, dan base image. |
+| **Build Current Source and Inspect the Image** | Membangun current source lalu memeriksa identity serta label image. |
+| **Run the Smoke Test and Verify Cleanup** | Menguji endpoint HTTPS dan JVM metrics lalu memastikan resource sementara terhapus. |
+| **Consolidate Current-State Documentation** | Memperbarui dokumentasi hanya berdasarkan hasil build dan test yang terbukti. |
+| **Verify Documentation and Final Source State** | Memeriksa diff, link, status TN, dan kondisi akhir source. |
 
-## ⚙️ Commands Executed
+## 🧪 Execution
 
-### Handoff discovery and approval gate
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Review the Handoff and Approval Gate
 
 ```bash
 git status --short --branch
@@ -104,12 +107,24 @@ podman image exists localhost/tomcat-jmx-exporter:1.0.0
 podman image inspect localhost/tomcat-jmx-exporter:1.0.0 --format '{{.Id}} {{.Created}} {{index .Labels "org.opencontainers.image.version"}} {{index .Labels "io.prometheus.jmx-exporter.version"}}'
 ```
 
-Percobaan pertama tiga command Podman gagal karena sandbox tidak dapat mengubah
+!!! success "Expected Result"
+
+    Governance, approved scope, source revision, base image, dan existing target
+    image dapat diidentifikasi sebelum build dimulai.
+
+**Actual Result:** percobaan pertama tiga command Podman gagal karena sandbox tidak dapat mengubah
 permission `/run/user/1000/libpod`. Read-only inspection yang sama berhasil
 setelah runtime permission disetujui. Base dan target image tersedia; target
 lama memiliki labels version `1.0.0` dan JMX Exporter `1.6.0`.
 
-### Build readiness and source validation
+**Evidence:** source dan image inspection mencatat initial commit serta old
+image identity sebelum mutation.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Validate Build Readiness and Source
 
 ```bash
 git status --short --branch
@@ -126,7 +141,12 @@ podman image exists localhost/tomcat:9.0
 podman image inspect localhost/tomcat-jmx-exporter:1.0.0 localhost/tomcat-jmx-exporter:latest --format '{{.Id}} {{.RepoTags}} {{.Created}}'
 ```
 
-Working tree source bersih pada full commit
+!!! success "Expected Result"
+
+    Source berada pada commit `231cb91`, seluruh tool tersedia, shell syntax
+    lulus, artifact checksum sesuai, dan base image siap digunakan.
+
+**Actual Result:** working tree source bersih pada full commit
 `231cb915cc2e058abd1fa0377877b120a9d7e2be`. Shell syntax dan source
 whitespace check lulus; seluruh tool prerequisite tersedia. Artifact cache
 hanya berisi JMX Exporter JAR dan checksum
@@ -134,12 +154,14 @@ hanya berisi JMX Exporter JAR dan checksum
 sesuai `CONFIG`. Base image tersedia. Sebelum build, tag `1.0.0` dan `latest`
 keduanya menunjuk image lama `47adae9464a1`.
 
-## 📥 Evidence
+**Evidence:** commit, tool inventory, checksum, dan old image ID tercatat pada
+output pemeriksaan readiness.
 
-Evidence dicatat berdasarkan urutan preflight, build, smoke test, cleanup, dan
-documentation consolidation berikut.
+</div>
 
-### Build current source and inspect image
+<div class="procedure-step" markdown>
+
+### Build Current Source and Inspect the Image
 
 ```bash
 ./scripts/build.sh
@@ -147,14 +169,26 @@ podman image inspect localhost/tomcat-jmx-exporter:1.0.0 localhost/tomcat-jmx-ex
 git status --short --branch
 ```
 
-Build memverifikasi checksum JMX Exporter JAR di host dan kembali di image
+!!! success "Expected Result"
+
+    Build menghasilkan tag `1.0.0` dan `latest` dari current source dengan
+    label version serta JMX Exporter yang benar.
+
+**Actual Result:** build memverifikasi checksum JMX Exporter JAR di host dan kembali di image
 layer, lalu menyelesaikan 13 Containerfile steps. Tag `1.0.0` serta `latest`
 kini menunjuk image ID
 `47eaad88a544ec0ef718f1fe449ce617c2fcd060a0ecfbd623530ec9d564fc30`
 dengan labels version `1.0.0` dan JMX Exporter `1.6.0`. Source working tree tetap
 bersih setelah build.
 
-### Run smoke test and verify cleanup
+**Evidence:** kedua tag menunjuk image ID `47eaad88a544...` dan source tetap
+bersih.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Run the Smoke Test and Verify Cleanup
 
 ```bash
 ./scripts/test.sh
@@ -163,13 +197,25 @@ find /tmp -maxdepth 1 -type d -name 'tomcat-jmx-exporter-test.*' -print
 git status --short --branch
 ```
 
-Smoke test melaporkan bahwa HTTPS `/metrics` dan pengumpulan metrics JVM lokal
+!!! success "Expected Result"
+
+    HTTPS `/metrics`, JMX scrape duration, dan JVM heap metric tersedia;
+    container serta directory test sementara tidak tersisa.
+
+**Actual Result:** smoke test melaporkan bahwa HTTPS `/metrics` dan pengumpulan metrics JVM lokal
 berfungsi. Script memverifikasi metric `jmx_scrape_duration_seconds` dan
 `jvm_memory_heap_used_bytes`. Pemeriksaan setelah test tidak menemukan
 container `tomcat-jmx-exporter-test-*` maupun temporary test directory; source
 working tree tetap bersih.
 
-### Consolidate current-state documentation
+**Evidence:** test output memuat `jmx_scrape_duration_seconds` dan
+`jvm_memory_heap_used_bytes`; cleanup query tidak menemukan resource.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Consolidate Current-State Documentation
 
 ```bash
 rg -n 'clean image build|current source|Current source|earlier source revision|image.*belum diverifikasi|belum.*build|JMX Exporter source' docs/projects/tomcat-monitoring
@@ -179,12 +225,24 @@ sed -n '62,85p' docs/projects/tomcat-monitoring/index.md
 sed -n '195,225p' docs/projects/tomcat-monitoring/infrastructure/index.md
 ```
 
-Project overview, Development, Infrastructure, dan phase index diperbarui untuk
+!!! success "Expected Result"
+
+    Project documentation menghubungkan current source `231cb91` dengan image
+    serta smoke-test evidence tanpa mengklaim publication atau deployment.
+
+**Actual Result:** Project overview, Development, Infrastructure, dan phase index diperbarui untuk
 mengaitkan current source `231cb91` dengan image serta smoke-test evidence
 TN-006. Klaim registry publication, deployment, Prometheus scrape, dan
 end-to-end monitoring tetap tidak dibuat.
 
-### Verify documentation and final source state
+**Evidence:** pencarian current-state menunjukkan revision dan batas klaim yang
+sesuai.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Verify Documentation and Final Source State
 
 ```bash
 git diff --check
@@ -200,10 +258,27 @@ test -f docs/projects/tomcat-monitoring/infrastructure/index.md
 git status --short --branch
 ```
 
-Documentation diff check lulus, trailing-whitespace scan tidak menemukan
+!!! success "Expected Result"
+
+    Diff dan whitespace check lulus, seluruh relative link tersedia, status TN
+    konsisten, dan source repository tetap bersih.
+
+**Actual Result:** documentation diff check lulus, trailing-whitespace scan tidak menemukan
 match, status TN serta source/image references ditemukan, dan seluruh relative
 link target TN-006 tersedia. Source repository tetap bersih. `mkdocs` tidak
 tersedia sehingga render site tidak dijalankan dan dependency tidak dipasang.
+
+**Evidence:** seluruh source/link check lulus; MkDocs dicatat `Not verified`.
+
+</div>
+
+</div>
+
+## 🖥️ Commands Executed
+
+Seluruh command aktual ditempatkan pada enam procedure step di atas sesuai
+urutan pelaksanaannya. Nama tahap pada section ini sama dengan tahap pada
+`Method`, sehingga command tidak perlu direkonstruksi dari raw command dump.
 
 | Evidence | Actual result |
 | --- | --- |

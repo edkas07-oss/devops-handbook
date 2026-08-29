@@ -52,12 +52,13 @@ implementation contract sementara, bukan penetapan deployment topology final.
 
 ## ⚙️ Implementation Plan
 
-1. Tambahkan configuration Telegraf dengan input HTTP response dan output
-   Prometheus client.
-2. Tambahkan validator yang memeriksa field contract wajib tanpa memerlukan
-   binary Telegraf.
-3. Integrasikan validator component ke baseline validation interface.
-4. Jalankan syntax dan source validation; catat batas runtime verification.
+| Tahap | Rencana |
+| --- | --- |
+| **Prepare the Telegraf Health-Check Contract** | Menambahkan konfigurasi, validator component, dan integrasi validator baseline. |
+| **Validate the Shell Scripts** | Memastikan seluruh validator Bash memiliki sintaks yang valid. |
+| **Validate the Telegraf Source Contract** | Memeriksa field health check yang diwajibkan. |
+| **Validate the Integrated Baseline** | Memastikan validator Telegraf dipanggil oleh interface utama. |
+| **Check the Runtime Verification Boundary** | Memeriksa ketersediaan binary dan mencatat bagian yang belum diuji. |
 
 ## ⚙️ Implementation
 
@@ -70,13 +71,105 @@ dari baseline repository validation.
 
 ## ⚙️ Execution Record
 
-| Sequence | Purpose | Command actually executed | Expected / actual result |
-| --- | --- | --- | --- |
-| 1 | Make component validator executable | `chmod 0755 /home/eddywiyatno/git/tomcat-monitoring/scripts/validate-telegraf.sh` | Expected executable script; actual completed. |
-| 2 | Validate all Bash scripts | `bash -n /home/eddywiyatno/git/tomcat-monitoring/scripts/*.sh` | Expected no syntax error; actual passed. |
-| 3 | Validate Telegraf contract | `/home/eddywiyatno/git/tomcat-monitoring/scripts/validate-telegraf.sh` | Expected mandatory fields match approved contract; actual output `Telegraf source validation passed`. |
-| 4 | Validate integrated baseline | `/home/eddywiyatno/git/tomcat-monitoring/scripts/validate.sh` | Expected parent validator invokes component validator; actual both validations passed. |
-| 5 | Check runtime binary availability | `command -v telegraf` | Expected observation only; actual no binary found, so parse test remained not verified. |
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Prepare the Telegraf Health-Check Contract
+
+Tambahkan artifact pada bagian Implementation dan jadikan validator component
+dapat dijalankan.
+
+```bash
+chmod 0755 /home/eddywiyatno/git/tomcat-monitoring/scripts/validate-telegraf.sh
+```
+
+!!! success "Expected Result"
+
+    Konfigurasi dan validator tersedia; validator memiliki permission executable.
+
+**Actual Result:** artifact tersedia dan permission berhasil diterapkan.
+
+**Evidence:** command `chmod` selesai tanpa error.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Validate the Shell Scripts
+
+```bash
+bash -n /home/eddywiyatno/git/tomcat-monitoring/scripts/*.sh
+```
+
+!!! success "Expected Result"
+
+    Seluruh validator Bash memiliki sintaks yang valid.
+
+**Actual Result:** pemeriksaan lulus.
+
+**Evidence:** command selesai tanpa syntax error.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Validate the Telegraf Source Contract
+
+```bash
+/home/eddywiyatno/git/tomcat-monitoring/scripts/validate-telegraf.sh
+```
+
+!!! success "Expected Result"
+
+    Field URL, status, body, timeout, interval, dan endpoint metrics sesuai
+    contract.
+
+**Actual Result:** validator component lulus.
+
+**Evidence:** output `Telegraf source validation passed`.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Validate the Integrated Baseline
+
+```bash
+/home/eddywiyatno/git/tomcat-monitoring/scripts/validate.sh
+```
+
+!!! success "Expected Result"
+
+    Interface baseline menjalankan validator Telegraf dan keduanya lulus.
+
+**Actual Result:** kedua validation lulus.
+
+**Evidence:** output success dari validator Telegraf dan baseline.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Check the Runtime Verification Boundary
+
+```bash
+command -v telegraf
+```
+
+!!! success "Expected Result"
+
+    Ketersediaan binary diketahui sehingga batas runtime verification dapat
+    dicatat dengan tepat.
+
+**Actual Result:** binary tidak ditemukan; parse test tidak dijalankan.
+
+**Evidence:** `command -v telegraf` tidak menghasilkan path. Runtime parse
+ditandai `Not verified`, bukan dianggap berhasil.
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

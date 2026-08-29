@@ -108,8 +108,10 @@ target hanya dapat diakses melalui `devops-lab`. Prometheus replacement tetap
 menggunakan `prometheus/scripts/run.sh` karena launcher itu menerima exact named
 volumes dan optional host port yang sesuai persistent contract.
 
-Keputusan ini menerapkan [TM-ADR-0001](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0001.md)
-dan tidak memerlukan ADR baru.
+Keputusan ini menerapkan
+[TM-ADR-0001](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0001.md)
+serta certificate lifecycle yang kemudian dikonsolidasikan ke
+[TM-ADR-0003](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0003.md).
 
 ## 🛠️ Change Plan
 
@@ -117,7 +119,15 @@ Seluruh command pada section ini adalah planned command dan belum dijalankan.
 Nilai secret tidak boleh dicetak, disalin ke journal, atau diberikan sebagai
 command-line literal.
 
-### Establish execution context and run preflight
+!!! note "Retrospective presentation alignment"
+
+    Pada perapihan 2026-08-29, tahap lama `Update volumes and replace
+    Prometheus` dipisahkan menjadi `Prove Strict Pre-Cutover Failure` dan
+    `Replace Persistent Prometheus`. Pemisahan ini menyamakan rencana dengan
+    urutan deployment aktual. Pemeriksaan TLS tersebut merupakan pengaman
+    sebelum cutover (pergantian runtime aktif), bukan perluasan scope.
+
+### Authorize and Verify Preflight
 
 Jalankan sebagai rootless Podman user pada host persistent lab dari working
 tree yang identitasnya telah disetujui.
@@ -160,7 +170,7 @@ dan images tersedia, `prometheus` menggunakan accepted network, ports, serta
 volumes, dan readiness mengembalikan HTTP success. `podman inspect` direview
 tanpa menyalin output panjang ke journal.
 
-### Generate initial certificate material
+### Generate and Validate TLS Material
 
 Initial creation bersifat fail-closed: directory harus tidak tersedia dan tidak
 boleh ditimpa. Password hanya dibaca melalui file.
@@ -200,7 +210,7 @@ Expected result: certificate memiliki SAN `DNS:tomcat-jmx-exporter`, server-auth
 usage, 365-day validity, dan lebih dari 30 hari remaining validity. Directory
 dan file modes persis mengikuti TN-019; tidak ada secret value pada output.
 
-### Start the persistent JMX target
+### Start the Persistent JMX Target
 
 Direct invocation sengaja tidak memiliki `--publish`.
 
@@ -225,7 +235,7 @@ tanpa mencetak password. Base-image HTTP health dapat tetap tidak sehat karena
 target sengaja tidak memuat application-specific WAR; kondisi itu tidak dipakai
 sebagai bukti metrics readiness.
 
-### Back up active Prometheus material
+### Back Up Active Prometheus Material
 
 Backup hanya mencakup active configuration dan public CA trust. Data tetap pada
 `prometheus_data` dan tidak disalin atau dimodifikasi pada tahap ini.
@@ -255,7 +265,16 @@ Expected result: atomic rollback directory berisi readable snapshot dari kedua
 active files dan backup helper sudah dihapus. Missing source file atau copy
 failure menghentikan cutover sebelum persistent Prometheus mutation.
 
-### Update volumes and replace Prometheus
+### Prove Strict Pre-Cutover Failure
+
+Sebelum collector diganti, pastikan Prometheus lama belum dapat mempercayai
+sertifikat target baru. Hasil gagal yang sesuai membuktikan bahwa verifikasi TLS
+ketat benar-benar aktif dan CA baru memang diperlukan.
+
+Expected result: scrape JMX masih gagal sebelum CA baru dipasang. Tahap ini
+tidak mengubah container atau named volume.
+
+### Replace Persistent Prometheus
 
 Initializer project menyalin current configuration dan new public certificate,
 mempertahankan data volume, lalu menghapus helper miliknya. Existing collector
@@ -373,7 +392,11 @@ aktivitas dengan status `Blocked` dan exact residual state dicatat.
 
 ## 🚀 Deployment
 
-### Authorize and verify preflight
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Authorize and Verify Preflight
 
 Project owner menyetujui Implementation Gate TN-020 pada 2026-08-25. Scope
 approval mencakup certificate generation, persistent JMX container creation,
@@ -392,7 +415,16 @@ karena `/run/user/1000/libpod` read-only. Hasil existence dari percobaan itu
 diabaikan. Command yang sama diulang melalui approved host-runtime access dan
 menjadi evidence preflight aktual.
 
-### Generate and validate TLS material
+!!! success "Expected Result"
+
+    Source, authorization, runtime awal, image, network, volume, dan collision
+    target memenuhi hasil `Expected` pada tabel tahap ini.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Generate and Validate TLS Material
 
 | Element | Result |
 | --- | --- |
@@ -400,7 +432,16 @@ menjadi evidence preflight aktual.
 | Actual | Certificate berlaku `2026-08-25` sampai `2027-08-25`, memiliki SAN `DNS:tomcat-jmx-exporter`, `CA:FALSE`, TLS server-auth usage, serta PKCS12 alias `tomcat-jmx-exporter`. Directory mode `0700`; private key, password, dan keystore `0600`; public certificate `0444`. |
 | Evidence | OpenSSL metadata, `keytool -list`, dan `stat`; tidak ada password atau private-key content pada output. |
 
-### Start the persistent JMX target
+!!! success "Expected Result"
+
+    Material TLS memenuhi SAN, validity, usage, alias, dan permission yang
+    ditetapkan tanpa menampilkan secret.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Start the Persistent JMX Target
 
 | Element | Result |
 | --- | --- |
@@ -411,7 +452,16 @@ menjadi evidence preflight aktual.
 Base-image HTTP health bukan completion criterion karena generic target tidak
 memuat application-specific WAR. Application-health claim tidak dibuat.
 
-### Back up active Prometheus material
+!!! success "Expected Result"
+
+    Target JMX berjalan pada network internal dengan mount read-only, HTTPS
+    `9404`, dan tanpa port yang dipublikasikan ke host.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Back Up Active Prometheus Material
 
 | Element | Result |
 | --- | --- |
@@ -424,7 +474,16 @@ karena helper memang sudah tidak tersedia. Dengan `set -e`, probe tersebut
 mengakhiri command group setelah seluruh backup steps sukses; kondisi ini bukan
 backup failure.
 
-### Prove strict pre-cutover failure
+!!! success "Expected Result"
+
+    Snapshot konfigurasi dan CA aktif tersedia sebelum mutation; helper telah
+    dihapus dan volume data tidak berubah.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Prove Strict Pre-Cutover Failure
 
 Sebelum CA baru disalin, existing Prometheus tetap menggunakan strict TLS dan
 menghasilkan `up=0` dengan error `x509: certificate signed by unknown
@@ -432,13 +491,35 @@ authority`. Hasil ini membuktikan target baru tidak diterima oleh old trust dan
 mutation tidak bergantung pada disabled verification. Telegraf juga tetap down
 karena DNS target tidak tersedia, sesuai JMX-only exception TN-018.
 
-### Replace persistent Prometheus
+!!! success "Expected Result"
+
+    Sebelum CA baru dipasang, scrape JMX gagal dengan error trust certificate
+    dan bukan karena verifikasi TLS dimatikan.
+
+**Actual Result:** target menghasilkan `up=0`.
+
+**Evidence:** error `x509: certificate signed by unknown authority`.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Replace Persistent Prometheus
 
 | Element | Result |
 | --- | --- |
 | Expected | Initializer memperbarui configuration/truststore tanpa menghapus data; old collector menjadi stopped rollback target; new collector menggunakan exact volumes dan port. |
 | Actual | Initializer menyelesaikan tiga named volumes. Existing collector dihentikan dan dinamai `prometheus-rollback`; new container `d57c910c7c6b` berjalan pada port `9090` dengan `prometheus_config` serta `prometheus_truststore` read-only dan `prometheus_data` read-write. |
 | Evidence | Initializer output, stop/rename/run output, dan before/after concise inspect. |
+
+!!! success "Expected Result"
+
+    Collector baru menggunakan exact volumes serta port yang disetujui dan
+    collector lama tetap tersedia sebagai rollback target.
+
+</div>
+
+</div>
 
 ## ✅ Verification
 
@@ -896,3 +977,4 @@ belum selesai.
 - [TN-018 — Define Persistent Lab JMX Scrape Integration Contract](TN-018-define-persistent-lab-jmx-scrape-integration-contract.md)
 - [Infrastructure](../../infrastructure/index.md)
 - [TM-ADR-0001](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0001.md)
+- [TM-ADR-0003 — Use Host-Managed Non-Git TLS Material for the Persistent Lab](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0003.md)

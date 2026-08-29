@@ -116,8 +116,11 @@ mutation/downtime plan, rollback sequence, verification criteria, dan exact
 cleanup authorization.
 
 Contract ini menerapkan server-side TLS boundary TM-ADR-0001 pada persistent
-lab tanpa mengubah architecture decision. Production CA dan lifecycle tetap
-berada di luar scope sehingga ADR baru tidak diperlukan.
+lab. Retrospective ADR review pada 2026-08-29 menemukan bahwa pilihan storage,
+ownership, rotation, rollback, dan cleanup memiliki alternatif bermakna serta
+dampak jangka panjang. Keputusan tersebut kemudian dicatat pada
+[TM-ADR-0003](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0003.md).
+Production CA dan lifecycle tetap berada di luar scope ADR tersebut.
 
 ## ⚙️ Commands Executed
 
@@ -179,3 +182,4 @@ boundary.
 - [Infrastructure](../../infrastructure/index.md)
 - [Architecture](../../architecture/index.md)
 - [TM-ADR-0001](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0001.md)
+- [TM-ADR-0003 — Use Host-Managed Non-Git TLS Material for the Persistent Lab](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0003.md)

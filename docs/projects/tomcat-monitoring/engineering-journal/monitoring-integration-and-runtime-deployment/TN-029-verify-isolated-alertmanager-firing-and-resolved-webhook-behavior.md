@@ -78,19 +78,14 @@ Integration Bridge aktual.
 
 ## 📋 Implementation Plan
 
-1. Tambahkan Python webhook capture fixture, shell verification interface, dan
-   static source contract.
-2. Perbarui README serta validation documentation tanpa menyatakan runtime
-   behavior berhasil sebelum test dijalankan.
-3. Jalankan shell syntax, aggregate static validation, whitespace check, dan
-   sensitive-pattern scan.
-4. Audit collision serta volume state, jalankan receiver dan exact disposable
-   Alertmanager container, kirim synthetic firing/resolved alerts, lalu
-   validasi captured payload.
-5. Bersihkan exact container, listener process, dan temporary directory; audit
-   bahwa tidak ada resource atau volume baru tertinggal.
-6. Catat actual result, update current-state documentation, dan tutup TN hanya
-   jika mandatory criteria terpenuhi.
+| Tahap | Rencana |
+| --- | --- |
+| **Implement the Webhook Verification Interfaces** | Menambahkan capture fixture, shell verification interface, dan static contract. |
+| **Document the Verification Boundary** | Memperbarui README tanpa mengklaim runtime berhasil sebelum pengujian. |
+| **Run the Static Source Validation** | Memeriksa shell, Python, aggregate contract, whitespace, diff, dan sensitive patterns. |
+| **Run the Isolated Firing and Resolved Verification** | Menjalankan receiver dan disposable Alertmanager lalu memeriksa dua payload. |
+| **Remove and Audit the Temporary Resources** | Membersihkan exact container, listener, files, dan memastikan volume state tidak berubah. |
+| **Consolidate the Verified Result** | Memperbarui current-state documentation dan menutup TN berdasarkan mandatory criteria. |
 
 ## ⚙️ Implementation
 
@@ -116,6 +111,127 @@ Temporary configuration mempertahankan source route, receiver,
 `30s` dan `5m` tidak diubah. Runtime menggunakan host network dengan kedua
 service terikat pada loopback, `--tmpfs /alertmanager`, read-only temporary
 mounts, dan tanpa named volume.
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Implement the Webhook Verification Interfaces
+
+Tambahkan Python receiver, shell verification interface, fixture contract, dan
+required-file inventory pada repository `tomcat-monitoring`.
+
+!!! success "Expected Result"
+
+    Interface hanya menerima payload synthetic, memakai exact temporary
+    resources, dan dapat memvalidasi firing serta resolved.
+
+**Actual Result:** fixture dan verification script tersedia sesuai contract.
+
+**Evidence:** source inventory dan static validator checks.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Document the Verification Boundary
+
+Perbarui README component dan validation agar isolated result tidak dianggap
+sebagai persistent atau external delivery.
+
+!!! success "Expected Result"
+
+    Dependency, invocation, evidence, dan hal yang belum diuji dapat dibedakan.
+
+**Actual Result:** source serta current-state documentation memisahkan ketiga
+verification boundary tersebut.
+
+**Evidence:** documentation diff dan final review.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Run the Static Source Validation
+
+```bash
+bash -n scripts/*.sh
+./scripts/validate.sh
+git diff --check
+```
+
+!!! success "Expected Result"
+
+    Shell, Python, aggregate validators, whitespace, diff, dan sensitive scan
+    lulus sebelum runtime test.
+
+**Actual Result:** seluruh static checks lulus setelah setiap source correction.
+
+**Evidence:** `Source implementation and static validation` command record.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Run the Isolated Firing and Resolved Verification
+
+Jalankan verification interface yang membuat receiver, temporary config, dan
+exact disposable Alertmanager lalu mengirim dua state synthetic.
+
+```bash
+./scripts/verify-alertmanager-webhook.sh
+```
+
+!!! success "Expected Result"
+
+    Receiver menangkap urutan `firing,resolved` dengan receiver identity dan
+    lima stable grouping labels yang sama.
+
+**Actual Result:** final retry lulus setelah timestamp payload dan socket probe
+diperbaiki.
+
+**Evidence:** output `webhook_sequence=firing,resolved`, captured payload, dan
+tabel Verification.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Remove and Audit the Temporary Resources
+
+Pastikan self-cleanup menghapus exact container, listener, dan temporary files,
+kemudian bandingkan volume state sebelum serta sesudah test.
+
+!!! success "Expected Result"
+
+    Tidak ada container, listener, temporary directory, atau volume baru yang
+    tertinggal.
+
+**Actual Result:** cleanup dan independent audit lulus.
+
+**Evidence:** exact absence checks dan unchanged volume state.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Consolidate the Verified Result
+
+Catat actual result, troubleshooting chronology, boundary, dan next activity
+tanpa memperluas klaim ke persistent atau external delivery.
+
+!!! success "Expected Result"
+
+    TN hanya ditutup setelah seluruh mandatory criteria memiliki evidence.
+
+**Actual Result:** seluruh criteria lulus dan TN ditutup sebagai `Completed`.
+
+**Evidence:** Verification, Troubleshooting, Exceptions, Outcome, dan current-
+state documentation.
+
+</div>
+
+</div>
 
 ## ⚙️ Commands Executed
 
@@ -312,7 +428,7 @@ tidak tersedia dan dependency installation tidak diotorisasi.
 | Subject, body, grouping, dan firing/resolved receipt apa yang menjadi acceptance criteria? | Project owner | Approved sample semantics dan observable test result | Email delivery verification |
 | Kapan Integration Bridge dan TrueSight ditinjau kembali? | Project owner dan TrueSight owner | Target environment tersedia dan Decision Gate baru disetujui | TrueSight implementation; tidak memblokir lab email |
 
-## 🧩 Outcome
+## 🧾 Outcome
 
 TN-029 selesai. Source repository sekarang memiliki isolated verification
 interface yang reproducible. Local Alertmanager image terbukti mengirim

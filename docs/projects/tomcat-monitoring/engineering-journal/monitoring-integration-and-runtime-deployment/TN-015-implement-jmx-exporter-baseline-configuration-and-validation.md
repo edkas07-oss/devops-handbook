@@ -65,12 +65,124 @@ tidak menggantikan metric catalog operasional.
 
 ## 🗺️ Implementation Plan
 
-1. Buat project-owned configuration dari verified derived-image example.
-2. Buat static validator yang memeriksa TLS fields, rules, count, dan inline
-   password prohibition.
-3. Tambahkan file dan validator ke repository baseline interface.
-4. Perbarui README component, repository, serta validation boundary.
-5. Jalankan verification tanpa dependency atau runtime.
+| Tahap | Rencana |
+| --- | --- |
+| **Prepare the JMX Exporter Configuration** | Membuat konfigurasi milik project dari contoh derived image yang telah diverifikasi. |
+| **Implement the Static Validator** | Memeriksa TLS fields, rules, jumlah rule, dan larangan inline password. |
+| **Integrate the Baseline Validation** | Menambahkan konfigurasi serta validator ke interface validation utama. |
+| **Update the Component Documentation** | Menjelaskan contract dan batas runtime pada README terkait. |
+| **Validate the Source and Documentation** | Menjalankan pemeriksaan tanpa memasang dependency atau menjalankan runtime. |
+
+## ⚙️ Implementation
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Prepare the JMX Exporter Configuration
+
+Tambahkan `config/jmx-exporter/jmx-exporter.yml` dengan reference PKCS12,
+password dari environment, certificate alias, serta dua baseline rule.
+
+!!! success "Expected Result"
+
+    Konfigurasi project tersedia tanpa menyimpan password literal.
+
+**Actual Result:** configuration tersedia dengan TLS reference dan dua rule.
+
+**Evidence:** targeted source review pada `jmx-exporter.yml`.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Implement the Static Validator
+
+Tambahkan validator dan terapkan permission executable.
+
+```bash
+chmod +x scripts/validate-jmx-exporter.sh
+bash -n scripts/*.sh
+./scripts/validate-jmx-exporter.sh
+```
+
+!!! success "Expected Result"
+
+    Validator dapat dijalankan serta menerima TLS dan two-rule contract.
+
+**Actual Result:** percobaan `chmod` pertama terhalang sandbox read-only;
+command yang sama berhasil setelah write permission terbatas diberikan.
+
+**Evidence:** shell syntax dan component validator kemudian lulus.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Integrate the Baseline Validation
+
+Hubungkan file dan validator baru ke required-file inventory serta validator
+utama.
+
+```bash
+./scripts/validate.sh
+test -x scripts/validate-jmx-exporter.sh
+```
+
+!!! success "Expected Result"
+
+    Baseline validation menjalankan JMX Exporter bersama contract component
+    lain dan validator berstatus executable.
+
+**Actual Result:** seluruh component dan baseline checks lulus.
+
+**Evidence:** output validator dan executable check.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Update the Component Documentation
+
+Perbarui README repository, component, dan validation agar pembaca dapat
+membedakan hasil source dari TLS handshake serta scrape yang belum diuji.
+
+!!! success "Expected Result"
+
+    Dokumentasi menjelaskan artifact, cara validation, dan batas klaim runtime.
+
+**Actual Result:** README terkait dan current-state documentation diperbarui.
+
+**Evidence:** targeted diff pada file dokumentasi yang dicatat di Commands
+Executed.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Validate the Source and Documentation
+
+```bash
+bash -n scripts/*.sh
+./scripts/validate-jmx-exporter.sh
+./scripts/validate.sh
+git diff --check
+```
+
+!!! success "Expected Result"
+
+    Source, component contract, baseline repository, dan dokumentasi lulus
+    pemeriksaan tanpa runtime mutation.
+
+**Actual Result:** seluruh pemeriksaan yang tersedia lulus; MkDocs tidak
+tersedia sehingga render tidak dijalankan.
+
+**Evidence:** validator, diff check, dan trailing-whitespace scans lulus;
+semantic parse, TLS handshake, serta scrape tetap `Not verified`.
+
+</div>
+
+</div>
 
 ## ⚙️ Commands Executed
 
@@ -87,18 +199,6 @@ sed -n '1,180p' scripts/validate.sh
 Source repository bersih. Handbook memiliki uncommitted TN-014 dan navigation
 changes yang berasal dari accepted decision gate; tidak ada perubahan pengguna
 lain yang beririsan.
-
-## 🛠️ Implementation
-
-1. Menambahkan `config/jmx-exporter/jmx-exporter.yml` dengan PKCS12 runtime
-   reference, password environment reference, certificate alias, JVM heap
-   rule, dan Tomcat server-info rule.
-2. Menambahkan `scripts/validate-jmx-exporter.sh` untuk exact structural checks,
-   rule count, password field count, dan inline password prohibition.
-3. Menambahkan configuration serta validator ke required-file baseline dan
-   menjalankan component validator dari `scripts/validate.sh`.
-4. Memperbarui repository, component, validation, dan current-state
-   documentation tanpa memperluas runtime claim.
 
 ### Source implementation and validation
 

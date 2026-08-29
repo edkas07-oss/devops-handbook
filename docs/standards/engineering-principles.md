@@ -72,6 +72,12 @@ Gunakan struktur dokumen, heading, ikon, istilah, dan gaya penulisan yang konsis
 
 Konsistensi membantu pembaca memahami dokumentasi dengan lebih cepat dan mempermudah proses review maupun pemeliharaan.
 
+Jika dokumentasi memiliki rencana dan catatan pelaksanaan, gunakan nama,
+istilah, serta urutan tahap yang sama agar pembaca dapat memetakan rencana ke
+hasil aktual secara langsung. Perbedaan antara rencana dan pelaksanaan tidak
+boleh disamarkan dengan mengganti nama tahap; catat perbedaannya sebagai
+perubahan scope atau penyimpangan dari rencana (`deviation`).
+
 ---
 
 ## 💬 Communication Principles

@@ -10,6 +10,7 @@
 | Activity Date | 2026-08-22 |
 | Recorded Date | 2026-08-22 |
 | Owner | Project owner |
+| Working Mode | Mixed |
 | Authorization Status | Approved |
 | Approved By | Project owner |
 | Approval Date | 2026-08-22 |
@@ -19,6 +20,21 @@
 Membangun image lokal `localhost/prometheus:1.0.0` dari upstream pin
 `docker.io/prom/prometheus:v3.13.2` dan membuktikan binary serta user runtime
 melalui container sementara.
+
+## 🌍 Background
+
+TN-009 telah menyediakan source runtime Prometheus dan membatasi klaim pada
+static validation (pemeriksaan source tanpa menjalankan image). Image lokal,
+binary, dan user di dalam container masih perlu dibuktikan melalui build serta
+smoke test.
+
+## 📚 Scope
+
+Aktivitas ini mencakup pemeriksaan source, pengambilan upstream yang dipin,
+build image lokal, koreksi agar build rootless (build tanpa hak `root`) dapat
+berjalan, smoke test, pemeriksaan identitas image, dan audit container
+sementara. Konfigurasi project, scrape target, rule, port host, volume data,
+network persistent, deployment, commit, serta image cleanup tidak termasuk.
 
 ## 📋 Criteria
 
@@ -31,23 +47,23 @@ melalui container sementara.
 | User | Container sementara berjalan sebagai user non-root. |
 | Cleanup | Smoke-test container memakai `--rm`; tidak ada runtime persistent. |
 
-## ⚙️ Execution Plan
+## 🧭 Implementation Plan
 
-1. Verifikasi sintaks source dan pull image upstream yang dipin.
-2. Jalankan local build dari source saat ini.
-3. Jalankan smoke test binary dan user runtime dengan container sementara.
-4. Inspect image identity dan pastikan tidak ada container persistent.
-5. Catat evidence aktual tanpa menghapus image lokal hasil build.
+| Tahap | Rencana |
+| --- | --- |
+| **Validate the Source and Obtain the Pinned Upstream** | Memeriksa sintaks source dan menyediakan image upstream yang dipin. |
+| **Build the Local Image and Record the Deviation** | Menjalankan build pertama serta mencatat kegagalan yang memerlukan koreksi. |
+| **Correct the File-Mode Handling and Retry the Build** | Menghapus operasi yang tidak kompatibel dengan build rootless lalu mengulang build. |
+| **Run the Smoke Test and Inspect the Runtime State** | Memeriksa binary, user, image identity, dan sisa container. |
+| **Verify the Corrected Source Integrity** | Memastikan koreksi tidak menimbulkan syntax atau whitespace error. |
 
-## ⚠️ Scope Boundary
+## ⚙️ Implementation
 
-Tidak ada `prometheus.yml` project, scrape target, rule, port host, data volume,
-network persistent, deployment, commit, atau image cleanup dalam TN ini.
-Test hanya menggunakan container sementara yang dihapus otomatis.
+<div class="procedure" markdown>
 
-## ⚙️ Execution Record
+<div class="procedure-step" markdown>
 
-### 1. Validate source syntax and obtain pinned upstream
+### Validate the Source and Obtain the Pinned Upstream
 
 **Purpose.** Memastikan script valid dan image official yang menjadi base tersedia sebelum build.
 
@@ -58,11 +74,20 @@ bash -n /home/eddywiyatno/git/prometheus/entrypoint.sh /home/eddywiyatno/git/pro
 podman pull docker.io/prom/prometheus:v3.13.2
 ```
 
-**Expected result.** Tidak ada syntax error; image official tersedia lokal.
+!!! success "Expected Result"
 
-**Actual result and evidence.** `bash -n` lulus tanpa output. Pull berhasil dan menghasilkan image ID `8da6d95a8747c08872fbffa86d35a9c39433cbe908ce8e5939ad34087cceac86`.
+    Tidak ada syntax error dan image official tersedia lokal.
 
-### 2. First local build and rootless deviation
+**Actual Result:** `bash -n` lulus tanpa output dan pull berhasil.
+
+**Evidence:** image upstream memiliki ID
+`8da6d95a8747c08872fbffa86d35a9c39433cbe908ce8e5939ad34087cceac86`.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Build the Local Image and Record the Deviation
 
 **Purpose.** Membangun candidate image dari source saat ini.
 
@@ -72,21 +97,41 @@ podman pull docker.io/prom/prometheus:v3.13.2
 ./scripts/build.sh
 ```
 
-**Expected result.** Kedua tag image lokal terbentuk.
+!!! success "Expected Result"
 
-**Actual result and evidence.** Build gagal pada Containerfile step `RUN chmod 0555 /usr/local/bin/prometheus-entrypoint` dengan `Operation not permitted`. Image official berjalan non-root pada rootless build environment, sehingga perintah tersebut tidak berwenang menulis ke `/usr/local/bin`. Tidak ada candidate image yang berhasil dibuat.
+    Kedua tag image lokal terbentuk.
 
-### 3. Correct file-mode handling before retry
+**Actual Result:** build pertama gagal dan tidak menghasilkan candidate image.
+
+**Evidence:** step `RUN chmod 0555 /usr/local/bin/prometheus-entrypoint`
+menghasilkan `Operation not permitted`. Image resmi berjalan non-root sehingga
+step tersebut tidak dapat menulis ke `/usr/local/bin`.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Correct the File-Mode Handling and Retry the Build
 
 **Purpose.** Menghilangkan operasi write yang tidak kompatibel dengan user official tanpa mengubah entrypoint atau runtime contract.
 
 **Change actually performed.** Baris `RUN chmod 0555 /usr/local/bin/prometheus-entrypoint` dihapus dari `Containerfile`. File `entrypoint.sh` telah diberi mode executable `0755` pada TN-009 dan `COPY` meneruskan mode file source.
 
-**Expected result.** Build ulang dapat menyalin entrypoint executable tanpa membutuhkan privilege root.
+!!! success "Expected Result"
 
-**Actual result and evidence.** Retry `./scripts/build.sh` berhasil. Tag `localhost/prometheus:1.0.0` dan `localhost/prometheus:latest` dibuat dengan image ID `e0bbb3929e2fb9bda8571e5364280f37b7cb2fbd4fd8aa48531ee7b64f6e6d92`.
+    Build ulang dapat menyalin entrypoint executable tanpa membutuhkan hak
+    `root`.
 
-### 4. Smoke test binary, user, and retained runtime state
+**Actual Result:** `RUN chmod` dihapus dan retry `./scripts/build.sh` berhasil.
+
+**Evidence:** kedua tag lokal menunjuk image
+`e0bbb3929e2fb9bda8571e5364280f37b7cb2fbd4fd8aa48531ee7b64f6e6d92`.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Run the Smoke Test and Inspect the Runtime State
 
 **Purpose.** Memastikan image lokal dapat menjalankan binary Prometheus dan tidak berjalan sebagai root, tanpa membuat runtime persistent.
 
@@ -98,11 +143,24 @@ podman image inspect localhost/prometheus:1.0.0 --format 'ID={{.Id}} User={{.Con
 podman ps --all --filter name=prometheus --format '{{.Names}} {{.Status}}'
 ```
 
-**Expected result.** Binary menampilkan `v3.13.2`; assertion user non-root lulus; image identity sesuai; tidak ada container persistent.
+!!! success "Expected Result"
 
-**Actual result and evidence.** `./scripts/test.sh` lulus. Binary melaporkan `prometheus, version 3.13.2`; assertion internal `id -u != 0` lulus tanpa output error. Inspect melaporkan image ID `e0bbb3929e2fb9bda8571e5364280f37b7cb2fbd4fd8aa48531ee7b64f6e6d92`, user `nobody`, dan entrypoint `/usr/local/bin/prometheus-entrypoint`. Perintah `podman ps` tidak menghasilkan baris, sehingga tidak ada container persistent bernama `prometheus`.
+    Binary menampilkan `v3.13.2`, pemeriksaan user non-root lulus, identity
+    image sesuai, dan tidak ada container persistent.
 
-### 5. Verify source integrity after the correction
+**Actual Result:** smoke test lulus; binary menampilkan versi `3.13.2`, user
+runtime adalah `nobody`, dan tidak ada container persistent.
+
+**Evidence:** inspect melaporkan image ID
+`e0bbb3929e2fb9bda8571e5364280f37b7cb2fbd4fd8aa48531ee7b64f6e6d92`
+dengan entrypoint `/usr/local/bin/prometheus-entrypoint`; `podman ps` tidak
+menghasilkan baris.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Verify the Corrected Source Integrity
 
 **Purpose.** Memastikan correction Containerfile tidak menimbulkan syntax atau whitespace error pada source runtime.
 
@@ -113,9 +171,22 @@ bash -n /home/eddywiyatno/git/prometheus/entrypoint.sh /home/eddywiyatno/git/pro
 git -C /home/eddywiyatno/git/prometheus diff --check
 ```
 
-**Expected result.** Kedua command lulus tanpa output.
+!!! success "Expected Result"
 
-**Actual result and evidence.** Kedua command lulus tanpa output dan tanpa error.
+    Pemeriksaan sintaks dan whitespace lulus tanpa output error.
+
+**Actual Result:** kedua command lulus tanpa output dan tanpa error.
+
+**Evidence:** kedua command selesai dengan exit code `0`.
+
+</div>
+
+</div>
+
+## 🖥️ Commands Executed
+
+Seluruh command aktual dicatat pada lima procedure step di atas. Kegagalan
+build pertama dipertahankan pada tahap kedua agar kronologi tidak hilang.
 
 ## ✅ Verification Result
 
@@ -123,7 +194,7 @@ Image lokal `localhost/prometheus:1.0.0` berhasil dibangun dari upstream pin `v3
 
 Correction pada Containerfile terbatas pada penghapusan `RUN chmod`, yang tidak kompatibel dengan user non-root official saat rootless build. Ia tidak mengubah upstream pin, configuration boundary, maupun runtime entrypoint behavior.
 
-## ⚠️ Scope Boundary
+## 📝 Notes
 
 Hasil ini tidak membuktikan permission direktori data, configuration `prometheus.yml`, scrape JMX Exporter atau Telegraf, persistence storage, network topology, TLS, alert rule, alerting, atau deployment. Image lokal hasil build sengaja dipertahankan; image cleanup tidak diotorisasi.
 
@@ -134,9 +205,21 @@ smoke test disimpan pada commit `4d90c3e`. Dokumentasi TN-009 dan TN-010
 disimpan pada commit Handbook `d394bdf` setelah metadata dan navigation
 direkonsiliasi.
 
+## 🧾 Outcome
+
+Image lokal berhasil dibangun setelah satu koreksi file-mode dan lulus smoke
+test binary serta user non-root. Tidak ada container test yang tertinggal.
+Hasil ini belum membuktikan konfigurasi scrape, penyimpanan data, network,
+alerting, atau deployment persistent.
+
 ## ⏭️ Next Steps
 
 Technical Note berikutnya dapat mendefinisikan configuration Prometheus dan
 static validation pada repository `tomcat-monitoring`. Runtime integration
 memerlukan resource, configuration, data path, network, dan cleanup plan
 tersendiri.
+
+## 🔗 Related Documentation
+
+- [TN-009 — Establish Prometheus Runtime Repository](TN-009-establish-prometheus-runtime-repository.md)
+- [TM-ADR-0002 — Separate Generic Runtime Images from Monitoring Integration Configuration](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0002.md)

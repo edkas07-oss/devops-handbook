@@ -272,6 +272,7 @@ runtime test, serta exact cleanup.
 
 ## 🔗 Related Documentation
 
+- [TM-ADR-0005 — Use Mailpit as the Persistent Lab Notification Verification Target](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0005.md)
 - [TN-031 — Replace Gmail Lab Delivery with Local Mailpit Capture Contract](TN-031-replace-gmail-lab-delivery-with-local-mailpit-capture-contract.md)
 - [Architecture](../../architecture/index.md)
 - [Development](../../development/index.md)

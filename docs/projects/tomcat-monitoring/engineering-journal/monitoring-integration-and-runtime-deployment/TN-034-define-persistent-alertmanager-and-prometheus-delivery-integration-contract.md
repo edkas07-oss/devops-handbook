@@ -236,6 +236,10 @@ Project owner menerima recommendation sebagai lab integration contract pada
 - separation antara persistent lab baseline, host-reboot recovery, external
   delivery, and production readiness.
 
+Retrospective ADR review pada 2026-08-29 mengonsolidasikan keputusan Mailpit
+lab tersebut ke
+[TM-ADR-0005](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0005.md).
+
 Decision acceptance menutup TN-034, tetapi tidak mengizinkan source change,
 image pull, container atau volume mutation, runtime interruption, cleanup,
 commit, atau push. TN-035 tetap memerlukan approved implementation plan dan
@@ -351,6 +355,7 @@ TN-034.
 
 ## 🔗 Related Documentation
 
+- [TM-ADR-0005 — Use Mailpit as the Persistent Lab Notification Verification Target](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0005.md)
 - [TN-033 — Implement and Verify Alertmanager Mailpit SMTP Capture](TN-033-implement-and-verify-alertmanager-mailpit-smtp-capture.md)
 - [Architecture](../../architecture/index.md)
 - [Infrastructure](../../infrastructure/index.md)

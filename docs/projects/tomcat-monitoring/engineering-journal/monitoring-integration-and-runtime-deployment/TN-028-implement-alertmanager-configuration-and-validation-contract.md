@@ -62,9 +62,22 @@ commit, dan push tidak termasuk.
 | Semantic validation | `amtool` dan `promtool` menerima configuration yang dipasang read-only. |
 | Runtime boundary | Tidak ada persistent Alertmanager, endpoint eksternal, atau volume baru. |
 
-## 🛠️ Execution Record
+## 🧭 Implementation Plan
 
-### 1. Inspect governance, source, and image prerequisites
+| Tahap | Rencana |
+| --- | --- |
+| **Inspect the Governance, Source, and Image Prerequisites** | Memastikan repository, source contract, dan image lokal siap digunakan. |
+| **Implement the Configuration and Validation Contracts** | Menambahkan routing Alertmanager, delivery reference Prometheus, validator, dan dokumentasi. |
+| **Run the Static Validation** | Memeriksa shell, seluruh component contract, secret pattern, whitespace, dan diff. |
+| **Run the Disposable Semantic Validation and Cleanup Audit** | Memeriksa semantics dengan container `--rm` dan memastikan tidak ada resource baru tertinggal. |
+
+## ⚙️ Implementation
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Inspect the Governance, Source, and Image Prerequisites
 
 **Command actually executed.**
 
@@ -86,12 +99,22 @@ podman image exists localhost/prometheus:1.0.0
 podman ps --all --filter ancestor=localhost/alertmanager:1.0.0
 ```
 
-**Actual result and evidence.** Source tree was clean. Initial Podman access
-failed while setting the sticky bit on `/run/user/1000/libpod`; its negative
-results were discarded. The approved retry confirmed both local images were
-present and no Alertmanager container existed.
+!!! success "Expected Result"
 
-### 2. Implement configuration and validation contracts
+    Source tree bersih, kedua image lokal tersedia, dan tidak ada container
+    Alertmanager yang bertabrakan.
+
+**Actual Result:** source bersih. Podman check pertama gagal karena sandbox;
+hasil negatifnya dibuang dan pemeriksaan diulang melalui approved access.
+
+**Evidence:** retry mengonfirmasi kedua image tersedia dan tidak ada container
+Alertmanager.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Implement the Configuration and Validation Contracts
 
 **Changes applied.** Alertmanager source now defines `resolve_timeout: 5m`,
 route receiver `integration-bridge`, grouping labels `alertname`, `job`,
@@ -109,7 +132,22 @@ The first combined patch was rejected atomically because the expected context
 in `validation/README.md` had changed; no partial edit occurred. The same
 approved source changes were then applied as two context-correct patches.
 
-### 3. Run static validation
+!!! success "Expected Result"
+
+    Alertmanager routing, Prometheus API v2 target, validator, dan dokumentasi
+    tersedia tanpa URL atau credential aktual.
+
+**Actual Result:** seluruh source contract berhasil diterapkan. Patch pertama
+ditolak secara atomik akibat context yang berubah; tidak ada partial edit.
+
+**Evidence:** source diff menunjukkan route, receiver, `url_file`, grouping,
+timing, target `alertmanager:9093`, validator, dan documentation updates.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Run the Static Validation
 
 **Command actually executed.**
 
@@ -124,12 +162,22 @@ git status --short --branch
 git diff --stat
 ```
 
-**Actual result and evidence.** Shell parsing and every component validator
-passed. The sensitive-pattern scan reported only the existing placeholder
-`${JMX_EXPORTER_KEYSTORE_PASSWORD}`; it is a variable reference rather than a
-stored secret. Whitespace and diff checks passed.
+!!! success "Expected Result"
 
-### 4. Run disposable semantic validation and cleanup audit
+    Shell, aggregate validators, sensitive-pattern scan, whitespace, dan diff
+    checks lulus tanpa secret literal.
+
+**Actual Result:** seluruh shell dan component validator lulus. Scan hanya
+menemukan placeholder `${JMX_EXPORTER_KEYSTORE_PASSWORD}`.
+
+**Evidence:** placeholder tersebut adalah variable reference, bukan stored
+secret; whitespace dan diff checks lulus.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Run the Disposable Semantic Validation and Cleanup Audit
 
 **Command actually executed.**
 
@@ -146,11 +194,21 @@ test "$before_volumes" = "$after_volumes"
 printf 'dangling_volume_state=unchanged\n'
 ```
 
-**Actual result and evidence.** `amtool` reported `SUCCESS`, one route and one
-receiver. `promtool` reported `SUCCESS`, one rule file and three rules. The
-pre-existing persistent Prometheus container `5efe0dc00a65` remained up and
-unchanged. No Alertmanager container remained and dangling-volume state was
-unchanged. No external endpoint was contacted.
+!!! success "Expected Result"
+
+    `amtool` dan `promtool` menerima configuration; disposable container serta
+    dangling-volume state tidak meninggalkan perubahan.
+
+**Actual Result:** kedua semantic validation menghasilkan `SUCCESS`. Existing
+Prometheus tetap berjalan dan tidak ada Alertmanager container tersisa.
+
+**Evidence:** `amtool` menemukan satu route dan receiver; `promtool` menemukan
+satu rule file dan tiga rules; before/after dangling volumes sama. Tidak ada
+endpoint eksternal yang dihubungi.
+
+</div>
+
+</div>
 
 ## ⚙️ Commands Executed
 

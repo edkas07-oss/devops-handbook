@@ -20,6 +20,19 @@
 Membangun image Telegraf dari source repository saat ini dan memverifikasi
 binary serta user non-root melalui container sementara.
 
+## 🌍 Background
+
+TN-006 telah membuat source runtime Telegraf dan hanya memverifikasi sintaks
+serta integritas source. Image hasil source tersebut belum dibangun dan binary
+di dalam container belum diuji.
+
+## 📚 Scope
+
+Aktivitas ini mencakup pemeriksaan sintaks, build image lokal, smoke test
+(pengujian singkat kemampuan dasar), pemeriksaan identitas image, dan audit
+container sementara. Konfigurasi health check, network integration, deployment
+persistent, publication, commit, serta penghapusan image tidak termasuk.
+
 ## 📋 Criteria
 
 | Criterion | Expected result |
@@ -30,23 +43,122 @@ binary serta user non-root melalui container sementara.
 | User | Container sementara menjalankan `id -u` selain `0`. |
 | Cleanup | Container smoke test memakai `--rm`; tidak ada persistent runtime. |
 
-## ⚙️ Execution Plan
+## 🧭 Implementation Plan
 
-1. Jalankan `bash -n entrypoint.sh scripts/*.sh`.
-2. Jalankan `./scripts/build.sh` dengan base image lokal yang telah tersedia.
-3. Jalankan `./scripts/test.sh`; script membuat container sementara dengan
-   `--rm` untuk verifikasi versi dan user runtime.
-4. Catat command, actual result, image identity, dan exception jika ada.
+| Tahap | Rencana |
+| --- | --- |
+| **Validate the Shell Source** | Memastikan entrypoint dan lifecycle scripts memiliki sintaks yang valid. |
+| **Build the Local Image** | Membentuk tag versioned dan `latest` dari source saat ini. |
+| **Run the Runtime Smoke Test** | Memeriksa versi Telegraf dan memastikan container tidak berjalan sebagai root. |
+| **Inspect the Image and Temporary Container State** | Memeriksa identity image dan memastikan test tidak menyisakan container. |
+| **Verify the Source and Journal Integrity** | Memeriksa whitespace pada source dan dokumentasi. |
 
-## ⚙️ Execution Record
+## ⚙️ Implementation
 
-| Sequence | Purpose | Command actually executed | Expected / actual result |
-| --- | --- | --- | --- |
-| 1 | Validate shell source | `bash -n entrypoint.sh scripts/*.sh` | Expected valid syntax; actual passed without output. |
-| 2 | Build local image | `./scripts/build.sh` | Expected tags `localhost/telegraf:1.0.0` and `:latest`; actual both tags point to image `4f8c425e8fd8fd412b25ba0aa8489c3e668e75560f48fd114d09cb9cf9d67cae`. |
-| 3 | Run smoke test | `./scripts/test.sh` | Expected Telegraf version and non-root user; actual output `Telegraf 1.39.3 (git: HEAD@eb37a442)` and command exited `0`, so non-root assertion passed. |
-| 4 | Record image and container evidence | `podman image inspect localhost/telegraf:1.0.0 --format 'ID={{.Id}} User={{.Config.User}} Entrypoint={{json .Config.Entrypoint}}'`; `podman ps --all --filter name=telegraf --format '{{.Names}} {{.Status}}'` | Expected image user `telegraf`, custom entrypoint, and no test container; actual inspect reports `User=telegraf`, entrypoint `/usr/local/bin/telegraf-entrypoint`, and container list is empty. |
-| 5 | Check source and journal whitespace | `git -C /home/eddywiyatno/git/telegraf diff --check`; `git -C /home/eddywiyatno/git/devops-handbook diff --check -- docs/projects/tomcat-monitoring` | Expected no whitespace error; actual passed without output. |
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Validate the Shell Source
+
+```bash
+bash -n entrypoint.sh scripts/*.sh
+```
+
+!!! success "Expected Result"
+
+    Entrypoint dan seluruh lifecycle scripts memiliki sintaks yang valid.
+
+**Actual Result:** pemeriksaan lulus tanpa output.
+
+**Evidence:** exit code command adalah `0`.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Build the Local Image
+
+```bash
+./scripts/build.sh
+```
+
+!!! success "Expected Result"
+
+    Tag `localhost/telegraf:1.0.0` dan `localhost/telegraf:latest` terbentuk.
+
+**Actual Result:** kedua tag berhasil dibentuk.
+
+**Evidence:** kedua tag menunjuk image
+`4f8c425e8fd8fd412b25ba0aa8489c3e668e75560f48fd114d09cb9cf9d67cae`.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Run the Runtime Smoke Test
+
+```bash
+./scripts/test.sh
+```
+
+!!! success "Expected Result"
+
+    Binary menampilkan versi yang dipin dan pemeriksaan user non-root lulus.
+
+**Actual Result:** output menampilkan `Telegraf 1.39.3 (git: HEAD@eb37a442)`
+dan command selesai dengan exit code `0`.
+
+**Evidence:** assertion internal untuk user non-root tidak menghasilkan error.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Inspect the Image and Temporary Container State
+
+```bash
+podman image inspect localhost/telegraf:1.0.0 --format 'ID={{.Id}} User={{.Config.User}} Entrypoint={{json .Config.Entrypoint}}'
+podman ps --all --filter name=telegraf --format '{{.Names}} {{.Status}}'
+```
+
+!!! success "Expected Result"
+
+    Image menggunakan user `telegraf` dan custom entrypoint; tidak ada
+    container test yang tertinggal.
+
+**Actual Result:** user dan entrypoint sesuai; daftar container kosong.
+
+**Evidence:** inspect melaporkan `User=telegraf` dan entrypoint
+`/usr/local/bin/telegraf-entrypoint`; `podman ps` tidak menghasilkan baris.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Verify the Source and Journal Integrity
+
+```bash
+git -C /home/eddywiyatno/git/telegraf diff --check
+git -C /home/eddywiyatno/git/devops-handbook diff --check -- docs/projects/tomcat-monitoring
+```
+
+!!! success "Expected Result"
+
+    Source dan dokumentasi tidak memiliki whitespace error.
+
+**Actual Result:** kedua pemeriksaan lulus tanpa output.
+
+**Evidence:** kedua command selesai dengan exit code `0`.
+
+</div>
+
+</div>
+
+## 🖥️ Commands Executed
+
+Seluruh command aktual dicatat pada lima procedure step di atas dengan nama dan
+urutan yang sama seperti Implementation Plan.
 
 ## 🧾 Outcome
 

@@ -23,13 +23,13 @@
     implementasi, output, dan troubleshooting dipertahankan berdasarkan catatan
     serta evidence yang tersedia dan tidak dinyatakan sebagai live recording.
 
-## Objective
+## 🎯 Objective
 
 Menyiapkan kebutuhan JMX Exporter pada Deployment Topology dengan membangun
 derived Tomcat image dan membuktikan bahwa metrics JVM dapat disajikan melalui
 HTTPS tanpa mengaktifkan remote JMX.
 
-## Background
+## 🌍 Background
 
 TN-001 mengidentifikasi JMX Exporter Java Agent sebagai kebutuhan
 Infrastructure pertama yang harus tersedia sebelum Prometheus diintegrasikan.
@@ -52,7 +52,7 @@ Repository README dan implementation scripts digunakan sebagai referensi
 sementara. Technical Note ini mencatat urutan integrasi dan hasilnya, bukan
 menyalin prosedur internal pemasangan Java Agent.
 
-## Scope
+## 📚 Scope
 
 Technical Note ini mencakup:
 
@@ -73,7 +73,7 @@ Technical Note ini tidak mencakup:
 - CI/CD, Ansible, atau target deployment; atau
 - Publikasi source dan container image.
 
-## Prerequisites
+## 📋 Prerequisites
 
 | Prerequisite | Status | Evidence |
 | --- | --- | --- |
@@ -85,13 +85,13 @@ Technical Note ini tidak mencakup:
 | Implementation reference | Verified | Repository README dan scripts tersedia |
 | Reusable root How-to | Pending | JMX Exporter Java Agent How-to belum diterbitkan |
 
-## Execution Decision
+## ⚖️ Execution Decision
 
 N/A. Implementasi menjalankan repository boundary dan security requirement
 yang sudah dicatat pada TN-001. Keputusan arsitektur baru tidak dibuat pada
 aktivitas ini.
 
-## Architecture
+## 🏛️ Architecture
 
 Implementasi mengikuti current-state documentation berikut:
 
@@ -112,7 +112,15 @@ Artifact yang dihasilkan memenuhi contract berikut:
 | Runtime config | Read-only mount; dimiliki project monitoring |
 | TLS material | Read-only runtime secret; tidak disimpan di image atau Git |
 
-## Implementation
+## 🧭 Implementation Plan
+
+| Tahap | Rencana |
+| --- | --- |
+| **Confirm Component Readiness** | Memastikan repository, version, interface, dan security boundary siap digunakan. |
+| **Run the Component Integration Test** | Membangun image dan menjalankan smoke test HTTPS serta JVM metrics. |
+| **Record the Integration Handoff** | Mencatat artifact, interface, dependency, dan batas hasil untuk integrasi berikutnya. |
+
+## ⚙️ Implementation
 
 <div class="procedure" markdown>
 
@@ -132,6 +140,12 @@ Artifact yang dihasilkan memenuhi contract berikut:
 
     Component siap menjalani integration test tanpa memindahkan detail internal
     instalasi Java Agent ke Engineering Journal.
+
+**Actual Result:** repository, version, metrics interface, dan security
+boundary tersedia sebagai input pengujian.
+
+**Evidence:** Prerequisites dan Execution Decision mencatat artifact contract
+serta dependency yang digunakan.
 
 </div>
 
@@ -168,6 +182,12 @@ Smoke test passed: HTTPS /metrics and local JVM collection are operational.
     Derived image memenuhi interface JMX pada Deployment Topology dan siap
     menjadi input integrasi Prometheus.
 
+**Actual Result:** image berhasil dibangun dan smoke test menemukan endpoint
+HTTPS, `jmx_scrape_duration_seconds`, serta `jvm_memory_heap_used_bytes`.
+
+**Evidence:** output build/test dan Verification table mencatat image ID serta
+metric yang ditemukan.
+
 </div>
 
 <div class="procedure-step" markdown>
@@ -188,11 +208,16 @@ Smoke test passed: HTTPS /metrics and local JVM collection are operational.
     Tahap berikutnya memiliki artifact, interface, evidence, dan daftar
     dependency yang jelas untuk integration serta deployment.
 
-</div>
+**Actual Result:** local image, HTTPS interface, dan outstanding production
+dependency dicatat pada Outcome serta Next Steps.
+
+**Evidence:** Source-Control Handoff dan Related Documentation dapat ditelusuri.
 
 </div>
 
-## Verification
+</div>
+
+## ✅ Verification
 
 Verifikasi dilakukan pada development workstation tanggal 2026-08-15.
 
@@ -212,7 +237,7 @@ Hasil membuktikan kesiapan component secara lokal. Hasil belum membuktikan
 integrasi Prometheus, production certificate, container network, CI build, atau
 target deployment.
 
-## Troubleshooting
+## 🛠️ Troubleshooting
 
 ### Issue — Derived image inherited base project identity
 
@@ -238,7 +263,7 @@ Build arguments diubah menjadi `IMAGE_PROJECT` dan `IMAGE_VERSION`. Image
 dibangun ulang dan smoke test dijalankan kembali. Final inspection menunjukkan
 project `tomcat-jmx-exporter`, image version `1.0.0`, dan JMX Exporter `1.6.0`.
 
-## Lessons Learned
+## 🎓 Lessons Learned
 
 - Generic Tomcat image dan monitoring instrumentation perlu memiliki lifecycle
   repository yang terpisah.
@@ -249,13 +274,13 @@ project `tomcat-jmx-exporter`, image version `1.0.0`, dan JMX Exporter `1.6.0`.
 - Detail pemasangan Java Agent yang reusable harus dipromosikan ke root How-to;
   journal hanya mempertahankan urutan integrasi dan hasil aktual.
 
-## Source-Control Handoff
+## 🔄 Source-Control Handoff
 
 Source awal hasil implementasi disimpan pada commit `82175bb` (`first commit`).
 Commit tersebut mencakup source derived image tanpa generated JMX Exporter JAR,
 private key, certificate, atau runtime TLS material.
 
-## Next Steps
+## ⏭️ Next Steps
 
 - Terbitkan reusable JMX Exporter Java Agent procedure pada root How-to.
 - Gunakan derived image sebagai candidate untuk CI build dan integration test.
@@ -263,7 +288,7 @@ private key, certificate, atau runtime TLS material.
 - Integrasikan Prometheus dengan `https://<tomcat-container>:9404/metrics`.
 - Lanjutkan Telegraf integration ke `http://<tomcat-container>:8080/health`.
 
-## Outcome
+## 🧾 Outcome
 
 Local derived image `localhost/tomcat-jmx-exporter:1.0.0` berhasil dibangun dan
 lulus HTTPS serta JVM metrics smoke test pada activity date. Hasil tersebut
@@ -275,7 +300,7 @@ Outstanding work meliputi reusable root How-to, current-source rebuild,
 Prometheus integration, Telegraf health check, production TLS, container
 network, registry, CI/CD, dan target deployment.
 
-## Related Documentation
+## 🔗 Related Documentation
 
 - [TN-001 — Design Runtime Monitoring Contract](TN-001-design-runtime-monitoring-contract.md)
 - [Architecture](../../architecture/index.md)

@@ -167,8 +167,9 @@ generation, JMX runtime startup, persistent truststore update, dan
 implementation authorization. Exact Prometheus mutation, downtime, readiness,
 serta rollback commands harus disiapkan pada implementation plan berikutnya
 dan mendapatkan authorization terpisah. Accepted direction menerapkan
-TM-ADR-0001 tanpa mengubah architecture boundary sehingga ADR baru tidak
-diperlukan pada tahap ini.
+TM-ADR-0001. Certificate lifecycle yang masih deferred pada TN-018 kemudian
+ditetapkan oleh TN-019 dan dicatat pada
+[TM-ADR-0003](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0003.md).
 
 ## ⚙️ Commands Executed
 
@@ -307,3 +308,4 @@ mutation sequence, downtime, rollback, verification, dan cleanup boundary.
 - [Architecture](../../architecture/index.md)
 - [Infrastructure](../../infrastructure/index.md)
 - [TM-ADR-0001](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0001.md)
+- [TM-ADR-0003 — Use Host-Managed Non-Git TLS Material for the Persistent Lab](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0003.md)

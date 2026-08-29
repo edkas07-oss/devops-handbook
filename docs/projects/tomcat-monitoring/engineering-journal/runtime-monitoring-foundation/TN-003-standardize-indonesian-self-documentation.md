@@ -23,19 +23,19 @@
     test menggunakan local image yang telah dibangun sebelum commit `d392717`;
     catatan ini tidak mengklaim clean image build dari current source.
 
-## Objective
+## 🎯 Objective
 
 Menyeragamkan self-documentation repository `tomcat-jmx-exporter` ke dalam
 bahasa Indonesia tanpa mengubah kontrak, konfigurasi, atau perilaku runtime.
 
-## Background
+## 🌍 Background
 
 Initial source hasil TN-002 masih menggunakan bahasa Inggris
 pada komentar `CONFIG`, header file, petunjuk penggunaan, dan sebagian pesan
 operator. Source perlu menggunakan bahasa Indonesia agar konsisten dengan
 repository lain dan lebih mudah dipahami oleh pengelola environment.
 
-## Scope
+## 📚 Scope
 
 Technical Note ini mencakup:
 
@@ -53,7 +53,7 @@ Technical Note ini tidak mencakup:
 - Perubahan mekanisme TLS atau Java Agent;
 - Perubahan CI/CD dan deployment.
 
-## Prerequisites
+## 📋 Prerequisites
 
 | Prerequisite | Status | Evidence |
 | --- | --- | --- |
@@ -61,12 +61,21 @@ Technical Note ini tidak mencakup:
 | Existing smoke test | Verified | TN-002 mencatat HTTPS dan JVM metrics test berhasil |
 | Clean starting state | Verified | TN-002 mencatat working tree bersih setelah implementasi awal |
 
-## Execution Decision
+## ⚖️ Execution Decision
 
 N/A. Perubahan hanya menyeragamkan bahasa self-documentation dan tidak
 menerapkan keputusan arsitektur baru.
 
-## Implementation
+## 🧭 Implementation Plan
+
+| Tahap | Rencana |
+| --- | --- |
+| **Translate Source Explanations** | Menerjemahkan komentar source tanpa mengubah technical identifier. |
+| **Translate Operator-Facing Documentation** | Menerjemahkan README dan pesan yang dibaca operator. |
+| **Verify the Updated Source** | Memeriksa syntax, whitespace, bahasa, scope, dan smoke-test behavior. |
+| **Record the Verified Change** | Menyimpan perubahan yang telah diverifikasi dalam source-control handoff. |
+
+## ⚙️ Implementation
 
 <div class="procedure" markdown>
 
@@ -85,6 +94,12 @@ menerapkan keputusan arsitektur baru.
     Source menjelaskan tujuan setiap bagian dalam bahasa Indonesia tanpa
     mengubah instruction atau command yang dijalankan.
 
+**Actual Result:** komentar source diterjemahkan dan technical identifier tetap
+dipertahankan.
+
+**Evidence:** scoped diff pada sembilan file menunjukkan perubahan
+self-documentation tanpa perubahan instruction runtime.
+
 </div>
 
 <div class="procedure-step" markdown>
@@ -102,6 +117,11 @@ menerapkan keputusan arsitektur baru.
     Dokumentasi repository dan pesan yang dibaca operator menggunakan bahasa
     Indonesia secara konsisten.
 
+**Actual Result:** README serta pesan build, validation, cleanup, dan smoke test
+menggunakan bahasa Indonesia.
+
+**Evidence:** comment-language search tidak menemukan pola lama yang ditargetkan.
+
 </div>
 
 <div class="procedure-step" markdown>
@@ -118,6 +138,11 @@ menerapkan keputusan arsitektur baru.
     Seluruh validation lulus dan perubahan bahasa tidak mengganggu runtime
     test.
 
+**Actual Result:** shell syntax, whitespace, scope review, dan smoke test lulus.
+
+**Evidence:** Verification table mencatat hasil setiap pemeriksaan dan batas
+bahwa image tidak dibangun ulang dari commit ini.
+
 </div>
 
 <div class="procedure-step" markdown>
@@ -132,11 +157,15 @@ menerapkan keputusan arsitektur baru.
     Perubahan self-documentation tersimpan dalam commit yang dapat ditelusuri
     tanpa membawa perubahan runtime di luar scope.
 
-</div>
+**Actual Result:** perubahan disimpan pada commit `d392717`.
+
+**Evidence:** `git log -1` dan Source-Control Handoff mencatat commit tersebut.
 
 </div>
 
-## Verification
+</div>
+
+## ✅ Verification
 
 Verifikasi dilakukan pada development workstation tanggal 2026-08-15.
 
@@ -154,7 +183,7 @@ OCI berbahasa Indonesia akan diterapkan pada build image berikutnya. Smoke test
 ini memverifikasi perubahan pada test script dan kondisi local image yang telah
 dibangun sebelumnya, bukan build baru dari working tree.
 
-## Lessons Learned
+## 🎓 Lessons Learned
 
 - Technical identifier perlu dipertahankan agar kontrak source tidak berubah,
   sementara penjelasan di sekitarnya dapat diterjemahkan.
@@ -162,13 +191,13 @@ dibangun sebelumnya, bukan build baru dari working tree.
   memahami proses build, validasi, dan runtime tanpa membaca source secara
   menyeluruh.
 
-## Next Steps
+## ⏭️ Next Steps
 
 - Koreksi OCI source label pada perubahan source terpisah karena URL saat ini
   masih menggunakan `localhost`, bukan hostname remote Gitea aktual.
 - Gunakan source hasil perubahan sebagai input CI build berikutnya.
 
-## Outcome
+## 🧾 Outcome
 
 Self-documentation bahasa Indonesia telah divalidasi dan disimpan sebagai
 commit `d392717`. Objective perubahan dokumentasi source dinyatakan selesai
@@ -179,7 +208,7 @@ aktivitas TN-002. Clean build dan smoke test dari commit `d392717`, koreksi OCI
 source label, CI build, image publication, dan deployment menjadi outstanding
 work terpisah.
 
-## Related Documentation
+## 🔗 Related Documentation
 
 - [TN-002 — Implement Tomcat JMX Exporter Image](TN-002-implement-tomcat-jmx-exporter-image.md)
 - [Runtime Monitoring Foundation Engineering Journal](index.md)

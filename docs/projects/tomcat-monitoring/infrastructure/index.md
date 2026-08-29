@@ -306,6 +306,8 @@ renewal trigger 30 hari sebelum expiry. Production certificate lifecycle tetap
 
 ## Related Pages
 
+- [TM-ADR-0003 — Use Host-Managed Non-Git TLS Material for the Persistent Lab](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0003.md)
+- [TM-ADR-0005 — Use Mailpit as the Persistent Lab Notification Verification Target](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0005.md)
 - [Architecture](../architecture/index.md)
 - [Development](../development/index.md)
 - [CI/CD](../ci-cd/index.md)

@@ -63,12 +63,126 @@ JMX Exporter runtime.
 
 ## 🗺️ Implementation Plan
 
-1. Buat live TN-017 dan navigation entry.
-2. Ubah exact metric name pada configuration, validator, dan component README.
-3. Catat resolution pada TN-016 dan hapus pending mismatch dari current-state
-   pages tanpa mengubah historical TN-014 atau TN-015.
-4. Jalankan seluruh source dan documentation verification dalam scope.
-5. Finalisasi status, outcome, residual boundary, dan next step.
+| Tahap | Rencana |
+| --- | --- |
+| **Register the Technical Note and Navigation** | Membuat TN-017 dan memastikan urutannya dapat ditemukan. |
+| **Update the Canonical Metric Name** | Mengubah exact metric name pada configuration, validator, dan component README. |
+| **Reconcile the Historical and Current-State Documentation** | Mencatat resolution tanpa menulis ulang evidence TN-014 sampai TN-016. |
+| **Validate the Source and Documentation** | Menjalankan pemeriksaan source serta dokumentasi dalam scope. |
+| **Consolidate the Closure Boundary** | Menutup activity dan menyatakan hasil serta batas runtime berikutnya. |
+
+## ⚙️ Implementation
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Register the Technical Note and Navigation
+
+Pastikan TN-017 tersedia dan terdaftar setelah TN-016.
+
+```bash
+test -f docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-017-reconcile-tomcat-server-metric-name-contract.md
+rg -n 'TN-016|TN-017' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages
+```
+
+!!! success "Expected Result"
+
+    TN-016 dan TN-017 tersedia serta terdaftar berurutan.
+
+**Actual Result:** file dan navigation entry tersedia.
+
+**Evidence:** existence test dan reference review lulus.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Update the Canonical Metric Name
+
+Ubah `tomcat_server_info` menjadi `tomcat_server` pada configuration,
+validator, dan component README tanpa mengubah pattern, label, value, atau type.
+
+```bash
+bash -n scripts/*.sh
+./scripts/validate-jmx-exporter.sh
+./scripts/validate.sh
+```
+
+!!! success "Expected Result"
+
+    Source menggunakan canonical name `tomcat_server` dan seluruh validator
+    tetap lulus.
+
+**Actual Result:** exact name diperbarui pada tiga file source dan validation
+tetap lulus.
+
+**Evidence:** targeted diff serta pencarian kedua nama metric.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Reconcile the Historical and Current-State Documentation
+
+1. Tambahkan resolution append-oriented pada TN-016.
+2. Perbarui halaman current-state yang sebelumnya menampilkan mismatch.
+3. Pertahankan TN-014 dan TN-015 sebagai historical decision serta evidence.
+
+!!! success "Expected Result"
+
+    Current state memakai canonical name, sedangkan histori lama tetap dapat
+    ditelusuri dan tidak ditulis ulang.
+
+**Actual Result:** resolution ditambahkan pada TN-016 dan current-state pages
+diselaraskan; TN-014 serta TN-015 tetap mempertahankan konteks awal.
+
+**Evidence:** targeted reference review pada journal dan current-state pages.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Validate the Source and Documentation
+
+```bash
+git diff --check
+rg -n '[[:blank:]]+$' config/jmx-exporter/jmx-exporter.yml config/jmx-exporter/README.md scripts/validate-jmx-exporter.sh
+```
+
+!!! success "Expected Result"
+
+    Source dan dokumentasi bebas syntax serta whitespace error dan perubahan
+    tetap berada dalam scope.
+
+**Actual Result:** source validators, diff checks, dan trailing-whitespace
+checks lulus; MkDocs tidak tersedia.
+
+**Evidence:** command record dan tabel Verification.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Consolidate the Closure Boundary
+
+Catat outcome, residual boundary, dan next step tanpa memperluas klaim ke
+runtime atau image mutation.
+
+!!! success "Expected Result"
+
+    Pembaca memahami bahwa source contract selesai tetapi runtime berikutnya
+    tetap memerlukan activity terpisah.
+
+**Actual Result:** Outcome dan Next Steps membedakan source reconciliation dari
+runtime verification.
+
+**Evidence:** closure sections dan Verification menyatakan tidak ada Podman,
+build, TLS, atau cleanup command pada TN-017.
+
+</div>
+
+</div>
 
 ## ⚙️ Commands Executed
 
@@ -124,18 +238,6 @@ expected name tetap berada pada TN-014, TN-015, dan TN-016 evidence; resolution
 dicatat pada TN-016 serta TN-017 tanpa menulis ulang evidence lama. MkDocs
 render berstatus `Not verified` karena executable tidak tersedia dan dependency
 tidak dipasang.
-
-## 🛠️ Implementation
-
-1. Mengubah JMX Exporter baseline rule name dari `tomcat_server_info` menjadi
-   `tomcat_server` tanpa mengubah pattern, value, label, atau type.
-2. Mengubah exact static-validator expectation ke `tomcat_server`.
-3. Mendokumentasikan reserved `_info` normalization dan canonical runtime name
-   pada component README.
-4. Menambahkan resolution append-oriented pada TN-016 dan menyelaraskan project
-   overview, Development, Operations, serta phase overview.
-5. Mempertahankan TN-014 dan TN-015 sebagai historical decision serta
-   implementation evidence.
 
 ## ✅ Verification
 

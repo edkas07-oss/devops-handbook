@@ -17,16 +17,18 @@
 
 ## 🎯 Objective
 
-Mengimplementasikan non-secret Alertmanager email receiver untuk Mailpit dan
-memverifikasi isolated firing serta resolved SMTP capture menggunakan exact
-disposable topology TN-032.
+Menambahkan tujuan pengiriman email Alertmanager ke Mailpit tanpa credential
+(informasi autentikasi), lalu membuktikan bahwa email peringatan (`firing`) dan
+email pemulihan (`resolved`) diterima melalui container sementara yang telah
+ditetapkan pada TN-032.
 
 ## 🌍 Background
 
-TN-031 memilih Mailpit lokal agar lab tidak memerlukan Gmail credential atau
-external delivery. TN-032 menerima direct-upstream exception, immutable
-Mailpit `v1.31.0` image, exact resources, loopback ports, synthetic identities,
-dan cleanup contract.
+TN-031 memilih Mailpit lokal agar lab tidak memerlukan credential Gmail atau
+pengiriman email ke layanan eksternal. TN-032 menerima penggunaan image resmi
+Mailpit secara langsung (`direct-upstream exception`), mengunci versi Mailpit
+`v1.31.0`, serta menetapkan nama resource, port lokal, identitas pengujian, dan
+aturan pembersihan resource sementara.
 
 Working tree masih menyimpan perubahan TN-029 sampai TN-032. TN-033 harus
 meneruskan perubahan tersebut tanpa reset, overwrite, atau unrelated cleanup.
@@ -63,15 +65,22 @@ Prometheus delivery, commit, dan push tidak termasuk.
 
 ## ⚖️ Execution Decision
 
-Use the TN-032 direct-upstream exception and exact Mailpit reference:
+Gunakan pengecualian image upstream yang telah diterima pada TN-032 dengan
+referensi Mailpit berikut:
 
 ```text
 ghcr.io/axllent/mailpit:v1.31.0@sha256:c96991d9bef73594c246d89ca81411d4e916f03e76a7d2d72fa2ab5dd3c9ce24
 ```
 
-Mailpit SMTP remains internal at `mailpit:1025`. The host test driver reaches
-only Mailpit API `127.0.0.1:18025` and Alertmanager API
-`127.0.0.1:19093`. No external relay or persistent storage is allowed.
+SMTP Mailpit hanya tersedia di dalam container network melalui
+`mailpit:1025`. Script pengujian pada host hanya mengakses API Mailpit melalui
+`127.0.0.1:18025` dan API Alertmanager melalui `127.0.0.1:19093`. Pengujian
+tidak mengirim email ke layanan eksternal dan tidak menyimpan message secara
+permanen.
+
+Keputusan ini menerapkan
+[TM-ADR-0005](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0005.md),
+yang mencatat alasan Mailpit menjadi target verifikasi notification lab.
 
 ## 🗺️ Architecture
 
@@ -86,20 +95,87 @@ tm-tn033-alertmanager --SMTP--> mailpit:1025
 
 ## 🧭 Implementation Plan
 
-1. Record preflight state and implement source plus validation contracts.
-2. Run shell syntax and static repository validation.
-3. Pull and verify the exact Mailpit image identity.
-4. Run semantic configuration check and isolated firing/resolved capture.
-5. Audit exact cleanup and consolidate verified results into documentation.
+Implementation mengikuti lima tahap berikut. Nama dan urutannya sama dengan
+procedure step pada bagian `Implementation` agar rencana dan pelaksanaan dapat
+dibandingkan secara langsung.
 
-Rollback for source changes is limited to a reviewed follow-up change; user
-changes are not reset. Runtime cleanup targets only resources created by this
-activity. Image removal requires separate authorization and is excluded.
+| Tahap | Rencana |
+| --- | --- |
+| **Review the Approved Boundary and Current Source** | Memeriksa scope yang disetujui, source yang berlaku, serta perubahan TN sebelumnya yang harus dipertahankan. |
+| **Implement and Validate the Mailpit Interfaces** | Menerapkan konfigurasi serta script Mailpit, kemudian menjalankan pemeriksaan sintaks dan validator repository. |
+| **Run the Isolated Email Capture** | Menjalankan Alertmanager dan Mailpit sementara untuk menguji email peringatan (`firing`) dan pemulihan (`resolved`). |
+| **Confirm the Image Identity and Cleanup** | Memastikan image Mailpit sesuai versi yang diterima dan seluruh resource sementara telah dibersihkan. |
+| **Consolidate the Verified Result** | Menyelaraskan hasil yang sudah dibuktikan ke dokumentasi serta mencatat source-control handoff. |
+
+```text
+Review the Approved Boundary and Current Source
+                    |
+                    v
+Implement and Validate the Mailpit Interfaces
+                    |
+                    v
+Run the Isolated Email Capture
+                    |
+                    v
+Confirm the Image Identity and Cleanup
+                    |
+                    v
+Consolidate the Verified Result
+```
+
+Perubahan source hanya boleh dikoreksi melalui perubahan lanjutan yang direview;
+perubahan pengguna tidak boleh di-reset. Pembersihan runtime hanya mencakup
+resource yang dibuat TN-033. Penghapusan image memerlukan izin terpisah dan
+tidak termasuk dalam aktivitas ini.
 
 ## ⚙️ Implementation
 
-Active Alertmanager receiver berubah dari `integration-bridge` webhook menjadi
-`lab-mailpit` email receiver. Configuration menetapkan:
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Review the Approved Boundary and Current Source
+
+Pastikan pekerjaan dimulai dari source dan perubahan pengguna yang benar.
+Pemeriksaan ini juga memastikan konfigurasi webhook lama tetap dapat digunakan
+sebagai pengujian historis TN-029.
+
+1. Baca script pengujian webhook, validator, dan dokumentasi yang berlaku.
+2. Periksa diff serta status working tree sebelum perubahan dilakukan.
+3. Pastikan perubahan TN sebelumnya dapat dipertahankan tanpa reset.
+
+```bash
+# /home/eddywiyatno/git/tomcat-monitoring
+sed -n '1,420p' scripts/verify-alertmanager-webhook.sh
+sed -n '1,260p' scripts/validate.sh && sed -n '1,300p' scripts/validate-alertmanager.sh
+sed -n '1,260p' README.md && sed -n '1,240p' config/alertmanager/README.md && sed -n '1,220p' validation/README.md
+git diff -- README.md config/alertmanager/README.md scripts/validate-alertmanager.sh scripts/validate.sh validation/README.md && git status --short --branch
+git status --short && sed -n '1,240p' config/alertmanager/alertmanager.yml && sed -n '1,280p' scripts/validate-alertmanager.sh && sed -n '1,260p' scripts/validate.sh && sed -n '1,320p' scripts/verify-alertmanager-webhook.sh
+sed -n '1,280p' README.md && sed -n '1,260p' config/alertmanager/README.md && sed -n '1,300p' validation/README.md && sed -n '1,320p' /home/eddywiyatno/git/devops-handbook/docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-033-implement-and-verify-alertmanager-mailpit-smtp-capture.md
+```
+
+!!! success "Expected Result"
+
+    Source, validator, dokumentasi, dan perubahan yang sudah ada dapat
+    dibedakan. Tidak ada perubahan pengguna yang perlu di-reset atau ditimpa.
+
+**Actual Result:** kondisi awal berhasil diperiksa. Perubahan TN-029 sampai
+TN-032 dipertahankan dan menjadi baseline TN-033.
+
+**Evidence:** output `git status`, diff terbatas, serta isi source dan
+dokumentasi terkait tersedia dalam execution record.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Implement and Validate the Mailpit Interfaces
+
+Ubah tujuan pengiriman aktif dari webhook `integration-bridge` menjadi email
+lokal `lab-mailpit`, lalu pastikan seluruh script masih valid secara sintaks dan
+kontrak repository.
+
+Konfigurasi yang diterapkan menetapkan:
 
 - internal-only SMTP `mailpit:1025` dengan `require_tls: false` karena koneksi
   hanya berada pada disposable container network;
@@ -110,19 +186,159 @@ Active Alertmanager receiver berubah dari `integration-bridge` webhook menjadi
 - tidak ada authentication, secret, personal identity, relay, atau external
   endpoint.
 
-Static validator memeriksa exact receiver contract, reserved `.invalid`
-identities, ketiadaan active webhook dan credential, serta exact Mailpit
-verification resources. Repository validator mewajibkan interface baru
+Validator statis memeriksa receiver, identitas `.invalid`, ketiadaan webhook
+aktif dan credential, serta nama resource pengujian Mailpit. Validator utama
+repository juga mewajibkan script baru
 `scripts/verify-alertmanager-mailpit.sh`.
 
-Verification interface menarik immutable Mailpit reference, memverifikasi
-manifest digest, platform dan API-reported version, membuat exact network serta
-containers, mempercepat grouping hanya pada temporary configuration, kemudian
-mengirim synthetic firing dan resolved alert melalui Alertmanager API v2.
-Mailpit API membuktikan dua subject dan message identities yang diharapkan.
-Historical TN-029 webhook interface dipertahankan dengan temporary webhook
-configuration sendiri sehingga tidak bergantung pada active receiver. Syntax
-interface tersebut divalidasi, tetapi runtime TN-029 tidak diulang pada TN-033.
+1. Terapkan konfigurasi email Mailpit dan script pengujiannya.
+2. Jadikan script pengujian dapat dieksekusi.
+3. Jalankan pemeriksaan sintaks, validator repository, dan whitespace.
+
+```bash
+# /home/eddywiyatno/git/tomcat-monitoring
+chmod 0755 scripts/verify-alertmanager-mailpit.sh
+bash -n scripts/*.sh
+./scripts/validate.sh
+git diff --check
+```
+
+!!! success "Expected Result"
+
+    Script pengujian dapat dieksekusi, seluruh shell script valid, kontrak
+    konfigurasi Mailpit lulus, dan diff tidak memiliki whitespace error.
+
+**Actual Result:** seluruh pemeriksaan selesai dengan exit code `0`.
+
+**Evidence:** `bash -n`, `./scripts/validate.sh`, dan `git diff --check`
+seluruhnya lulus.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Run the Isolated Email Capture
+
+Jalankan pengujian menggunakan Alertmanager dan Mailpit sementara. Script
+membuat network serta container dengan nama khusus TN-033, mengirim alert
+peringatan dan pemulihan, memeriksa kedua email melalui API Mailpit, lalu
+membersihkan resource sementara.
+
+1. Jalankan script verification dengan reference image yang telah diterima.
+2. Biarkan script mengirim alert firing dan resolved melalui Alertmanager.
+3. Periksa kedua message melalui API Mailpit.
+4. Ulangi pengujian setelah memperbaiki cara pembacaan versi Mailpit.
+
+```bash
+# /home/eddywiyatno/git/tomcat-monitoring
+./scripts/verify-alertmanager-mailpit.sh
+```
+
+Command yang sama dijalankan empat kali selama penyempurnaan verification
+interface:
+
+1. Run pertama menangkap kedua email dan membersihkan resource, tetapi berakhir
+   dengan exit code `141` karena output `/mailpit --version` diteruskan ke
+   `head`.
+2. Run kedua kembali menangkap kedua email dan membersihkan resource, tetapi
+   opsi versi Mailpit mengembalikan exit code `1`.
+3. Pemeriksaan versi dipindahkan ke API `/api/v1/info`; run ketiga selesai
+   dengan exit code `0`.
+4. Run terakhir menambahkan pemeriksaan body message lengkap dan kembali
+   selesai dengan exit code `0`.
+
+!!! success "Expected Result"
+
+    Mailpit menerima satu email peringatan dan satu email pemulihan dengan
+    sender, recipient, subject, dan lima grouping label yang sesuai. Seluruh
+    resource sementara dibersihkan meskipun pengujian gagal di tengah proses.
+
+**Actual Result:** run terakhir lulus. Dua kegagalan awal hanya berasal dari
+cara membaca versi Mailpit; pengiriman email dan cleanup pada kedua run tersebut
+tetap berhasil.
+
+**Evidence:** run ketiga dan keempat selesai dengan exit code `0`; final run
+memastikan body message memuat seluruh grouping label dan value yang diwajibkan.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Confirm the Image Identity and Cleanup
+
+Periksa bahwa image yang digunakan sesuai versi yang diterima dan tidak ada
+container atau network TN-033 yang tertinggal.
+
+1. Periksa digest, architecture, operating system, dan label image Mailpit.
+2. Cari seluruh container dengan nama yang diawali `tm-tn033`.
+3. Cari network `tm-tn033-mailpit`.
+
+```bash
+# /home/eddywiyatno/git/tomcat-monitoring
+podman image inspect --format 'digest={{.Digest}} arch={{.Architecture}} os={{.Os}} labels={{json .Labels}}' 'ghcr.io/axllent/mailpit:v1.31.0@sha256:c96991d9bef73594c246d89ca81411d4e916f03e76a7d2d72fa2ab5dd3c9ce24'
+podman ps -a --filter name=tm-tn033 --format '{{.Names}}'
+podman network ls --filter name=tm-tn033-mailpit --format '{{.Name}}'
+```
+
+!!! success "Expected Result"
+
+    Image cocok dengan digest serta platform yang diterima. Container
+    `tm-tn033-mailpit`, container `tm-tn033-alertmanager`, dan network
+    `tm-tn033-mailpit` sudah tidak tersedia.
+
+**Actual Result:** identity Mailpit `v1.31.0` pada `linux/amd64` sesuai.
+Container, network, temporary file, dan listener TN-033 tidak tersisa. Image
+Mailpit sengaja dipertahankan sesuai scope.
+
+**Evidence:** image inspection mengembalikan identity yang diterima, sedangkan
+container dan network query tidak mengembalikan resource TN-033.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Consolidate the Verified Result
+
+Pastikan dokumentasi tidak lagi menyatakan Mailpit belum diterapkan dan catat
+source-control handoff tanpa melakukan commit atau push di luar izin terpisah.
+
+1. Cari pernyataan lama yang masih menyebut Mailpit belum diterapkan.
+2. Pastikan status TN-033 dan navigation entry sudah konsisten.
+3. Periksa ketersediaan MkDocs dan kondisi final kedua repository.
+
+```bash
+# /home/eddywiyatno/git/devops-handbook
+rg -n "TN-033|Mailpit|mailpit|Pending|not yet pulled|belum diimplementasikan|belum diterapkan" docs/projects/tomcat-monitoring -g '*.md'
+rg -n 'Mailpit.*(pending|not implemented|not verified)|source integration, image pull|runtime belum dikerjakan|implementation pending|source, image, and runtime not implemented' docs/projects/tomcat-monitoring -g '*.md'
+rg -n 'Status \| Completed|message_body_group_labels|exit `0`|TN-033-implement-and-verify' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-033-implement-and-verify-alertmanager-mailpit-smtp-capture.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages
+if command -v mkdocs >/dev/null; then mkdocs --version; else echo 'mkdocs=not-installed'; fi
+
+# Post-push diagram clarification
+git status --short --branch
+sed -n '175,235p' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-033-implement-and-verify-alertmanager-mailpit-smtp-capture.md
+git -C /home/eddywiyatno/git/tomcat-monitoring status --short --branch
+git -C /home/eddywiyatno/git/tomcat-monitoring log -1 --oneline
+```
+
+!!! success "Expected Result"
+
+    Status TN, phase index, dan current-state documentation menyampaikan hasil
+    yang sama. Riwayat commit dapat ditelusuri dan tidak ada klaim bahwa render
+    MkDocs sudah diverifikasi bila executable tidak tersedia.
+
+**Actual Result:** pemeriksaan konsistensi dan `git diff --check` lulus. MkDocs
+tidak tersedia sehingga rendered-site build tidak dijalankan.
+
+**Evidence:** pencarian status tidak menemukan klaim current-state yang
+bertentangan; commit dan branch handoff dapat ditelusuri pada kedua repository.
+
+</div>
+
+</div>
+
+Script webhook historis TN-029 tetap menggunakan konfigurasi webhook sementara
+dan tidak bergantung pada receiver aktif Mailpit. Sintaks script tersebut
+divalidasi, tetapi pengujian runtime TN-029 tidak diulang dalam TN-033.
 
 ## ✅ Verification
 
@@ -136,44 +352,42 @@ interface tersebut divalidasi, tetapi runtime TN-029 tidak diulang pada TN-033.
 | Cleanup audit | Exact containers, network, temporary files, and listeners are absent | Passed | Containers/network absent, ports released, volumes unchanged, image retained |
 | Documentation consistency | Current-state pages and TN navigation reflect completed implementation | Passed with tooling limitation | Link/navigation references and `git diff --check` passed; MkDocs executable was not installed, so rendered-site build was not run |
 
-## ⚙️ Commands Executed
+## ✅ Operator Validation
 
-```bash
-# /home/eddywiyatno/git/tomcat-monitoring
-sed -n '1,420p' scripts/verify-alertmanager-webhook.sh
-sed -n '1,260p' scripts/validate.sh && sed -n '1,300p' scripts/validate-alertmanager.sh
-sed -n '1,260p' README.md && sed -n '1,240p' config/alertmanager/README.md && sed -n '1,220p' validation/README.md
-git diff -- README.md config/alertmanager/README.md scripts/validate-alertmanager.sh scripts/validate.sh validation/README.md && git status --short --branch
-git status --short && sed -n '1,240p' config/alertmanager/alertmanager.yml && sed -n '1,280p' scripts/validate-alertmanager.sh && sed -n '1,260p' scripts/validate.sh && sed -n '1,320p' scripts/verify-alertmanager-webhook.sh
-sed -n '1,280p' README.md && sed -n '1,260p' config/alertmanager/README.md && sed -n '1,300p' validation/README.md && sed -n '1,320p' /home/eddywiyatno/git/devops-handbook/docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-033-implement-and-verify-alertmanager-mailpit-smtp-capture.md
-chmod 0755 scripts/verify-alertmanager-mailpit.sh
-bash -n scripts/*.sh
-./scripts/validate.sh
-git diff --check
-./scripts/verify-alertmanager-mailpit.sh
-podman image inspect --format 'digest={{.Digest}} arch={{.Architecture}} os={{.Os}} labels={{json .Labels}}' 'ghcr.io/axllent/mailpit:v1.31.0@sha256:c96991d9bef73594c246d89ca81411d4e916f03e76a7d2d72fa2ab5dd3c9ce24'
-podman ps -a --filter name=tm-tn033 --format '{{.Names}}'
-podman network ls --filter name=tm-tn033-mailpit --format '{{.Name}}'
-rg -n "TN-033|Mailpit|mailpit|Pending|not yet pulled|belum diimplementasikan|belum diterapkan" docs/projects/tomcat-monitoring -g '*.md'
-rg -n 'Mailpit.*(pending|not implemented|not verified)|source integration, image pull|runtime belum dikerjakan|implementation pending|source, image, and runtime not implemented' docs/projects/tomcat-monitoring -g '*.md'
-rg -n 'Status \| Completed|message_body_group_labels|exit `0`|TN-033-implement-and-verify' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-033-implement-and-verify-alertmanager-mailpit-smtp-capture.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages
-if command -v mkdocs >/dev/null; then mkdocs --version; else echo 'mkdocs=not-installed'; fi
+Pengujian TN-033 memakai container sementara dan langsung membersihkannya
+setelah hasil API diperoleh. Karena itu, inbox Mailpit TN-033 sudah tidak dapat
+dibuka setelah aktivitas selesai.
 
-# Post-push diagram clarification
-git status --short --branch
-sed -n '175,235p' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-033-implement-and-verify-alertmanager-mailpit-smtp-capture.md
-git -C /home/eddywiyatno/git/tomcat-monitoring status --short --branch
-git -C /home/eddywiyatno/git/tomcat-monitoring log -1 --oneline
-```
+| Item | Value |
+| --- | --- |
+| Status | Tidak tersedia setelah cleanup TN-033 |
+| Pemeriksa | Project owner |
+| Sasaran pemeriksaan | Satu email firing dan satu email resolved dengan identitas pengujian |
+| Cara akses selama pengujian | API/UI Mailpit hanya melalui `127.0.0.1:18025` ketika verification script masih berjalan |
+| Masa berlaku evidence | Sementara; message hilang ketika container Mailpit TN-033 dibersihkan |
+| Pemeriksaan otomatis | Lulus; API memverifikasi sender, recipient, subject, urutan status, dan lima grouping label |
+| Keputusan visual | Tidak dilakukan pada TN-033 karena resource sudah dibersihkan |
 
-Runtime verification dijalankan empat kali. Dua run pertama berhasil menangkap
-firing/resolved dan menyelesaikan cleanup, tetapi interface berakhir nonzero
-ketika `/mailpit --version` dipipe ke `head` (`141`) lalu ketika binary tersebut
-mengembalikan nonzero untuk opsi versi (`1`). Version evidence dipindahkan ke
-supported `/api/v1/info`; run ketiga selesai `exit 0`. Final run menambahkan
-full-message API assertion dan membuktikan body memuat seluruh stable label serta
-value, lalu selesai `exit 0`. Setiap run melaporkan exact cleanup passed, jadi
-tidak ada container atau network TN-033 tertinggal.
+!!! info "Cara Memeriksa Hasil Setelah TN-033"
+
+    Jangan menjalankan ulang container sementara hanya untuk membuka UI karena
+    tindakan tersebut memerlukan authorization runtime baru. Persistent Mailpit
+    dan petunjuk membuka UI kemudian tersedia pada
+    [TN-035](TN-035-implement-and-verify-persistent-prometheus-alertmanager-mailpit-delivery.md#operator-validation).
+
+## 🖥️ Commands Executed
+
+Seluruh command aktual ditempatkan pada procedure step sesuai urutan
+pelaksanaannya. Section ini menjadi indeks agar pembaca tidak perlu mencari
+ulang command berdasarkan raw log.
+
+| Tahap | Procedure Step |
+| --- | --- |
+| Pemeriksaan source dan scope | [Review the Approved Boundary and Current Source](#review-the-approved-boundary-and-current-source) |
+| Perubahan serta validasi source | [Implement and Validate the Mailpit Interfaces](#implement-and-validate-the-mailpit-interfaces) |
+| Pengujian firing/resolved | [Run the Isolated Email Capture](#run-the-isolated-email-capture) |
+| Pemeriksaan image dan cleanup | [Confirm the Image Identity and Cleanup](#confirm-the-image-identity-and-cleanup) |
+| Konsolidasi dokumentasi | [Consolidate the Verified Result](#consolidate-the-verified-result) |
 
 ## 🔀 Version-Control Handoff
 
@@ -187,15 +401,17 @@ dengan `origin/main`.
 
 ## 🧾 Outcome
 
-TN-033 selesai. Alertmanager sekarang memiliki active non-secret Mailpit email
-receiver dan reproducible isolated verification interface. Final runtime
-verification membuktikan semantic parse, accepted Mailpit image identity,
-firing/resolved SMTP capture, synthetic sender/recipient, internal-only SMTP,
-serta exact cleanup. Immutable Mailpit image tetap tersedia sesuai authorization.
+TN-033 selesai. Alertmanager memiliki konfigurasi untuk mengirim email ke
+Mailpit tanpa credential. Pengujian container sementara membuktikan bahwa satu
+email peringatan dan satu email pemulihan diterima dengan sender, recipient,
+subject, serta grouping label yang sesuai. Pengujian juga membuktikan bahwa
+SMTP hanya tersedia di container network dan seluruh resource sementara sudah
+dibersihkan. Image Mailpit tetap tersedia sesuai authorization.
 
-Klaim ini tidak mencakup persistent Alertmanager, Prometheus-to-Alertmanager
-delivery, inbox delivery, provider authentication, external relay, Integration
-Bridge, TrueSight, commit, atau push.
+Hasil ini belum membuktikan pengiriman alert dari Prometheus, runtime
+Alertmanager yang terus berjalan, email eksternal, Integration Bridge, atau
+TrueSight. Inbox TN-033 juga tidak dapat diperiksa lagi setelah cleanup karena
+Mailpit pada aktivitas ini bersifat sementara.
 
 ## ❓ Open Questions
 
@@ -270,14 +486,24 @@ TN-035 Implementation and Verification
   - verifikasi continuity atau jalankan rollback
 ```
 
-Rekomendasi terdekat adalah memulai TN-034. TN-034 merupakan decision dan
-implementation contract, bukan izin langsung mengubah persistent runtime.
-External inbox delivery, Gmail, Integration Bridge, dan TrueSight tetap
-deferred serta berada di luar alur ini.
+TN-034 kemudian menetapkan rancangan persistent runtime dan TN-035 telah
+menerapkannya. Untuk memeriksa email melalui browser, gunakan bagian
+[Operator Validation pada TN-035](TN-035-implement-and-verify-persistent-prometheus-alertmanager-mailpit-delivery.md#operator-validation).
+External inbox delivery, Gmail, Integration Bridge, dan TrueSight tetap berada
+di luar hasil TN-033.
+
+## 📝 Notes
+
+Penyajian TN-033 dinormalisasi pada 2026-08-29 berdasarkan format procedure
+TN-035. Normalisasi hanya memperjelas urutan langkah, hasil yang diharapkan,
+hasil aktual, command, dan operator handoff; fakta teknis serta status historis
+TN-033 tidak diubah.
 
 ## 🔗 Related Documentation
 
 - [TN-032 — Define Mailpit Runtime Ownership and Disposable Verification Contract](TN-032-define-mailpit-runtime-ownership-and-disposable-verification-contract.md)
+- [TN-035 — Implement and Verify Persistent Prometheus–Alertmanager–Mailpit Delivery](TN-035-implement-and-verify-persistent-prometheus-alertmanager-mailpit-delivery.md)
+- [TM-ADR-0005 — Use Mailpit as the Persistent Lab Notification Verification Target](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0005.md)
 - [Architecture](../../architecture/index.md)
 - [Development](../../development/index.md)
 - [Infrastructure](../../infrastructure/index.md)

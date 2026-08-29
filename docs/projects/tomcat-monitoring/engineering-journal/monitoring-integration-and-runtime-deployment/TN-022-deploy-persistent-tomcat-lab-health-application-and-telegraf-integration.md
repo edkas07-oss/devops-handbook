@@ -113,22 +113,21 @@ configuration remain unchanged.
 
 ## 🚀 Change Plan
 
-1. Create the JSP fixture, static validator, and source documentation; run the
-   full repository validator.
-2. Recheck exact IDs, mounts, image identities, network, target names, and
-   existing Prometheus/JMX health.
-3. Stop `tomcat-jmx-exporter`, rename it to
-   `tomcat-jmx-exporter-rollback`, then create the replacement with identical
-   runtime arguments plus the application mount.
-4. Verify `/health` from a `--rm --pull=never` BusyBox client on `devops-lab`
-   before creating Telegraf.
-5. Start `telegraf` with no host port and inject
-   `TOMCAT_HEALTH_URL=http://tomcat-jmx-exporter:8080/health`.
-6. Verify container identity, logs, direct endpoint, Telegraf health metrics,
-   Prometheus `up`, existing JMX metrics, dashboard readiness, and restart
-   persistence.
-7. Consolidate current-state documentation. Keep the stopped rollback
-   container until separate successful-cutover cleanup approval.
+!!! note "Retrospective presentation alignment"
+
+    Pada perapihan 2026-08-29, tujuh butir plan lama dikelompokkan menjadi lima
+    tahap pelaksanaan yang benar-benar digunakan. Pemeriksaan `/health`
+    digabung dengan replacement JMX, sedangkan verification serta documentation
+    handoff digabung dengan restart-persistence stage. Scope dan hasil historis
+    tidak berubah.
+
+| Tahap | Rencana |
+| --- | --- |
+| **Implement the Lab Application Source** | Membuat fixture, validator, documentation, dan menjalankan source validation. |
+| **Confirm the Exact Pre-Cutover State** | Memeriksa identities, mounts, images, network, collision, dan kondisi monitoring awal. |
+| **Replace the JMX Target with the Mounted Application** | Mempertahankan rollback target, menjalankan replacement, dan memeriksa `/health` sebelum Telegraf dibuat. |
+| **Deploy Persistent Telegraf** | Menjalankan Telegraf tanpa host port dan memeriksa health metrics serta Prometheus scrape. |
+| **Verify Restart Persistence** | Memeriksa restart, IDs, endpoint, metrics, targets, dashboard, rollback boundary, dan documentation handoff. |
 
 ## 💾 Rollback Plan
 
@@ -148,14 +147,32 @@ outside rollback mutation.
 
 ## 🚀 Deployment
 
-### Implement the lab application source
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Implement the Lab Application Source
 
 Exploded root webapp, Servlet 4.0 descriptor, JSP response, dan static validator
 ditambahkan ke repository `tomcat-monitoring`. `scripts/validate.sh` memanggil
 validator baru. Shell syntax, component contract, full repository baseline,
 dan `git diff --check` lulus sebelum runtime diubah.
 
-### Confirm the exact pre-cutover state
+!!! success "Expected Result"
+
+    Application fixture, validator, dan documentation tersedia; seluruh source
+    checks lulus sebelum runtime mutation.
+
+**Actual Result:** source dan validator tersedia serta baseline validation lulus.
+
+**Evidence:** component validator, full repository validator, shell, dan diff
+checks.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Confirm the Exact Pre-Cutover State
 
 Pengulangan preflight setelah session interruption membuktikan:
 
@@ -167,7 +184,22 @@ Pengulangan preflight setelah session interruption membuktikan:
   serta
 - application directories `0755` dan source files `0644`.
 
-### Replace the JMX target with the mounted application
+!!! success "Expected Result"
+
+    Exact existing runtime sehat, required resources tersedia, dan target names
+    untuk cutover belum digunakan.
+
+**Actual Result:** seluruh pre-cutover criteria terpenuhi setelah session
+interruption.
+
+**Evidence:** exact IDs, metrics, readiness, collision, image, network, TLS,
+dan file-mode checks.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Replace the JMX Target with the Mounted Application
 
 Original container dihentikan dan di-rename menjadi
 `tomcat-jmx-exporter-rollback`. Replacement ID
@@ -181,7 +213,22 @@ dengan `--rm --pull=never` menerima HTTP `200`, content type JSON, dan
 `{"status":"UP"}` dari exact internal URL. Prometheus JMX target kembali
 `up=1`, dengan JVM heap dan `tomcat_server` masing-masing count `1`.
 
-### Deploy persistent Telegraf
+!!! success "Expected Result"
+
+    Replacement memakai runtime contract yang sama plus read-only application
+    mount; `/health` menghasilkan HTTP `200` dan body `UP`; JMX pulih.
+
+**Actual Result:** replacement ID `30da6d70bd63...` memenuhi seluruh kondisi
+tersebut dan original container tetap tersedia sebagai rollback target.
+
+**Evidence:** container inspect, Tomcat log, BusyBox response, dan Prometheus
+queries.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Deploy Persistent Telegraf
 
 Persistent Telegraf ID
 `e5324e0754189b37c2f80eddc0ea9ab0d4fad75af3f9c288641e3861a3f24463`
@@ -194,7 +241,21 @@ result code `0`. Query awal `job="telegraf"` kosong karena canonical job name
 aktual adalah `telegraf-health`; Prometheus target API dan corrected queries
 kemudian membuktikan scrape pool sehat dengan `up=1`.
 
-### Verify restart persistence
+!!! success "Expected Result"
+
+    Telegraf berjalan non-root tanpa host port, health metrics bernilai `1/1/0`,
+    dan canonical Prometheus job berstatus `up=1`.
+
+**Actual Result:** exact persistent Telegraf memenuhi kondisi tersebut; query
+awal dengan job name yang salah dikoreksi ke `telegraf-health`.
+
+**Evidence:** inspect, log, direct metrics, target API, dan corrected query.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Verify Restart Persistence
 
 `tomcat-jmx-exporter` dan `telegraf` direstart secara terkontrol. Setelah satu
 scrape interval, exact container IDs tetap sama dengan new started timestamps,
@@ -205,6 +266,20 @@ localhost readiness, serta `edkas-pc1` readiness juga lulus.
 Original ID `a5e42f2719d7...` tetap stopped sebagai
 `tomcat-jmx-exporter-rollback`. Rollback tidak dijalankan karena target state
 lulus; successful-cutover cleanup belum diotorisasi.
+
+!!! success "Expected Result"
+
+    Setelah restart, IDs tetap sama, endpoint dan metrics sehat, seluruh target
+    `up`, dashboard ready, dan rollback boundary tetap tersedia.
+
+**Actual Result:** seluruh restart-persistence dan continuity checks lulus.
+
+**Evidence:** before/after IDs, started timestamps, direct endpoint, metrics,
+Prometheus targets, JMX queries, dan readiness checks.
+
+</div>
+
+</div>
 
 ## ✅ Verification
 
@@ -568,3 +643,4 @@ Alertmanager, dan external integration tetap outstanding.
 - [TN-008 — Verify Telegraf Health Check with Edkas-pc1 Alias](TN-008-verify-telegraf-health-check-with-edkas-pc1-alias.md)
 - [Infrastructure](../../infrastructure/index.md)
 - [TM-ADR-0001](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0001.md)
+- [TM-ADR-0004 — Separate Application Failure from Monitoring Signal Loss](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0004.md)

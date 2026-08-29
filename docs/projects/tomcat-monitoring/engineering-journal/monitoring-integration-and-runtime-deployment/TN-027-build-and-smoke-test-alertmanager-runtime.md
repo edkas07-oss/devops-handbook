@@ -80,9 +80,23 @@ Image hasil build dipertahankan untuk integration activity berikutnya. Smoke
 containers menggunakan `--rm`; post-test audit memeriksa exact image ancestor
 dan dangling-volume creation time tanpa menghapus resource lain.
 
-## 🛠️ Execution Record
+## 🧭 Implementation Plan
 
-### 1. Run source and local-image preflight
+| Tahap | Rencana |
+| --- | --- |
+| **Run the Source and Local-Image Preflight** | Memeriksa source, Podman, upstream state, target tags, dan collision. |
+| **Pull and Inspect the Exact Upstream** | Mengambil exact upstream dan mencatat immutable identity serta runtime contract. |
+| **Build the Local Runtime Image** | Membentuk versioned dan `latest` tags dari current source. |
+| **Inspect the Candidate and Run the Smoke Tests** | Memeriksa metadata, binary, `amtool`, dan user non-root. |
+| **Audit the Post-Test Identity and Cleanup** | Memastikan assertions lulus dan test tidak meninggalkan container atau volume baru. |
+
+## ⚙️ Implementation
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Run the Source and Local-Image Preflight
 
 **Purpose.** Membuktikan source revision, Podman, collision state, serta apakah
 upstream pull diperlukan sebelum mengubah image store.
@@ -117,16 +131,23 @@ podman ps --all --filter ancestor=quay.io/prometheus/alertmanager:v0.34.0 --form
 podman ps --all --filter ancestor=localhost/alertmanager:1.0.0 --format 'id={{.ID}} name={{.Names}} status={{.Status}} image={{.Image}}'
 ```
 
-**Expected result.** Podman dan exact source tersedia; target tags serta
-container collision tidak ada; upstream state diketahui secara valid.
+!!! success "Expected Result"
 
-**Actual result and evidence.** Initial Podman commands gagal karena sandbox
+    Podman dan exact source tersedia; target tags serta container collision
+    tidak ada; upstream state diketahui secara valid.
+
+**Actual Result:** initial Podman commands gagal karena sandbox
 tidak dapat menetapkan sticky bit pada `/run/user/1000/libpod`; output
 `absent` dari conditional checks tersebut tidak digunakan sebagai evidence.
-Approved retry melaporkan Podman `4.9.3`, upstream absent, kedua target tags
+
+**Evidence:** approved retry melaporkan Podman `4.9.3`, upstream absent, kedua target tags
 absent, dan tidak ada container untuk upstream atau target ancestor.
 
-### 2. Pull and inspect exact upstream
+</div>
+
+<div class="procedure-step" markdown>
+
+### Pull and Inspect the Exact Upstream
 
 **Purpose.** Menyediakan satu-satunya base image yang diizinkan dan merekam
 immutable identity sebelum build.
@@ -140,17 +161,24 @@ if podman image exists localhost/alertmanager:1.0.0; then printf 'versioned_targ
 if podman image exists localhost/alertmanager:latest; then printf 'latest_target=present\n'; else printf 'latest_target=absent\n'; fi
 ```
 
-**Expected result.** Exact upstream tersedia; target tags tetap absent; official
-non-root user dan runtime interface diketahui.
+!!! success "Expected Result"
 
-**Actual result and evidence.** Pull berhasil dengan image ID
-`c4e1c067b29e...`, inspected digest
+    Exact upstream tersedia; target tags tetap absent; official non-root user
+    dan runtime interface diketahui.
+
+**Actual Result:** pull exact upstream berhasil dan target tags tetap absent.
+
+**Evidence:** image ID `c4e1c067b29e...`, inspected digest
 `sha256:690c7b525f43...`, serta Quay index dan manifest repo digests yang
 tercatat. Image menggunakan user `nobody`, entrypoint `/bin/alertmanager`,
 default config `/etc/alertmanager/alertmanager.yml`, storage
 `/alertmanager`, dan exposed port `9093/tcp`. Target tags tetap absent.
 
-### 3. Build local runtime image
+</div>
+
+<div class="procedure-step" markdown>
+
+### Build the Local Runtime Image
 
 **Purpose.** Membentuk versioned candidate dan latest convenience tag dari
 current source tanpa implicit pull.
@@ -165,15 +193,23 @@ test "$(<VERSION)" = 1.0.0
 ./scripts/build.sh
 ```
 
-**Expected result.** Build menggunakan exact local upstream dan menghasilkan
-kedua target tags tanpa source correction.
+!!! success "Expected Result"
 
-**Actual result and evidence.** Build lulus seluruh lima Containerfile steps
-dan menghasilkan image ID `ca27172ead92...`. Podman menandai image yang sama
+    Build menggunakan exact local upstream dan menghasilkan kedua target tags
+    tanpa source correction.
+
+**Actual Result:** build lulus seluruh lima Containerfile steps tanpa retry
+atau source deviation.
+
+**Evidence:** image ID `ca27172ead92...`; Podman menandai image yang sama
 sebagai `localhost/alertmanager:1.0.0` dan
-`localhost/alertmanager:latest`; tidak ada retry atau source deviation.
+`localhost/alertmanager:latest`.
 
-### 4. Inspect candidate and run smoke tests
+</div>
+
+<div class="procedure-step" markdown>
+
+### Inspect the Candidate and Run the Smoke Tests
 
 **Purpose.** Membuktikan metadata, inherited runtime contract, Alertmanager,
 `amtool`, dan non-root user sebelum image dikonsumsi integration repository.
@@ -187,18 +223,26 @@ podman ps --all --filter ancestor=localhost/alertmanager:1.0.0 --format 'id={{.I
 ./scripts/test.sh
 ```
 
-**Expected result.** Candidate mempertahankan user, entrypoint, command, dan
-port upstream; labels dan tags benar; kedua binaries melaporkan `0.34.0`; test
-containers self-clean.
+!!! success "Expected Result"
 
-**Actual result and evidence.** Candidate ID `ca27172ead92...` menggunakan
-user `nobody`, entrypoint `/bin/alertmanager`, official default command, dan
+    Candidate mempertahankan user, entrypoint, command, dan port upstream;
+    labels serta tags benar; kedua binaries melaporkan `0.34.0`; test
+    containers self-clean.
+
+**Actual Result:** metadata candidate sesuai dan kedua smoke tests lulus.
+
+**Evidence:** candidate ID `ca27172ead92...`, user `nobody`, entrypoint
+`/bin/alertmanager`, official default command, dan
 port `9093/tcp`. Labels melaporkan project `alertmanager`, source version
 `1.0.0`, dan Alertmanager `v0.34.0`; kedua tags memiliki ID yang sama.
 Alertmanager dan `amtool` sama-sama melaporkan version `0.34.0`, revision
 `085f0ef7eb41...`, Go `1.26.6`, serta platform `linux/amd64`.
 
-### 5. Audit post-test identity and cleanup
+</div>
+
+<div class="procedure-step" markdown>
+
+### Audit the Post-Test Identity and Cleanup
 
 **Purpose.** Memastikan assertions final lulus dan disposable execution tidak
 meninggalkan container atau storage TN-027.
@@ -219,20 +263,28 @@ podman volume ls --filter dangling=true --format 'name={{.Name}} driver={{.Drive
 podman volume inspect da14760a0e01813bf6bcc503e8c716831a3f986001f14e6d1cee7a884df987f1 92c0004dfd0ed4679b38fd8ce9ce04ca3b99fdc731f3ef89e5e772a9b1db8eb0 010bf588f018d991c51739fc322d678b60f22c12e77485224837de18e9f32459 2df1fa88bb0cbd285de9b14a782f964686afb9b66036e361aaa4be01a92d0ec6 8c937e681a10e0b1cbfd95c74497e24360c0139894ff4d26e2155ab66d91944e 6b338381e06114aa1cbb6787c2a30bdf210c4d9cf4aaf2035ba13b6f44b91ba6 --format 'name={{.Name}} created={{.CreatedAt}} anonymous={{index .Labels "io.podman.volume.is_anonymous"}}'
 ```
 
-**Expected result.** All assertions pass; no candidate container remains;
-source status is unchanged; no new dangling volume belongs to TN-027.
+!!! success "Expected Result"
 
-**Actual result and evidence.** Assertions passed. Candidate size is
-`82689848` bytes, configured user remains `nobody`, and inherited image declares
+    Seluruh assertions lulus, tidak ada candidate container, source tidak
+    berubah, dan tidak ada dangling volume baru milik TN-027.
+
+**Actual Result:** assertions lulus, ancestor query kosong, dan source status
+tidak berubah.
+
+**Evidence:** candidate size `82689848` bytes, user tetap `nobody`, dan image declares
 `/alertmanager` as a volume. Container ancestor query returned no rows. Six
 dangling volumes existed, but inspection showed creation dates from 2026-08-07
 through 2026-08-25; all predate TN-027 and were left unchanged. Source Git
 status remained the same untracked TN-026 source inventory.
 
+</div>
+
+</div>
+
 ## ⚙️ Commands Executed
 
 Seluruh Podman, source assertion, dan cleanup-audit commands dicatat verbatim
-pada lima tahap `Execution Record` di atas sesuai urutan pelaksanaan. Command
+pada lima tahap `Implementation` di atas sesuai urutan pelaksanaan. Command
 documentation verification berikut dijalankan setelah TN dan current-state
 handoff diperbarui.
 

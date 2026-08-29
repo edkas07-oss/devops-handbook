@@ -71,6 +71,11 @@ push, dan destructive retained-state cleanup tidak termasuk.
 
 ## ⚖️ Execution Decision
 
+Implementasi persistent notification lab menerapkan
+[TM-ADR-0005](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0005.md).
+Mailpit menjadi target verifikasi lokal tanpa external delivery; message
+history tetap bukan persistent source of truth.
+
 TN-035 menerapkan accepted contract TN-034: single-instance persistent
 Alertmanager memakai generic local image dan named volumes; Mailpit memakai
 immutable direct-upstream image tanpa named volume; Prometheus diterapkan ulang
@@ -80,91 +85,24 @@ rollback state.
 
 ## 🛠️ Change Plan
 
-<div class="procedure" markdown>
+!!! note "Retrospective presentation alignment"
 
-<div class="procedure-step" markdown>
+    Pada perapihan 2026-08-29, lima kelompok plan lama dipecah menjadi delapan
+    tahap dengan nama dan urutan yang sama seperti Deployment or Migration.
+    Pemecahan ini hanya memperjelas governance review, final-state check, dan
+    documentation handoff yang memang telah dijalankan; scope serta hasil
+    historis tidak berubah.
 
-### Verify Exact Preflight State
-
-1. Periksa worktree, image, container, volume, network, port, active
-   configuration, rules, readiness, dan baseline query.
-2. Catat exact IDs, mount mode, image identity, serta rollback trigger.
-3. Berhenti sebelum mutation jika identity atau baseline tidak sesuai contract.
-
-!!! success "Expected Result"
-
-    Seluruh target dan rollback state diketahui tanpa mengubah runtime.
-
-</div>
-
-<div class="procedure-step" markdown>
-
-### Implement and Validate Source Interfaces
-
-1. Tambahkan Alertmanager named-volume initializer dan static contract checks.
-2. Perbarui operator-facing source documentation.
-3. Jalankan shell/static validation, `amtool check-config`, dan `promtool`
-   semantic checks sebelum runtime mutation.
-
-!!! success "Expected Result"
-
-    Source dan semantic configuration memenuhi accepted persistent contract.
-
-</div>
-
-<div class="procedure-step" markdown>
-
-### Create Persistent Notification Components
-
-1. Inisialisasi exact Alertmanager configuration serta data volumes.
-2. Jalankan persistent Mailpit dengan internal SMTP dan loopback-only API/UI.
-3. Jalankan persistent Alertmanager tanpa host port dan buktikan readiness serta
-   SMTP reachability.
-
-!!! success "Expected Result"
-
-    Exact persistent Mailpit dan Alertmanager tersedia pada `devops-lab` tanpa
-    external delivery atau host SMTP publication.
-
-</div>
-
-<div class="procedure-step" markdown>
-
-### Replace Prometheus with Retained Rollback
-
-1. Simpan protected snapshot active configuration.
-2. Stop dan rename exact original Prometheus sebagai rollback container.
-3. Perbarui configuration volume dan jalankan replacement `prometheus` dengan
-   image, network, port, truststore, serta data volume yang sama.
-4. Verifikasi readiness, healthy active Alertmanager, scrape, rules, dan data
-   continuity.
-
-!!! success "Expected Result"
-
-    Replacement Prometheus sehat dan mengirim ke persistent Alertmanager,
-    sedangkan original container serta configuration snapshot tetap tersedia.
-
-</div>
-
-<div class="procedure-step" markdown>
-
-### Verify Firing and Resolved Delivery
-
-1. Catat Mailpit baseline dan exact Telegraf identity.
-2. Stop exact original Telegraf sampai real scrape-unavailable alert firing dan
-   email matching diterima.
-3. Start kembali exact Telegraf dan tunggu resolved alert serta email matching.
-4. Verifikasi kedua scrape target `up=1`, rules kembali inactive, dan baseline
-   metrics tetap tersedia.
-
-!!! success "Expected Result"
-
-    Mailpit menangkap matching firing dan resolved email dari real Prometheus
-    rule, lalu seluruh baseline monitoring pulih.
-
-</div>
-
-</div>
+| Tahap | Rencana |
+| --- | --- |
+| **Review Governance and Source Contracts** | Memeriksa instruction, standard, accepted contract, ownership, dan authorization boundary. |
+| **Inspect Exact Runtime Preflight State** | Memeriksa worktree, image, container, volume, network, port, configuration, rules, readiness, IDs, mounts, dan rollback trigger. |
+| **Apply and Validate Source Interfaces** | Menambahkan initializer serta static contracts, memperbarui documentation, dan menjalankan shell, static, `amtool`, serta `promtool` checks. |
+| **Create Persistent Alertmanager and Mailpit** | Menginisialisasi volumes, menjalankan Mailpit loopback-only, dan menjalankan Alertmanager tanpa host port. |
+| **Retain Rollback and Replace Prometheus** | Menyimpan snapshot serta original container, memperbarui volume configuration, dan menjalankan replacement dengan resources yang sama. |
+| **Verify Real Firing and Resolved Delivery** | Menghentikan exact Telegraf, menunggu firing email, memulihkannya, lalu menunggu resolved email. |
+| **Verify Final Persistent State** | Memastikan scrape, rules, metrics, readiness, identities, mounts, dan rollback boundary sesuai contract. |
+| **Consolidate and Review Documentation** | Memperbarui current-state documentation, journal, navigation, dan final verification record. |
 
 ## ↩️ Rollback Plan
 
@@ -980,6 +918,30 @@ approved verification scope hanya mencakup targeted diff dan whitespace check.
 </div>
 
 </div>
+
+## 🧭 Post-validation Correction Plan
+
+Rangkaian ini dimulai setelah operator review menemukan bahwa status dan isi
+email perlu dibuat lebih mudah dibedakan. Setiap correction tetap divalidasi
+sebelum dipasang ke persistent runtime.
+
+| Tahap | Rencana |
+| --- | --- |
+| **Implement Status-specific Notification Body** | Membedakan isi firing dan resolved. |
+| **Validate Corrected Firing and Resolved Rendering** | Memeriksa rendering candidate secara disposable. |
+| **Deploy Corrected Persistent Configuration** | Memasang correction pada Alertmanager persistent. |
+| **Repeat Real-rule Delivery and Verify Corrected HTML** | Mengulang rule nyata dan memeriksa dua email. |
+| **Refine Visual and Resolved-content Contract** | Memperjelas warna, hierarchy, dan resolved content. |
+| **Deploy Visual-corrected Alertmanager Revision** | Memasang revisi visual ke persistent runtime. |
+| **Verify Persistent Red and Green Notification Pair** | Memastikan firing merah dan resolved hijau tampil sebagai pasangan. |
+| **Define Unified Operator Alert-template Contract** | Menetapkan satu template yang konsisten untuk operator. |
+| **Validate Unified Alert-template Candidate** | Memeriksa syntax dan rendering unified template. |
+| **Deploy Unified Alert-template to Persistent Runtime** | Memasang unified template pada Alertmanager persistent. |
+| **Verify Persistent Unified Critical and Normal Pair** | Memastikan critical dan normal email mengikuti unified contract. |
+| **Implement Enterprise SRE and Incident Operations Alert-template (Option 1)** | Menerapkan pilihan tampilan Enterprise SRE yang diterima. |
+| **Validate Enterprise SRE Alert-template Candidate** | Memeriksa candidate sebelum persistent mutation. |
+| **Deploy Enterprise SRE Alert-template to Persistent Runtime** | Memasang candidate tervalidasi ke persistent runtime. |
+| **Verify Persistent Enterprise SRE Critical and Resolved Pair** | Memastikan pasangan critical dan resolved akhir sesuai acceptance criteria. |
 
 ## 🛠️ Post-validation Correction
 
@@ -1802,6 +1764,7 @@ tetap menjadi tindakan manual operator.
 
 ## 🔗 Related Documentation
 
+- [TM-ADR-0005 — Use Mailpit as the Persistent Lab Notification Verification Target](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0005.md)
 - [TN-034 — Define Persistent Alertmanager and Prometheus Delivery Integration Contract](TN-034-define-persistent-alertmanager-and-prometheus-delivery-integration-contract.md)
 - [Architecture](../../architecture/index.md)
 - [Infrastructure](../../infrastructure/index.md)

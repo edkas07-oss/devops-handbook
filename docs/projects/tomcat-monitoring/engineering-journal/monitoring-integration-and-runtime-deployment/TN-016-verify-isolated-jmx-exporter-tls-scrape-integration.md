@@ -67,16 +67,121 @@ catalog, deployment, dan commit tidak termasuk scope.
 
 ## 🧪 Method
 
-1. Verifikasi source, image, tool, network, dan collision exact targets.
-2. Buat temporary certificate, keystore, password file, serta TN-scoped
-   Prometheus volumes.
-3. Jalankan JMX Exporter dan Prometheus sementara, lalu verifikasi success
-   melalui Prometheus API.
-4. Ganti trust material temporary Prometheus dengan CA yang tidak dipercaya,
-   jalankan ulang target test, dan verifikasi target down.
-5. Pulihkan trusted CA, verifikasi target kembali up, lalu hapus seluruh exact
-   temporary resources.
-6. Validasi final source, documentation, dan cleanup state.
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Verify the Isolated-Test Readiness
+
+Periksa source, image, tool, network, persistent boundary, dan collision exact
+target sebelum resource dibuat.
+
+!!! success "Expected Result"
+
+    Source dan image sesuai baseline; exact resource sementara belum ada;
+    persistent Prometheus tidak berubah.
+
+**Actual Result:** readiness lulus setelah Podman inspection diulang melalui
+runtime access yang disetujui.
+
+**Evidence:** `Readiness and authorization` mencatat identity serta collision
+result.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Generate the Temporary TLS Material
+
+Buat certificate, keystore, password file, untrusted CA, dan permission
+TN-scoped tanpa menampilkan secret.
+
+!!! success "Expected Result"
+
+    Certificate memiliki SAN yang benar dan material privat menggunakan mode
+    `0600`.
+
+**Actual Result:** percobaan `openssl rand` pertama gagal karena posisi opsi;
+command diperbaiki dan PKCS12 validation kemudian lulus.
+
+**Evidence:** certificate metadata, file mode, dan failed-attempt chronology
+pada Evidence.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Start the Isolated Runtime and Verify Success
+
+Buat volume sementara, jalankan JMX Exporter serta Prometheus, kemudian periksa
+target dan baseline metrics melalui API.
+
+!!! success "Expected Result"
+
+    Target berstatus `up=1`, hostname verification aktif, dan baseline JVM
+    serta Tomcat metric tersedia.
+
+**Actual Result:** target `up=1` dan JVM metric tersedia. MBean Tomcat tersedia
+dengan nama runtime `tomcat_server`, bukan expected `tomcat_server_info`.
+
+**Evidence:** Prometheus API, target state, dan full-series inventory.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Verify the Strict TLS Failure
+
+Ganti trust material dengan CA yang tidak dipercaya dan jalankan ulang target
+test tanpa menonaktifkan hostname atau certificate verification.
+
+!!! success "Expected Result"
+
+    Target menjadi down karena trust atau hostname mismatch yang dapat diamati.
+
+**Actual Result:** target menjadi down sesuai failure injection.
+
+**Evidence:** target error dan configuration tetap mempertahankan
+`insecure_skip_verify: false`.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Restore Trust and Remove Temporary Resources
+
+Pulihkan trusted CA, pastikan target kembali up, lalu hapus exact container,
+volume, dan TLS directory sementara.
+
+!!! success "Expected Result"
+
+    Target pulih dan tidak ada resource TN-016 yang tertinggal.
+
+**Actual Result:** trusted scrape pulih dan cleanup exact targets selesai.
+
+**Evidence:** recovery query serta final absence checks.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Validate the Final Documentation and Boundary
+
+Periksa source, dokumentasi, navigation, dan cleanup state tanpa mengubah
+persistent Prometheus.
+
+!!! success "Expected Result"
+
+    Hasil, metric-name mismatch, dan persistent boundary tercatat dengan jelas.
+
+**Actual Result:** checks lulus dan mismatch diteruskan ke TN-017 untuk
+resolution append-oriented.
+
+**Evidence:** final documentation checks, Findings, dan resolution TN-017.
+
+</div>
+
+</div>
 
 ## 🛠️ Evidence
 

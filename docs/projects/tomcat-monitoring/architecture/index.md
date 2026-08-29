@@ -121,6 +121,16 @@ melakukan scrape terhadap JMX Exporter dan Telegraf.
 - Certificate, private key, dan trust material dipasang sebagai read-only
   secret dan tidak disimpan di dalam image atau repository.
 
+## Related Architecture Decisions
+
+| ADR | Decision Summary |
+| --- | --- |
+| [TM-ADR-0001](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0001.md) | Menggunakan embedded JMX instrumentation dan containerized monitoring stack. |
+| [TM-ADR-0002](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0002.md) | Memisahkan image runtime generik dari konfigurasi integrasi project. |
+| [TM-ADR-0003](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0003.md) | Menyimpan material TLS persistent lab di luar Git dan image. |
+| [TM-ADR-0004](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0004.md) | Memisahkan application failure dari kehilangan signal monitoring. |
+| [TM-ADR-0005](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0005.md) | Menggunakan Mailpit sebagai target verifikasi notifikasi persistent lab. |
+
 ## Current Status
 
 Deployment topology belum diverifikasi melalui implementasi end-to-end.

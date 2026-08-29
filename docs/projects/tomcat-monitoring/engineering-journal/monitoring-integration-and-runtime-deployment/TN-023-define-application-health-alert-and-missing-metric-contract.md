@@ -203,8 +203,10 @@ atau environment secret.
 
 Contract tiga-signal, stable-label aggregation, lab baseline `for: 2m`, dan
 severity di atas diterima sebagai dasar planning implementasi berikutnya.
-Keputusan menerapkan architecture TM-ADR-0001 tanpa mengubah topology atau
-component ownership, sehingga ADR baru tidak diperlukan.
+Retrospective ADR review pada 2026-08-29 menilai pemisahan tiga failure signal
+sebagai keputusan jangka panjang dengan alternatif bermakna. Keputusan tersebut
+kemudian dicatat pada
+[TM-ADR-0004](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0004.md).
 
 Implementation tetap memerlukan Technical Note baru dan Implementation Gate
 yang menetapkan exact rule file, Prometheus `rule_files` loading, validator,
@@ -309,3 +311,4 @@ rollback, cleanup, dan authorization baru.
 - [Architecture](../../architecture/index.md)
 - [Operations](../../operations/index.md)
 - [TM-ADR-0001](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0001.md)
+- [TM-ADR-0004 — Separate Application Failure from Monitoring Signal Loss](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0004.md)

@@ -149,6 +149,7 @@ menggunakan canonical runtime name `tomcat_server`.
 
 ## Related Pages
 
+- [TM-ADR-0002 — Separate Generic Runtime Images from Monitoring Integration Configuration](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0002.md)
 - [Development Environment Setup](setup.md)
 - [Architecture](../architecture/index.md)
 - [Infrastructure](../infrastructure/index.md)

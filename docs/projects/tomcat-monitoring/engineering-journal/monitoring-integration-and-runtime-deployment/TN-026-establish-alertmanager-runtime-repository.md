@@ -79,19 +79,19 @@ memublikasikan port secara default. Optional UI publication hanya mengikat
 loopback `127.0.0.1`. `clean.sh` hanya menargetkan named container dan tidak
 menghapus image, volume, atau data.
 
-Keputusan tersebut menerapkan TN-025 dan TM-ADR-0001 tanpa mengubah topology
-atau external-integration boundary, sehingga ADR baru tidak diperlukan.
+Keputusan tersebut menerapkan TN-025, TM-ADR-0001, dan repository ownership
+model yang kemudian dicatat secara retrospektif pada
+[TM-ADR-0002](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0002.md).
 
 ## 📋 Implementation Plan
 
-1. Tambahkan repository governance, identity metadata, upstream pin,
-   build-context exclusions, dan Containerfile minimal.
-2. Tambahkan build, smoke-test, run, serta cleanup interfaces yang tidak
-   memiliki project configuration atau persistent default.
-3. Tambahkan README yang menjelaskan contract dan verification boundary.
-4. Terapkan executable mode pada scripts dan jalankan static verification.
-5. Konsolidasikan hasil aktual ke Engineering Journal serta current-state
-   documentation tanpa menyatakan image atau runtime telah diverifikasi.
+| Tahap | Rencana |
+| --- | --- |
+| **Prepare the Runtime Repository Contract** | Menambahkan governance, identity, upstream pin, exclusions, dan Containerfile minimal. |
+| **Implement the Lifecycle Interfaces** | Menambahkan build, smoke-test, run, dan cleanup tanpa konfigurasi project atau persistent default. |
+| **Document the Runtime and Verification Boundary** | Menjelaskan cara penggunaan dan batas klaim source, image, runtime, serta notification. |
+| **Apply Executable Modes and Run Static Validation** | Menerapkan file mode serta memeriksa shell, metadata, inventory, secret pattern, dan whitespace. |
+| **Consolidate the Source-Level Handoff** | Mencatat hasil source tanpa menyatakan image atau runtime telah diverifikasi. |
 
 ## ⚙️ Implementation
 
@@ -119,6 +119,104 @@ Repository `alertmanager` sekarang memiliki:
 Tidak ada `alertmanager.yml`, receiver, webhook URL, credential, certificate,
 secret, data, automation deployment, atau runtime-generated artifact yang
 ditambahkan.
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Prepare the Runtime Repository Contract
+
+Tambahkan governance, identity metadata, exact upstream pin,
+`.containerignore`, dan Containerfile yang mempertahankan official runtime.
+
+!!! success "Expected Result"
+
+    Repository memiliki identity yang jelas dan tidak membawa configuration
+    atau secret milik project integration.
+
+**Actual Result:** seluruh contract source tersedia sesuai inventory.
+
+**Evidence:** `AGENTS.md`, `PROJECT`, `VERSION`, `CONFIG`,
+`.containerignore`, dan `Containerfile` tersedia.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Implement the Lifecycle Interfaces
+
+Tambahkan `build.sh`, `test.sh`, `run.sh`, dan `clean.sh` dengan target serta
+cleanup yang dibatasi secara eksplisit.
+
+!!! success "Expected Result"
+
+    Caller dapat membangun, menguji, menjalankan, dan membersihkan named
+    container tanpa default persistent atau penghapusan volume.
+
+**Actual Result:** keempat interface tersedia tanpa project configuration.
+
+**Evidence:** source inventory dan targeted script review.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Document the Runtime and Verification Boundary
+
+Tambahkan README yang membedakan source validation, image build/test,
+configuration integration, persistent runtime, dan external notification.
+
+!!! success "Expected Result"
+
+    Pembaca mengetahui kemampuan yang tersedia dan hal yang belum diuji.
+
+**Actual Result:** README memisahkan kelima verification layer tersebut.
+
+**Evidence:** README review pada command record.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Apply Executable Modes and Run Static Validation
+
+```bash
+chmod 0755 scripts/build.sh scripts/test.sh scripts/run.sh scripts/clean.sh
+bash -n CONFIG scripts/*.sh
+git diff --check
+```
+
+!!! success "Expected Result"
+
+    Script ber-mode `0755`; shell, metadata, inventory, secret pattern, dan
+    whitespace checks lulus.
+
+**Actual Result:** `chmod` pertama gagal pada sandbox read-only; approved retry
+berhasil dan seluruh static checks lulus.
+
+**Evidence:** mode check, validator commands, dan Troubleshooting record.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Consolidate the Source-Level Handoff
+
+Catat artifact serta verification boundary dan arahkan build/smoke test ke
+TN-027.
+
+!!! success "Expected Result"
+
+    Source-level result dapat dibedakan dari image dan runtime yang belum diuji.
+
+**Actual Result:** Outcome membatasi klaim pada source; TN-027 menjadi next
+verification activity.
+
+**Evidence:** Verification, Outcome, Next Steps, dan Related Documentation.
+
+</div>
+
+</div>
 
 ## 🛠️ Troubleshooting
 
@@ -263,4 +361,5 @@ integration tidak dimulai sebelum runtime image lulus component verification.
 - [Development](../../development/index.md)
 - [Infrastructure](../../infrastructure/index.md)
 - [TM-ADR-0001](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0001.md)
+- [TM-ADR-0002 — Separate Generic Runtime Images from Monitoring Integration Configuration](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0002.md)
 - [Prometheus Download](https://prometheus.io/download/)

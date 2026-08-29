@@ -16,13 +16,13 @@
 | Approval Date | 2026-08-20 |
 | Completion Date | 2026-08-20 |
 
-## Objective
+## 🎯 Objective
 
 Menormalisasi reconstructed records Runtime Monitoring Foundation agar
 provenance, activity classification, outcome, dan verification boundary dapat
 dipahami tanpa mengubah technical history.
 
-## Background
+## 🌍 Background
 
 TN-001 sampai TN-003 dibuat setelah sebagian aktivitas yang diceritakan telah
 selesai dan menggunakan Engineering Journal template lama. Assessment Stage 04
@@ -30,7 +30,7 @@ menetapkan controlled normalization agar isi historis tetap dipertahankan,
 sementara ambiguity pada tanggal, status, dan evidence diperbaiki secara
 transparan.
 
-## Scope
+## 📚 Scope
 
 - Menambahkan metadata dan reconstruction notice pada TN-001 sampai TN-003;
 - Menambahkan legacy structure mapping pada TN-001;
@@ -43,7 +43,7 @@ transparan.
 Aktivitas ini tidak mengubah source, image, runtime, ADR, arsitektur, atau hasil
 technical test yang pernah dijalankan.
 
-## Source Inputs
+## 📥 Source Inputs
 
 | Source | Usage |
 | --- | --- |
@@ -54,7 +54,7 @@ technical test yang pernah dijalankan.
 | TM-ADR-0001 | Memeriksa decision handoff dan completion chronology TN-001. |
 | Project documentation | Memeriksa consistency current-state status. |
 
-## Documentation Mapping
+## 📝 Documentation Mapping
 
 | Information | Documentation Target |
 | --- | --- |
@@ -65,7 +65,7 @@ technical test yang pernah dijalankan.
 | Reusable JMX Exporter procedure | Tetap menjadi outstanding root How-to; tidak dibuat pada aktivitas ini |
 | AI governance | Tetap menjadi follow-up sebelum technical implementation berikutnya |
 
-## Changes
+## 📝 Changes
 
 | Target | Change |
 | --- | --- |
@@ -80,7 +80,7 @@ technical test yang pernah dijalankan.
 | Current-state documentation | Mengoreksi status pada Overview, Development, Infrastructure, dan CI/CD tanpa mengubah arsitektur. |
 | Navigation | Menambahkan TN-004 ke phase `.pages`. |
 
-## Review Result
+## ✅ Review Result
 
 | Review Area | Result | Evidence |
 | --- | --- | --- |
@@ -95,7 +95,7 @@ technical test yang pernah dijalankan.
 | Runtime verification | Not performed | Documentation Consolidation tidak membangun image atau menjalankan smoke test baru. |
 | MkDocs render | Not verified | Executable `mkdocs` tidak tersedia pada development shell. |
 
-## Outcome
+## 🧾 Outcome
 
 Controlled normalization selesai. Reconstructed records kini menjelaskan
 provenance dan keterbatasannya, sedangkan current-state documentation
@@ -105,10 +105,20 @@ Clean build dan smoke test dari commit `d392717`, reusable root How-to, serta
 repository-level `AGENTS.md` tetap menjadi outstanding activity terpisah.
 Technical Note ini tidak menghasilkan technical verification baru.
 
-## Related Documentation
+## ⏭️ Next Steps
+
+- Terapkan repository-level governance melalui TN-005.
+- Bangun ulang current JMX Exporter source dan jalankan smoke test melalui
+  TN-006.
+- Pertahankan reusable JMX Exporter How-to sebagai outstanding documentation
+  sampai prosedur lintas project tersebut dikerjakan.
+
+## 🔗 Related Documentation
 
 - [Runtime Monitoring Foundation Engineering Journal](index.md)
 - [TN-001 — Design Runtime Monitoring Contract](TN-001-design-runtime-monitoring-contract.md)
 - [TN-002 — Implement Tomcat JMX Exporter Image](TN-002-implement-tomcat-jmx-exporter-image.md)
 - [TN-003 — Standardize Indonesian Self-Documentation](TN-003-standardize-indonesian-self-documentation.md)
+- [TN-005 — Implement Repository AGENTS.md Governance](TN-005-implement-repository-agents-governance.md)
+- [TN-006 — Build and Smoke Test Current Tomcat JMX Exporter Source](TN-006-build-and-smoke-test-current-tomcat-jmx-exporter-source.md)
 - [Engineering Journal Standards](../../../../standards/engineering-journal-standards.md)

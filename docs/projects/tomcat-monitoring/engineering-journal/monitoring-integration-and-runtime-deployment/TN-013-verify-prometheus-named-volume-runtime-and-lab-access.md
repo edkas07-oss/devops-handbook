@@ -65,16 +65,133 @@ termasuk scope.
 
 ## 🧪 Method
 
-1. Review Podman version serta collision pada image, network, port, volume, dan
-   container target.
-2. Ubah runtime source agar hanya menerima named volume dan tambahkan volume
-   initialization interface pada integration repository.
-3. Jalankan source validation sebelum runtime mutation.
-4. Buat serta isi tiga volumes melalui initializer container dan `podman cp`.
-5. Jalankan `promtool` menggunakan config serta truststore volume read-only.
-6. Jalankan persistent Prometheus container, periksa readiness, port, mounts,
-   log startup, dan akses melalui hostname `edkas-pc1`.
-7. Tunggu browser confirmation dari project owner sebelum menutup TN-013.
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Review the Runtime Readiness
+
+Periksa versi Podman serta collision pada image, network, port, volume, dan
+container target. Command aktual tersedia pada `Readiness discovery`.
+
+!!! success "Expected Result"
+
+    Image dan network tersedia, port `9090` bebas, dan target final belum ada.
+
+**Actual Result:** Podman `4.9.3`, image, dan network tersedia; collision tidak
+ditemukan setelah pemeriksaan diulang dengan runtime access yang disetujui.
+
+**Evidence:** readiness discovery dan catatan kegagalan sandbox pertama.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Implement the Named-Volume Interfaces
+
+Ubah runtime agar menerima named volume dan tambahkan initializer pada
+integration repository.
+
+!!! success "Expected Result"
+
+    Runtime tidak memerlukan host bind dan initializer dapat mengisi tiga
+    volume dengan mode mount yang berbeda.
+
+**Actual Result:** source runtime dan initializer tersedia serta lulus review.
+
+**Evidence:** source implementation and validation command record.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Validate the Source Before Runtime Changes
+
+Jalankan shell syntax, baseline validation, dan whitespace check sebelum
+membuat resource runtime.
+
+!!! success "Expected Result"
+
+    Source lulus seluruh pemeriksaan sebelum mutation dimulai.
+
+**Actual Result:** seluruh pemeriksaan lulus.
+
+**Evidence:** shell, baseline, dan diff checks pada Commands Executed.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Initialize the Prometheus Volumes
+
+Buat dan isi `prometheus_config`, `prometheus_truststore`, serta
+`prometheus_data`, kemudian hapus initializer.
+
+!!! success "Expected Result"
+
+    Tiga volume berisi material yang diperlukan dan initializer tidak tersisa.
+
+**Actual Result:** volume berhasil dibuat serta diisi tanpa host bind;
+initializer telah dihapus.
+
+**Evidence:** volume initialization dan initializer cleanup record.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Validate the Deployed Configuration Semantics
+
+Jalankan `promtool check config` terhadap configuration dan truststore yang
+dipasang read-only.
+
+!!! success "Expected Result"
+
+    `promtool` menerima configuration dari named volume.
+
+**Actual Result:** semantic validation lulus.
+
+**Evidence:** output `SUCCESS` dari `promtool check config`.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Start and Inspect Persistent Prometheus
+
+Jalankan container persistent, lalu periksa readiness, port, mounts, log, dan
+akses host melalui `edkas-pc1`.
+
+!!! success "Expected Result"
+
+    Prometheus ready pada port `9090`, menggunakan tiga named volume dengan
+    mode yang benar, dan dapat dijangkau melalui hostname lab.
+
+**Actual Result:** readiness berhasil, port dan mounts sesuai, serta hostname
+menghasilkan HTTP `302`.
+
+**Evidence:** runtime, mount, port, dan hostname inspection record.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Confirm Browser Access with the Project Owner
+
+Minta project owner membuka `http://edkas-pc1:9090` melalui VPN sebelum TN
+ditutup.
+
+!!! success "Expected Result"
+
+    Dashboard Prometheus tampil pada browser tablet project owner.
+
+**Actual Result:** project owner mengonfirmasi dashboard dapat dibuka.
+
+**Evidence:** browser confirmation diterima pada 2026-08-24.
+
+</div>
+
+</div>
 
 ## 📥 Evidence
 

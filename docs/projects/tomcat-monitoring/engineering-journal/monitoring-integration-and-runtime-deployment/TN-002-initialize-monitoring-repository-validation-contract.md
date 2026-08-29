@@ -51,13 +51,12 @@ runtime baru.
 
 ## ⚙️ Implementation Plan
 
-1. Buat dokumentasi root yang menjelaskan ownership, batas secret, dan status
-   repository.
-2. Buat directory contract untuk configuration dan validation tanpa sample
-   runtime configuration.
-3. Buat validator Bash yang memeriksa layout dan memastikan tidak ada material
-   sensitif dengan ekstensi yang dilarang pada repository.
-4. Jalankan syntax dan static validation, lalu catat actual result.
+| Tahap | Rencana |
+| --- | --- |
+| **Prepare the Repository Contract** | Membuat dokumentasi, directory contract, dan validator baseline. |
+| **Validate the Shell Syntax** | Memastikan validator Bash memiliki sintaks yang valid. |
+| **Run the Baseline Validation** | Memeriksa layout dan kebijakan nama file sensitif. |
+| **Verify the Change Integrity** | Memastikan perubahan tidak memiliki whitespace error. |
 
 ## ⚙️ Implementation
 
@@ -76,12 +75,85 @@ deployment artifact yang dibuat.
 
 ## ⚙️ Execution Record
 
-| Sequence | Purpose | Command actually executed | Expected / actual result |
-| --- | --- | --- | --- |
-| 1 | Mark validator executable | `chmod 0755 /home/eddywiyatno/git/tomcat-monitoring/scripts/validate.sh` | Expected executable script; actual completed. |
-| 2 | Check Bash syntax | `bash -n /home/eddywiyatno/git/tomcat-monitoring/scripts/validate.sh` | Expected no syntax error; actual passed without output. |
-| 3 | Run baseline validation | `/home/eddywiyatno/git/tomcat-monitoring/scripts/validate.sh` | Expected contract files and secret filename policy valid; actual output `Baseline validation passed`. |
-| 4 | Check change integrity | `git -C /home/eddywiyatno/git/tomcat-monitoring diff --check` | Expected no whitespace error; actual passed without output. |
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Prepare the Repository Contract
+
+Tambahkan artifact yang dijelaskan pada bagian Implementation, lalu jadikan
+validator dapat dijalankan.
+
+```bash
+chmod 0755 /home/eddywiyatno/git/tomcat-monitoring/scripts/validate.sh
+```
+
+!!! success "Expected Result"
+
+    Contract repository tersedia dan validator memiliki permission executable.
+
+**Actual Result:** artifact tersedia dan permission berhasil diterapkan.
+
+**Evidence:** inventory Implementation dan command `chmod` yang selesai tanpa
+error.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Validate the Shell Syntax
+
+```bash
+bash -n /home/eddywiyatno/git/tomcat-monitoring/scripts/validate.sh
+```
+
+!!! success "Expected Result"
+
+    Validator tidak memiliki syntax error.
+
+**Actual Result:** pemeriksaan lulus tanpa output.
+
+**Evidence:** command selesai dengan exit code `0`.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Run the Baseline Validation
+
+```bash
+/home/eddywiyatno/git/tomcat-monitoring/scripts/validate.sh
+```
+
+!!! success "Expected Result"
+
+    File contract tersedia dan kebijakan nama file sensitif terpenuhi.
+
+**Actual Result:** baseline validation lulus.
+
+**Evidence:** output `Baseline validation passed`.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Verify the Change Integrity
+
+```bash
+git -C /home/eddywiyatno/git/tomcat-monitoring diff --check
+```
+
+!!! success "Expected Result"
+
+    Tidak ada whitespace error pada perubahan repository.
+
+**Actual Result:** pemeriksaan lulus tanpa output.
+
+**Evidence:** command selesai dengan exit code `0`.
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

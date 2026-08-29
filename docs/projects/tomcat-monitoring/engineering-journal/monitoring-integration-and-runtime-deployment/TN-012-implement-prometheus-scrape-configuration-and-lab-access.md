@@ -83,12 +83,13 @@ akses browser tetap membutuhkan verification scope terpisah.
 
 ## 🛠️ Implementation Plan
 
-1. Buat live TN-012 dan daftarkan navigation.
-2. Implementasikan configuration serta validator pada `tomcat-monitoring`.
-3. Implementasikan optional lab host port pada runtime Prometheus.
-4. Jalankan shell syntax, baseline validation, whitespace check, dan diff
-   review tanpa menjalankan container.
-5. Tutup TN dan serahkan command penggunaan lab serta batas bukti.
+| Tahap | Rencana |
+| --- | --- |
+| **Register the Technical Note and Navigation** | Membuat TN-012 dan memastikan urutannya dapat ditemukan. |
+| **Implement the Prometheus Integration Configuration** | Menambahkan konfigurasi scrape dan validator pada `tomcat-monitoring`. |
+| **Implement the Optional Lab Host Port** | Menambahkan argumen host port tanpa mengubah default runtime generik. |
+| **Validate the Source Changes** | Menjalankan pemeriksaan sintaks, contract, input negatif, whitespace, dan diff. |
+| **Consolidate the Handoff and Result Boundary** | Menutup aktivitas serta membedakan hasil source dari runtime yang belum diuji. |
 
 ## ⚙️ Implementation
 
@@ -129,6 +130,132 @@ default pada runtime source.
 **Actual result.** Source memenuhi expected interface. Non-numeric port dan
 port `70000` ditolak sebelum command mencapai Podman; valid publication belum
 dijalankan karena container runtime berada di luar scope.
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Register the Technical Note and Navigation
+
+1. Buat TN-012 sebagai live record.
+2. Daftarkan TN setelah TN-011 pada phase index dan navigation.
+3. Pastikan file dan referensinya tersedia.
+
+```bash
+test -f docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/TN-012-implement-prometheus-scrape-configuration-and-lab-access.md
+rg -n 'TN-012-implement-prometheus-scrape-configuration-and-lab-access\.md' docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/index.md docs/projects/tomcat-monitoring/engineering-journal/monitoring-integration-and-runtime-deployment/.pages
+```
+
+!!! success "Expected Result"
+
+    TN-012 tersedia dan terdaftar setelah TN-011.
+
+**Actual Result:** file dan kedua referensi navigation tersedia.
+
+**Evidence:** `test -f` serta pencarian reference lulus.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Implement the Prometheus Integration Configuration
+
+1. Tambahkan `prometheus.yml` dan validator Prometheus.
+2. Hubungkan validator baru ke baseline validation.
+3. Jalankan pemeriksaan source monitoring.
+
+```bash
+chmod 0755 scripts/validate-prometheus.sh
+bash -n scripts/*.sh
+./scripts/validate.sh
+```
+
+!!! success "Expected Result"
+
+    Konfigurasi dan validator tersedia; seluruh validation source monitoring
+    lulus tanpa menjalankan container.
+
+**Actual Result:** validator Prometheus dan Telegraf dijalankan oleh baseline
+validation dan seluruhnya lulus.
+
+**Evidence:** tiga pesan success dari `./scripts/validate.sh` dan executable
+check pada `scripts/validate-prometheus.sh`.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Implement the Optional Lab Host Port
+
+1. Tambahkan argumen `[host-port]` pada `prometheus/scripts/run.sh`.
+2. Pertahankan perilaku tanpa published port ketika argumen kosong.
+3. Uji penolakan nilai non-numerik dan nilai di luar rentang.
+
+```bash
+bash -n entrypoint.sh scripts/*.sh
+if ./scripts/run.sh README.md /tmp prometheus invalid; then exit 1; else printf 'Expected rejection passed: non-numeric host port was rejected before Podman execution.\n'; fi
+if ./scripts/run.sh README.md /tmp prometheus 70000; then exit 1; else printf 'Expected rejection passed: out-of-range host port was rejected before Podman execution.\n'; fi
+```
+
+!!! success "Expected Result"
+
+    Host port valid bersifat opsional, sedangkan input `invalid` dan `70000`
+    ditolak sebelum Podman dijalankan.
+
+**Actual Result:** kedua input negatif ditolak sesuai rencana dan default tanpa
+host port tetap dipertahankan.
+
+**Evidence:** kedua invocation berakhir non-zero dengan pesan rejection yang
+diharapkan; shell syntax lulus.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Validate the Source Changes
+
+Jalankan pemeriksaan ulang pada source monitoring, runtime Prometheus, dan
+dokumentasi yang berubah.
+
+```bash
+git diff --check
+rg -n '[[:blank:]]+$' README.md config/prometheus/README.md config/prometheus/prometheus.yml validation/README.md scripts/validate.sh scripts/validate-prometheus.sh
+```
+
+!!! success "Expected Result"
+
+    Tidak ada syntax, contract, whitespace, atau perubahan di luar scope yang
+    menggagalkan handoff.
+
+**Actual Result:** pemeriksaan source dan dokumentasi lulus; trailing-whitespace
+scan tidak menemukan match.
+
+**Evidence:** hasil rinci per repository tersedia pada Commands Executed dan
+tabel Verification.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Consolidate the Handoff and Result Boundary
+
+1. Catat artifact yang telah tersedia.
+2. Catat semantic validation dan browser access sebagai `Not verified`.
+3. Arahkan runtime verification ke TN-013.
+
+!!! success "Expected Result"
+
+    Pembaca dapat membedakan source yang telah diverifikasi dari runtime dan
+    akses browser yang belum diuji.
+
+**Actual Result:** Outcome dan Next Steps menyatakan batas tersebut dan
+menyerahkan runtime verification ke TN-013.
+
+**Evidence:** tabel Verification, Outcome, dan Related Documentation konsisten.
+
+</div>
+
+</div>
 
 ## ✅ Verification
 

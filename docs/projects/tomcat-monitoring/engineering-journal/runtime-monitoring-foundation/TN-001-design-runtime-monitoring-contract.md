@@ -25,7 +25,7 @@
     dimodifikasi pada 2026-08-18. Narasi berikut merupakan rekonstruksi dan
     tidak boleh dibaca sebagai pencatatan live.
 
-## Legacy Structure Mapping
+## 📝 Legacy Structure Mapping
 
 Technical Note ini mempertahankan struktur lama agar konteks historis tidak
 ditulis ulang. Hubungannya dengan activity type `Discovery and Assessment`
@@ -43,12 +43,12 @@ adalah:
 Assumption, risk, atau open question yang tidak dinyatakan pada catatan awal
 tidak ditambahkan sebagai fakta baru selama normalisasi.
 
-## Objective
+## 🎯 Objective
 
 Menetapkan arsitektur awal dan urutan implementasi Tomcat Monitoring berdasarkan
 kebutuhan operasional, batasan keamanan, serta target penggunaan project.
 
-## Background
+## 🌍 Background
 
 Project dimulai dari kebutuhan memperbaiki cara Apache Tomcat disediakan dan
 dimonitor. Implementasi yang sudah berjalan belum seluruhnya berbasis container
@@ -111,7 +111,7 @@ Technical Note ini mencatat proses pembentukan desain tersebut. Setelah desain
 ditinjau, hasil akhirnya dikonsolidasikan ke dokumentasi Architecture sebagai
 ringkasan current-state untuk pembaca project.
 
-## Scope
+## 📚 Scope
 
 - Perumusan masalah dan target penggunaan project;
 - Identifikasi kebutuhan monitoring dan availability;
@@ -122,13 +122,13 @@ ringkasan current-state untuk pembaca project.
 - Penetapan urutan implementasi awal; serta
 - Konsolidasi hasil desain ke dokumentasi project.
 
-## Prerequisites
+## 📋 Prerequisites
 
 N/A. Technical Note ini berfokus pada perumusan desain dan arsitektur awal,
 sehingga tidak ada access, component, atau technical dependency yang harus
 disiapkan sebelum aktivitas dilakukan.
 
-## Execution Decision
+## ⚖️ Execution Decision
 
 ### TM-ADR-0001 — Adopt Embedded Monitoring Instrumentation for Apache Tomcat
 
@@ -154,7 +154,7 @@ mengadopsi full external observability platform.
 - Biaya dan administrasi full observability platform belum sebanding dengan
   kebutuhan operasional saat ini.
 
-## Architecture
+## 🏛️ Architecture
 
 ### Design Result
 
@@ -178,7 +178,7 @@ Hasil desain dipublikasikan sebagai ringkasan pada:
 Dokumentasi Architecture menampilkan hasil desain yang berlaku. Konteks
 pembentukan desain dan urutan pekerjaan tetap berada pada Technical Note ini.
 
-## Implementation
+## ⚙️ Implementation
 
 <div class="procedure" markdown>
 
@@ -198,6 +198,12 @@ pembentukan desain dan urutan pekerjaan tetap berada pada Technical Note ini.
     Masalah yang diselesaikan dan target penggunaan project dapat dijelaskan
     sebelum teknologi monitoring dipilih.
 
+**Actual Result:** kebutuhan migrasi, standardisasi Tomcat baru, pengurangan
+remote JMX, dan pengendalian biaya monitoring berhasil dirumuskan.
+
+**Evidence:** bagian `Background`, `Scope`, dan TM-ADR-0001 mencatat masalah
+serta target project.
+
 </div>
 
 <div class="procedure-step" markdown>
@@ -215,6 +221,11 @@ pembentukan desain dan urutan pekerjaan tetap berada pada Technical Note ini.
 
     Metrics, application health, historical visibility, dan alert state
     memiliki tujuan yang berbeda dan tidak saling menggantikan.
+
+**Actual Result:** JVM metrics, application health, historical data, firing,
+resolved, dan missing metric ditetapkan sebagai signal yang berbeda.
+
+**Evidence:** monitoring coverage pada Verification table berstatus `Passed`.
 
 </div>
 
@@ -235,6 +246,13 @@ pembentukan desain dan urutan pekerjaan tetap berada pada Technical Note ini.
     Setiap komponen memiliki peran, interface, dan arah komunikasi yang dapat
     ditampilkan melalui Deployment Topology dan Monitoring Flow.
 
+**Actual Result:** topology menempatkan JMX Exporter, Prometheus, Telegraf,
+Alertmanager, dan Integration Bridge pada peran serta jalur komunikasi yang
+jelas.
+
+**Evidence:** halaman Architecture memuat Deployment Topology dan Monitoring
+Flow yang direview.
+
 </div>
 
 <div class="procedure-step" markdown>
@@ -254,6 +272,13 @@ pembentukan desain dan urutan pekerjaan tetap berada pada Technical Note ini.
 
     Runtime security material dan lifecycle source tidak bercampur, sementara
     generic Tomcat image tetap dapat digunakan oleh project lain.
+
+**Actual Result:** remote JMX dikeluarkan dari desain, server-side TLS diterima,
+dan source dibagi antara generic base, derived image, serta integration
+repository.
+
+**Evidence:** TM-ADR-0001, Security Controls, dan Development repository
+mapping berstatus `Passed` pada Verification table.
 
 </div>
 
@@ -284,6 +309,11 @@ Verify dashboard, alerting, and external integration
     Pekerjaan teknis dapat dijalankan secara bertahap dan setiap hasil memiliki
     dependency serta handoff yang jelas.
 
+**Actual Result:** urutan architecture, environment preparation, component
+build, monitoring integration, CI/CD, dan deployment berhasil ditetapkan.
+
+**Evidence:** phase plan dan diagram engineering sequence tersedia pada TN ini.
+
 </div>
 
 <div class="procedure-step" markdown>
@@ -303,11 +333,16 @@ Verify dashboard, alerting, and external integration
     Pembaca portfolio memperoleh ringkasan desain yang jelas, sedangkan tim
     engineering tetap dapat menelusuri bagaimana desain tersebut dibentuk.
 
-</div>
+**Actual Result:** hasil desain dikonsolidasikan ke Architecture, Development,
+Infrastructure, dan CI/CD tanpa memindahkan histori TN.
+
+**Evidence:** seluruh project page tersebut direview pada Verification table.
 
 </div>
 
-## Verification
+</div>
+
+## ✅ Verification
 
 | Item | Method | Expected Result | Actual Result | Evidence |
 | --- | --- | --- | --- | --- |
@@ -326,7 +361,7 @@ instrumentation diterbitkan sebagai TM-ADR-0001. Detail seperti production
 certificate lifecycle, persistent storage, dan pipeline engine menjadi
 pekerjaan fase berikutnya.
 
-## Lessons Learned
+## 🎓 Lessons Learned
 
 - Engineering Journal harus dimulai ketika kebutuhan dan arah project mulai
   dibahas, bukan setelah topology selesai dibuat.
@@ -339,7 +374,7 @@ pekerjaan fase berikutnya.
 - Dokumentasi project menyampaikan hasil desain, sedangkan Engineering Journal
   mempertahankan alasan, urutan, dan perjalanan pembentukannya.
 
-## Next Steps
+## ⏭️ Next Steps
 
 - Bangun dan verifikasi derived Tomcat image dengan JMX Exporter pada TN-002.
 - Publikasikan component source ke Gitea setelah local verification berhasil.
@@ -347,7 +382,7 @@ pekerjaan fase berikutnya.
 - Lanjutkan persiapan Prometheus, Telegraf, network, TLS, storage, dan CI/CD
   melalui Technical Note berikutnya.
 
-## Outcome
+## 🧾 Outcome
 
 Design contract, repository boundary, monitoring signals, security direction,
 dan engineering sequence telah tersedia dan dikonsolidasikan ke project
@@ -359,7 +394,7 @@ outstanding work. Risiko kapasitas resource, production certificate, persistent
 storage, Telegraf health check, Prometheus integration, CI/CD, dan end-to-end
 deployment belum ditutup oleh Technical Note ini.
 
-## Related Documentation
+## 🔗 Related Documentation
 
 - [Runtime Monitoring Foundation Engineering Journal](index.md)
 - [TN-002 — Implement Tomcat JMX Exporter Image](TN-002-implement-tomcat-jmx-exporter-image.md)

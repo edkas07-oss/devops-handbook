@@ -657,6 +657,80 @@ menghapus scope awal.
 
 ## ⚙️ Implementation
 
+### Plan and execution alignment
+
+`Implementation Plan` atau `Change Plan` harus dapat dipetakan langsung ke
+`Implementation` atau `Deployment or Migration`. Pembaca tidak boleh
+menerjemahkan ulang istilah atau menebak tahap pelaksanaan yang merupakan
+pasangan dari suatu rencana.
+
+Terapkan aturan berikut:
+
+- Gunakan nama dan istilah yang sama pada tahap rencana serta procedure step
+  pelaksanaannya.
+- Pertahankan urutan tahap yang sama. Jika kebutuhan pelaksanaan mengubah
+  urutan, jelaskan alasan dan dampaknya sebelum mencatat urutan aktual.
+- Gunakan deskripsi rencana untuk menjelaskan tujuan tahap. Gunakan procedure
+  step untuk mencatat tindakan, command, expected result, actual result, dan
+  evidence pada tahap yang sama.
+- Jangan mengganti nama tahap secara diam-diam setelah pelaksanaan dimulai.
+- Tandai tahap yang tidak dijalankan sebagai `Skipped`, `Blocked`, atau status
+  lain yang sesuai dan jelaskan alasannya.
+- Catat tahap tambahan sebagai deviation. Jika tahap tersebut mengubah
+  authorized scope, lewati `Scope Change Gate` dan catat alasan, dampak,
+  approver, serta approval date pada `Scope Changes`.
+- Gunakan nama tahap yang sama pada indeks `Commands Executed`; jangan membuat
+  klasifikasi baru yang memutus hubungan antara plan, execution, dan command.
+
+Contoh berikut menunjukkan hubungan satu-ke-satu antara rencana dan
+pelaksanaan. Detail isi setiap procedure step mengikuti template pada bagian
+`Sequential procedures`; contoh ini dipersingkat untuk menonjolkan kesamaan
+nama dan urutan tahap.
+
+```markdown
+## 🧭 Implementation Plan
+
+| Tahap | Rencana |
+| --- | --- |
+| **Review the Current State** | Memeriksa source dan kondisi awal. |
+| **Implement the Configuration** | Menerapkan perubahan yang disetujui. |
+| **Verify the Result** | Memeriksa hasil dan evidence. |
+
+## ⚙️ Implementation
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Review the Current State
+
+<!-- Actions, command, expected result, actual result, and evidence. -->
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Implement the Configuration
+
+<!-- Actions, command, expected result, actual result, and evidence. -->
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Verify the Result
+
+<!-- Actions, command, expected result, actual result, and evidence. -->
+
+</div>
+
+</div>
+```
+
+Plan tetap mempertahankan bentuk yang telah disetujui. Jika pelaksanaan
+berbeda, jelaskan perbedaannya pada execution record dan section yang sesuai;
+jangan menulis ulang plan seolah-olah deviation tidak pernah terjadi.
+
 ### Sequential procedures
 
 Gunakan komponen `procedure` ketika implementasi terdiri dari beberapa langkah
@@ -847,6 +921,25 @@ Note boleh berstatus selesai secara teknis sementara operator acceptance masih
 open, tetapi status handoff, blocked follow-up, dan evidence-retention risk
 harus dinyatakan pada `Outcome`, `Next Steps`, atau `Open Questions`.
 
+### Completion summary and next action
+
+Setelah implementation, deployment, atau verification selesai, `Outcome` harus
+menjelaskan hasil dengan bahasa yang dapat dipahami tanpa membaca command log.
+Jika masih ada pemeriksaan yang perlu dilakukan operator atau pembaca, gunakan
+`Operator Validation` dan `Next Steps` untuk menjawab secara eksplisit:
+
+1. apa yang perlu diperiksa;
+2. di mana atau bagaimana cara membukanya;
+3. hasil apa yang seharusnya terlihat;
+4. apakah evidence bersifat sementara; dan
+5. tindakan atau Technical Note berikutnya setelah pemeriksaan selesai.
+
+Jangan menutup Technical Note hanya dengan kalimat seperti `implementation
+completed`, `validation passed`, atau daftar artifact. Sebagai contoh, setelah
+Mailpit dipasang, handoff harus menjelaskan alamat Web UI, email firing dan
+resolved yang perlu dicari, field yang perlu dibandingkan, serta apakah message
+dapat hilang setelah container diganti atau dihapus.
+
 ## 🔄 Repository Workflow
 
 1. Catat request intake dan communication context pada Engineering Journal.
@@ -972,6 +1065,7 @@ standar. Hasil pemeriksaan yang benar-benar dijalankan harus dicatat pada
 | Scope change | Perubahan scope harus mencatat alasan, dampak, approver, dan approval date. | Aktivitas dengan perubahan authorized scope |
 | Readiness | Prerequisite dan rollback requirement yang relevan harus dinyatakan secara tidak ambigu. | Implementation dan Deployment or Migration |
 | Execution context | Implementation atau deployment harus menjelaskan environment dan konteks pelaksanaannya. | Implementation dan Deployment or Migration |
+| Plan–execution alignment | Nama, istilah, jumlah, dan urutan tahap pada plan harus sesuai dengan pelaksanaan; setiap perbedaan harus memiliki status, alasan, serta scope-change record bila relevan. | Implementation dan Deployment or Migration yang memiliki beberapa tahap |
 | Procedure | Procedure hanya digunakan untuk tindakan berurutan dan nomor langkah tidak ditulis secara manual. | Aktivitas yang menggunakan sequential procedure |
 | Step result | Setiap procedure step harus memiliki `Expected Result` yang dapat diperiksa. | Aktivitas yang menggunakan sequential procedure |
 | Command placement | Command harus berada pada procedure step sesuai chronology; `Commands Executed` hanya menjadi indeks atau pelengkap dan tidak menjadi raw command dump. | Aktivitas yang menjalankan command berurutan |

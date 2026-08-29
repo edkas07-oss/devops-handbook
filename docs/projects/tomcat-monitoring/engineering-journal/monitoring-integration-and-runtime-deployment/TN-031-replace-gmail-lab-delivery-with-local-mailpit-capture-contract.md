@@ -176,10 +176,14 @@ Gmail SMTP dan App Password sebagai current lab baseline, mempertahankan TN-030
 sebagai historical planning record, dan menunda seluruh external delivery.
 
 Mailpit tidak mengubah generic notification-channel architecture pada
-TM-ADR-0001 dan hanya menjadi disposable lab verification utility. Karena itu,
-ADR baru tidak diperlukan. Approval TN-031 tidak mengizinkan source
-implementation, image pull, container execution, network atau port change,
-persistent runtime, maupun external delivery.
+TM-ADR-0001. Retrospective ADR review pada 2026-08-29 menemukan bahwa
+penggantian Gmail, direct-upstream ownership, persistent lab receiver, serta
+storage boundary memiliki alternatif bermakna dan dampak jangka panjang.
+Keputusan tersebut kemudian dicatat pada
+[TM-ADR-0005](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0005.md).
+Approval TN-031 tidak mengizinkan source implementation, image pull, container
+execution, network atau port change, persistent runtime, maupun external
+delivery.
 
 ## ⚙️ Commands Executed
 
@@ -270,6 +274,7 @@ diterima.
 - [Architecture](../../architecture/index.md)
 - [Infrastructure](../../infrastructure/index.md)
 - [TM-ADR-0001](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0001.md)
+- [TM-ADR-0005 — Use Mailpit as the Persistent Lab Notification Verification Target](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0005.md)
 - [Alertmanager Configuration](https://prometheus.io/docs/alerting/latest/configuration/)
 - [Google App Passwords](https://support.google.com/mail/answer/185833?hl=en)
 - [Mailpit Sending Messages](https://mailpit.axllent.org/docs/usage/sending-messages/)

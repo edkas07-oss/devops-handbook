@@ -82,20 +82,19 @@ tetap menjadi pemilik runtime configuration; initialization interface akan
 menyalin `prometheus.yml` dan rule file ke volume yang sama tanpa menghapus
 `prometheus_data`.
 
-Implementasi menerapkan TM-ADR-0001 dan contract TN-023 tanpa mengubah topology
-atau component ownership, sehingga ADR baru tidak diperlukan.
+Implementasi menerapkan TM-ADR-0001 dan contract TN-023. Pemisahan application
+failure, missing metric, dan Telegraf scrape failure kemudian dikonsolidasikan
+ke
+[TM-ADR-0004](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0004.md).
 
 ## 📋 Implementation Plan
 
-1. Tambahkan rule source, loading path, static checks, required-file entry, dan
-   initialization copy contract.
-2. Perbarui README serta current-state documentation agar membedakan source
-   implementation dari runtime verification.
-3. Jalankan shell syntax, repository validation, sensitive-pattern scan,
-   `promtool check rules`, dan `promtool check config` tanpa network pull.
-4. Pertahankan status `In Progress` dan berhenti pada Runtime Verification Gate
-   sampai exact persistent target, application method, failure injection,
-   rollback, dan cleanup mendapat authorization.
+| Tahap | Rencana |
+| --- | --- |
+| **Implement the Alert-Rule Source Contract** | Menambahkan rules, loading path, static checks, required-file entry, tests, dan initialization copy contract. |
+| **Document the Source and Runtime Boundary** | Memperbarui README serta current-state documentation tanpa mengklaim runtime behavior. |
+| **Validate the Source and Rule Semantics** | Memeriksa shell, repository contract, sensitive patterns, rules, config, whitespace, dan diff. |
+| **Stop at the Runtime Verification Gate** | Menunggu exact target, application method, failure injection, rollback, cleanup, dan authorization. |
 
 ## ⚙️ Implementation
 
@@ -137,6 +136,87 @@ Runtime implementation kemudian:
 Prometheus menemukan healthy TSDB blocks, menyelesaikan WAL replay, dan tetap
 ready melalui `localhost` serta `edkas-pc1`. Existing
 `tomcat-jmx-exporter-rollback` tidak diubah.
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Implement the Alert-Rule Source Contract
+
+Tambahkan tiga alert rules, rule loading, unit-test fixture, static checks, dan
+volume initialization contract pada source milik `tomcat-monitoring`.
+
+!!! success "Expected Result"
+
+    Source dapat membedakan application failed, metrics missing, dan Telegraf
+    scrape unavailable tanpa mengubah runtime persistent.
+
+**Actual Result:** seluruh artifact source tersedia sesuai TN-023.
+
+**Evidence:** source inventory, validator diff, dan rule test fixture.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Document the Source and Runtime Boundary
+
+Perbarui README dan current-state pages untuk membedakan semantic validation
+dari persistent runtime behavior.
+
+!!! success "Expected Result"
+
+    Pembaca tidak menganggap source yang valid sebagai bukti alert runtime.
+
+**Actual Result:** documentation boundary diperbarui.
+
+**Evidence:** targeted documentation diff dan final review.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Validate the Source and Rule Semantics
+
+```bash
+bash -n scripts/*.sh
+./scripts/validate.sh
+podman run --rm --pull=never --volume /home/eddywiyatno/git/tomcat-monitoring/config/prometheus:/etc/prometheus:ro localhost/prometheus:1.0.0 /bin/promtool check rules /etc/prometheus/rules/application-health.yml
+podman run --rm --pull=never --volume /home/eddywiyatno/git/tomcat-monitoring/config/prometheus:/etc/prometheus:ro localhost/prometheus:1.0.0 /bin/promtool check config /etc/prometheus/prometheus.yml
+```
+
+!!! success "Expected Result"
+
+    Shell, repository contract, rules, configuration, tests, secret boundary,
+    whitespace, dan diff checks lulus tanpa network pull.
+
+**Actual Result:** final static dan semantic checks lulus setelah dua rule-test
+expectation corrections yang dicatat pada Troubleshooting.
+
+**Evidence:** validator output, `promtool` success, dan command chronology.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Stop at the Runtime Verification Gate
+
+Lakukan read-only preflight, catat exact target serta rollback, lalu tunggu
+approval sebelum mutation dan failure injection.
+
+!!! success "Expected Result"
+
+    Tidak ada persistent mutation sebelum scope change dan authorization
+    runtime dicatat.
+
+**Actual Result:** source stage berhenti pada gate; dua scope changes kemudian
+disetujui pada 2026-08-25.
+
+**Evidence:** Prerequisites, Runtime Verification Preflight, dan Scope Changes.
+
+</div>
+
+</div>
 
 ## 🛠️ Troubleshooting
 
@@ -263,19 +343,170 @@ original Telegraf, atau existing `tomcat-jmx-exporter-rollback`.
 | 2026-08-25 | Tambahkan read-only persistent-lab preflight. | Exact target, application method, rollback, failure injection, dan cleanup boundary perlu dibuktikan sebelum mutation; tidak ada runtime state change. | Approved by project owner. |
 | 2026-08-25 | Tambahkan versioned empty-metrics fixture, controlled Prometheus replacement, Telegraf failure injection, rollback-on-failure, dan exact disposable cleanup. | Mandatory runtime behavior dan continuity criteria TN-024 tidak dapat ditutup hanya dengan synthetic tests. Successful-cutover rollback resources retained; commit dan push tetap excluded. | Approved by project owner. |
 
-## 🚀 Runtime Verification Result
+## 🧭 Runtime Verification Plan
 
-| Stage | Actual Result |
+Plan ini berlaku setelah scope changes dan runtime authorization pada
+2026-08-25. Successful-cutover cleanup merupakan tahap terpisah yang baru
+dijalankan setelah destructive authorization pada 2026-08-26.
+
+| Tahap | Rencana |
 | --- | --- |
-| Prometheus cutover | Replacement ID `5efe0dc00a65...` loaded one rule group with three healthy rules; original ID `d57c910c7c6...` retained exited. |
-| Healthy baseline | JMX dan Telegraf `up=1`, health result `0`, all alerts inactive, localhost dan `edkas-pc1` ready. |
-| Application failed | Disposable Telegraf produced HTTP `404` and result code `6`; only `TomcatApplicationHealthFailed` reached `firing`. |
-| Metrics missing | Corrected responder remained `up=1` with no result series; only `TomcatApplicationHealthMetricsMissing` reached `firing`. |
-| Scrape unavailable | No `telegraf` alias produced `up=0` and DNS no-such-host; missing alert resolved and only `TelegrafHealthScrapeUnavailable` reached `firing`. |
-| Recovery | Original Telegraf ID `e5324e075418...` returned to `up=1` and result `0`; alert API became empty and all rules returned `inactive`. |
-| Continuity | JMX remained `up=1`; JVM heap and `tomcat_server` remained available; TSDB used the same data volume and completed block/WAL recovery. |
-| Disposable cleanup | `telegraf-tn024-failed`, `telegraf-tn024-missing`, dan `prometheus-volume-init` tidak tersedia after verification. |
-| Successful-cutover cleanup | Setelah authorization 2026-08-26, stopped `prometheus-tn024-rollback` ID `d57c...` dan exact TN-024 snapshot dihapus; active runtime dan volumes tetap sehat. |
+| **Apply the Prometheus Rule Cutover** | Memasang rule pada persistent configuration dan mengganti collector dengan rollback target tetap tersedia. |
+| **Verify the Healthy Baseline** | Memastikan seluruh target sehat dan tidak ada alert aktif. |
+| **Verify the Application-Failed Alert** | Menghasilkan HTTP failure dan memeriksa hanya alert application failed yang firing. |
+| **Verify the Metrics-Missing Alert** | Menjaga scrape up tanpa health series dan memeriksa hanya alert metrics missing yang firing. |
+| **Verify the Scrape-Unavailable Alert** | Menghilangkan alias Telegraf dan memeriksa hanya alert scrape unavailable yang firing. |
+| **Recover the Original Telegraf Runtime** | Memulihkan exact original container dan memastikan seluruh alert resolved. |
+| **Verify the Monitoring Continuity** | Memastikan JMX, baseline metrics, TSDB, readiness, dan data volume tetap sehat. |
+| **Remove the Disposable Verification Resources** | Menghapus exact failure fixtures serta initializer tanpa menyentuh persistent volumes. |
+| **Remove the Successful-Cutover Rollback Resources** | Setelah authorization terpisah, menghapus stopped rollback container dan exact snapshot. |
+
+## 🚀 Runtime Verification
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Apply the Prometheus Rule Cutover
+
+!!! success "Expected Result"
+
+    Replacement Prometheus memuat satu rule group dengan tiga rules dan
+    original collector tetap tersedia sebagai stopped rollback target.
+
+**Actual Result:** replacement ID `5efe0dc00a65...` memuat tiga healthy rules;
+original ID `d57c910c7c6...` retained exited.
+
+**Evidence:** container identity, rules API, dan cutover command record.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Verify the Healthy Baseline
+
+!!! success "Expected Result"
+
+    JMX dan Telegraf `up=1`, health result `0`, seluruh alert inactive, dan
+    kedua readiness URL berhasil.
+
+**Actual Result:** seluruh kondisi baseline terpenuhi.
+
+**Evidence:** Prometheus queries serta localhost dan `edkas-pc1` readiness.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Verify the Application-Failed Alert
+
+!!! success "Expected Result"
+
+    Hanya `TomcatApplicationHealthFailed` mencapai state `firing`.
+
+**Actual Result:** disposable Telegraf menghasilkan HTTP `404` dan result code
+`6`; hanya alert yang diharapkan firing.
+
+**Evidence:** target, metric, rule, dan alert API queries.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Verify the Metrics-Missing Alert
+
+!!! success "Expected Result"
+
+    Scrape Telegraf tetap `up=1` tanpa result series dan hanya
+    `TomcatApplicationHealthMetricsMissing` yang firing.
+
+**Actual Result:** corrected responder memenuhi kondisi tersebut.
+
+**Evidence:** scrape state, absent health series, dan alert API.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Verify the Scrape-Unavailable Alert
+
+!!! success "Expected Result"
+
+    Tanpa alias `telegraf`, scrape menjadi `up=0`, alert missing resolved, dan
+    hanya `TelegrafHealthScrapeUnavailable` yang firing.
+
+**Actual Result:** DNS no-such-host menghasilkan state yang diharapkan.
+
+**Evidence:** target error dan alert API state.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Recover the Original Telegraf Runtime
+
+!!! success "Expected Result"
+
+    Exact original Telegraf kembali `up=1`, health result `0`, dan seluruh
+    alert resolved.
+
+**Actual Result:** container ID `e5324e075418...` dipulihkan; alert API kosong
+dan seluruh rules kembali `inactive`.
+
+**Evidence:** exact identity, scrape, metric, rule, dan alert checks.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Verify the Monitoring Continuity
+
+!!! success "Expected Result"
+
+    JMX, JVM heap, `tomcat_server`, readiness, TSDB, dan data-volume attachment
+    tetap sehat selama rangkaian verification.
+
+**Actual Result:** seluruh continuity checks lulus dan TSDB menyelesaikan
+block/WAL recovery pada volume data yang sama.
+
+**Evidence:** API queries, startup log, mount identity, dan readiness checks.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Remove the Disposable Verification Resources
+
+!!! success "Expected Result"
+
+    Failure fixtures dan initializer tidak tersisa; persistent volume dan
+    runtime aktif tidak dihapus.
+
+**Actual Result:** `telegraf-tn024-failed`, `telegraf-tn024-missing`, dan
+`prometheus-volume-init` tidak tersedia setelah verification.
+
+**Evidence:** exact post-test absence checks.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Remove the Successful-Cutover Rollback Resources
+
+!!! success "Expected Result"
+
+    Hanya stopped rollback container dan exact TN-024 snapshot yang dihapus
+    setelah authorization; active runtime serta volumes tetap sehat.
+
+**Actual Result:** cleanup diotorisasi pada 2026-08-26 dan exact targets
+dihapus.
+
+**Evidence:** target identity checks, removal record, dan post-cleanup health
+verification.
+
+</div>
+
+</div>
 
 ## ⚙️ Commands Executed
 
@@ -622,3 +853,4 @@ injection, dan external notification flow tetap outstanding.
 - [Architecture](../../architecture/index.md)
 - [Operations](../../operations/index.md)
 - [TM-ADR-0001](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0001.md)
+- [TM-ADR-0004 — Separate Application Failure from Monitoring Signal Loss](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0004.md)
