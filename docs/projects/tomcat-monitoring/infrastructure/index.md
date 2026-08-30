@@ -310,6 +310,19 @@ start dan recovery manual. Dashboard, container-status metrics, CI/CD/Ansible,
 external delivery, production deployment, dan end-to-end verification tetap
 menjadi pekerjaan future pada phase terpisah.
 
+## Diagnostic MVP Infrastructure Status
+
+Diagnostic MVP design reserves a future internal-only HTTPS webhook endpoint,
+named volume `diagnostic_data`, read-only Tomcat evidence mounts, and a
+read-only normalized collector spool. Service and collector repositories,
+non-Git TLS/token lifecycle, physical volume, network attachment, container,
+host service, and deployment orchestration do not yet exist.
+
+The accepted design does not authorize broad Podman socket access, host control,
+new published ports, or automatic host privilege escalation. See
+[Diagnostic MVP](../diagnostic-mvp/index.md) and its gap register before any
+infrastructure implementation.
+
 ## Related Pages
 
 - [TM-ADR-0003 — Use Host-Managed Non-Git TLS Material for the Persistent Lab](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0003.md)
@@ -319,3 +332,4 @@ menjadi pekerjaan future pada phase terpisah.
 - [CI/CD](../ci-cd/index.md)
 - [Operations](../operations/index.md)
 - [Engineering Journal](../engineering-journal/index.md)
+- [Diagnostic MVP](../diagnostic-mvp/index.md)

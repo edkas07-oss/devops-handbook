@@ -6,6 +6,7 @@ arrange:
 
 - index.md
 - architecture
+- diagnostic-mvp
 - development
 - infrastructure
 - ci-cd

@@ -84,12 +84,28 @@ diimplementasikan.
 | Container status monitoring | Metrics source not determined |
 | Monitoring implementation | Persistent JMX and Telegraf targets `up=1`; persistent Prometheus, Alertmanager, and Mailpit captured real `TelegrafHealthScrapeUnavailable` firing/resolved email on 2026-08-28; external delivery and TrueSight deferred |
 | End-to-end verification | Not started |
+| Diagnostic MVP | `TomcatDown` architecture accepted; service, SQLite, collector, rule, routing, and runtime verification not implemented |
+
+## Diagnostic MVP
+
+The accepted Diagnostic MVP design adds a future deterministic flow from
+Prometheus through Alertmanager, Diagnostic Service, bounded evidence and
+SQLite correlation, then Mailpit and resolved notification. Only `TomcatDown`
+is in pilot scope. Application health may support that diagnosis but is not a
+Diagnostic MVP rule. `ApplicationHealthCheckFailed`, `TomcatHighHeapUsage`,
+Integration Bridge, TrueSight, and automatic remediation remain disabled or
+deferred.
+
+See [Diagnostic MVP](diagnostic-mvp/index.md) for the accepted contracts and
+explicit implementation gaps. Existing direct Alertmanager–Mailpit delivery
+remains the verified runtime; the diagnostic path has not been deployed.
 
 ## Documentation Structure
 
 | Section | Purpose |
 | --- | --- |
 | [Architecture](architecture/index.md) | Menjelaskan desain, aliran data, dan kontrol keamanan |
+| [Diagnostic MVP](diagnostic-mvp/index.md) | Mendefinisikan pilot `TomcatDown`, evidence, state, security, dan notification contract |
 | [Development](development/index.md) | Menjelaskan workflow pengembangan dan pengujian |
 | [Infrastructure](infrastructure/index.md) | Mendefinisikan container, network, storage, dan certificate prerequisites |
 | [CI/CD](ci-cd/index.md) | Menjelaskan pipeline build, test, dan deployment |

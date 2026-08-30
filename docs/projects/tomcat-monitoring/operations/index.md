@@ -101,3 +101,17 @@ Prometheus mengirim real Telegraf scrape-unavailable firing/resolved state ke
 persistent Alertmanager pada 2026-08-28; lab-only Mailpit menangkap kedua email
 dan baseline Telegraf, JMX, rules, serta health metric pulih. External
 notification dan Integration Bridge masih menjadi target capability project.
+
+## Diagnostic MVP Operational Status
+
+The accepted `TomcatDown` pilot will treat JMX `up=0` as a trigger and correlate
+application health, logs, crash artifacts, and restricted runtime/host evidence
+for the same target. Application health can show that Tomcat still serves the
+lab application while the JMX/TLS/scrape path fails; it does not become a
+separate diagnostic rule.
+
+No Diagnostic Service health endpoint, queue metric, SQLite housekeeping,
+canonical result, diagnostic email, or resolved correlation is currently
+available. Operators must continue using the verified monitoring and Mailpit
+flow until implementation and end-to-end evidence explicitly replace this
+status.

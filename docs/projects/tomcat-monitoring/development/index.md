@@ -31,6 +31,13 @@ Source project dibagi berdasarkan lifecycle dan tanggung jawab berikut:
 | `tomcat-jmx-exporter` | Menyediakan derived Tomcat image dengan embedded JMX Exporter | Current source published and local component build verified |
 | `alertmanager` | Menyediakan generic Alertmanager container image dan lifecycle runtime | Local image `1.0.0` built; Alertmanager, `amtool`, and non-root smoke test passed |
 | `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | Persistent Prometheus–Alertmanager–Mailpit firing/resolved delivery verified; external delivery pending |
+| `tomcat-diagnostic-service` | Future Diagnostic Service source, image lifecycle, migrations, and component tests | Ownership accepted; repository not created |
+| `tomcat-diagnostic-event-collector` | Future rootless host collector source, packaging, and component tests | Ownership accepted; repository not created |
+
+Diagnostic target allowlist, Prometheus and Alertmanager integration,
+non-secret deployment configuration, and end-to-end verification remain owned
+by `tomcat-monitoring`. Repository creation and implementation require a
+separate approved plan.
 
 Repository `tomcat-jmx-exporter` tidak menyimpan JMX Exporter JAR sebagai binary
 di Git. Build mengambil versi `1.6.0` yang telah dipin dan memverifikasi

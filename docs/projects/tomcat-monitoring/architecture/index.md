@@ -11,6 +11,29 @@ tanpa external delivery. TrueSight berada di luar deployment boundary project
 sebagai future event-management integration dan tidak tersedia pada lab saat
 ini.
 
+## Diagnostic MVP Target Architecture
+
+The accepted but not implemented Diagnostic MVP introduces one bounded
+Diagnostic Service per Tomcat host and a restricted host event collector:
+
+```mermaid
+flowchart LR
+    P[Prometheus] --> A[Alertmanager]
+    A -->|TomcatDown firing and resolved| D[Diagnostic Service]
+    D --> S[(SQLite)]
+    D -->|Bounded queries| P
+    L[Tomcat logs and crash artifacts] -->|Read-only| D
+    H[Restricted host collector] -->|Normalized read-only spool| D
+    D -->|Canonical result email| M[Mailpit]
+    D -. Disabled .-> B[Integration Bridge]
+    B -. Disabled .-> T[TrueSight]
+```
+
+Only `TomcatDown` enters diagnostic routing. Application health can be
+correlated for the same allowlisted target, but application-health and
+high-heap diagnostic rules remain disabled. See
+[Diagnostic MVP](../diagnostic-mvp/index.md).
+
 ## Deployment Topology
 
 ```mermaid
@@ -130,6 +153,13 @@ melakukan scrape terhadap JMX Exporter dan Telegraf.
 | [TM-ADR-0003](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0003.md) | Menyimpan material TLS persistent lab di luar Git dan image. |
 | [TM-ADR-0004](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0004.md) | Memisahkan application failure dari kehilangan signal monitoring. |
 | [TM-ADR-0005](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0005.md) | Menggunakan Mailpit sebagai target verifikasi notifikasi persistent lab. |
+| [TM-ADR-0006](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0006.md) | Menggunakan deterministic multi-source evidence. |
+| [TM-ADR-0007](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0007.md) | Memperlakukan `TomcatDown` sebagai composite trigger. |
+| [TM-ADR-0008](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0008.md) | Membatasi host evidence melalui normalized collector spool. |
+| [TM-ADR-0009](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0009.md) | Menggunakan SQLite untuk local diagnostic state. |
+| [TM-ADR-0010](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0010.md) | Menempatkan satu bounded service per Tomcat host. |
+| [TM-ADR-0011](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0011.md) | Menetapkan confidence melalui per-rule decision table. |
+| [TM-ADR-0012](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0012.md) | Menjaga Integration Bridge dan TrueSight disabled serta terpisah. |
 
 ## Current Status
 

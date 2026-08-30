@@ -1,0 +1,17 @@
+# Pages
+
+title: Diagnostic MVP
+
+arrange:
+
+- index.md
+- tomcat-down-rule-specification.md
+- alertmanager-webhook-contract.md
+- target-and-evidence-contract.md
+- restricted-event-collector-contract.md
+- diagnostic-result-and-confidence-contract.md
+- sqlite-lifecycle-contract.md
+- notification-and-integration-contract.md
+- non-functional-and-security-contract.md
+- requirements-traceability.md
+- gap-register.md
