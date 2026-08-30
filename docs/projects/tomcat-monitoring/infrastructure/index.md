@@ -196,7 +196,7 @@ tetap berstatus `Not determined`.
 | Dashboard dan Alertmanager configuration | Tomcat Monitoring project |
 | Mailpit persistent lab-only verification utility | Upstream owns image lifecycle; `tomcat-monitoring` owns immutable reference, persistent integration, verification, and exact cleanup |
 | Integration Bridge dan TrueSight mapping | Tomcat Monitoring project dan TrueSight owner |
-| Runtime service continuity | Container runtime or service manager; not determined |
+| Runtime service continuity | Project owner/operator; manual start and recovery accepted for persistent lab, automatic host-boot orchestration deferred |
 
 ## Planned Provisioning Validation
 
@@ -303,6 +303,12 @@ Persistent lab self-signed certificate lifecycle telah ditetapkan pada
 read-only ke JMX target, dan certificate berlaku sampai 2027-08-25 dengan
 renewal trigger 30 hari sebelum expiry. Production certificate lifecycle tetap
 `Not determined`.
+
+Persistent lab saat ini bersifat operator-managed. Automatic restart dan
+host-boot orchestration tidak diterapkan atau diverifikasi; operator melakukan
+start dan recovery manual. Dashboard, container-status metrics, CI/CD/Ansible,
+external delivery, production deployment, dan end-to-end verification tetap
+menjadi pekerjaan future pada phase terpisah.
 
 ## Related Pages
 

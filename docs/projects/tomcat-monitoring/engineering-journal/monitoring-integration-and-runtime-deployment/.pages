@@ -40,3 +40,4 @@ arrange:
 - TN-033-implement-and-verify-alertmanager-mailpit-smtp-capture.md
 - TN-034-define-persistent-alertmanager-and-prometheus-delivery-integration-contract.md
 - TN-035-implement-and-verify-persistent-prometheus-alertmanager-mailpit-delivery.md
+- TN-036-define-persistent-monitoring-runtime-continuity-contract.md

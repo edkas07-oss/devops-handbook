@@ -31,8 +31,10 @@ semantic configuration, immutable image identity, isolated firing/resolved SMTP
 capture, serta exact cleanup kemudian diverifikasi pada TN-033. Persistent
 topology dan rollback boundary diterima pada TN-034. TN-035 kemudian
 menerapkan persistent Prometheus–Alertmanager–Mailpit flow dan membuktikan real
-application-health firing/resolved delivery beserta recovery baseline. Full
-external integration tetap belum diterapkan.
+application-health firing/resolved delivery beserta recovery baseline. TN-036
+kemudian menetapkan persistent lab sebagai operator-managed environment dan
+menutup phase tanpa mengklaim automatic host-boot recovery. Full external
+integration tetap belum diterapkan dan dipisahkan sebagai future work.
 
 ## 🎯 Objective
 
@@ -232,6 +234,22 @@ melampaui keputusan, secret boundary, atau authorization yang tersedia.
     Menerapkan persistent Alertmanager serta Mailpit, menghubungkan persistent
     Prometheus, dan memverifikasi real application-health firing/resolved
     delivery beserta recovery baseline.
+
+36. **[TN-036 — Define Persistent Monitoring Runtime Continuity Contract](TN-036-define-persistent-monitoring-runtime-continuity-contract.md)**
+
+    Menetapkan operator-managed runtime continuity, menunda restart/host-boot
+    automation, dan menutup phase dengan capability lanjutan dipisahkan ke
+    phase future.
+
+!!! note "Phase Output"
+
+    Persistent lab integration tersedia untuk Tomcat/JMX, Telegraf,
+    Prometheus, Alertmanager, dan Mailpit. Runtime dijalankan serta dipulihkan
+    manual oleh operator; automatic host-boot recovery tidak diklaim.
+
+    Dashboard, container-status metrics, CI/CD/Ansible, external delivery,
+    production deployment, dan end-to-end verification dimulai pada phase baru
+    dengan scope serta authorization masing-masing.
 
 ## 🔗 Related Documentation
 
