@@ -11,6 +11,11 @@ Pilot pertama hanya menerima `TomcatDown`. Application health boleh menjadi
 supporting evidence untuk incident tersebut, tetapi bukan diagnostic rule.
 `ApplicationHealthCheckFailed` dan `TomcatHighHeapUsage` tetap deferred.
 
+Implementation plan menerima Node.js `24.18.0` LTS dengan plain ESM JavaScript
+dan built-in `node:sqlite` yang diisolasi melalui satu adapter. Keputusan
+toolchain tersebut belum berarti source, dependency, image, atau runtime telah
+tersedia.
+
 ## 🎯 Pilot Objective
 
 Target pertama adalah alur berikut:
@@ -80,6 +85,7 @@ The pilot may be accepted only after:
 
 ## 📌 Current Status
 
-**Accepted design — not implemented or runtime verified.** Approval of this
-documentation does not authorize source changes, repository creation, image
-build, container mutation, deployment, or end-to-end testing.
+**Accepted design and implementation plan — not implemented or runtime
+verified.** Approval of this documentation does not authorize source changes,
+dependency installation, image build, container mutation, deployment, atau
+end-to-end testing.

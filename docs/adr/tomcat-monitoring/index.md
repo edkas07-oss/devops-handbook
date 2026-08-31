@@ -24,6 +24,7 @@ konsekuensi keputusan arsitektur yang memengaruhi implementasi project.
 | [**TM-ADR-0010**](adr-records/TM-ADR-0010.md){: target="_blank" } | Deploy One Bounded Diagnostic Service per Tomcat Host | Tomcat Monitoring | Diagnostic Deployment Architecture | Accepted | 2026-08-30 |
 | [**TM-ADR-0011**](adr-records/TM-ADR-0011.md){: target="_blank" } | Use Per-Rule Decision Tables for Diagnostic Confidence | Tomcat Monitoring | Diagnostic Rule Architecture | Accepted | 2026-08-30 |
 | [**TM-ADR-0012**](adr-records/TM-ADR-0012.md){: target="_blank" } | Decouple TrueSight Through a Disabled Integration Bridge | Tomcat Monitoring | External Integration Architecture | Accepted | 2026-08-30 |
+| [**TM-ADR-0013**](adr-records/TM-ADR-0013.md){: target="_blank" } | Use Node.js 24 ESM and Isolated Built-In SQLite for Diagnostic Service | Tomcat Monitoring | Diagnostic Service Implementation Architecture | Accepted | 2026-08-31 |
 
 ## 🗺️ ADR Mapping
 
@@ -41,6 +42,7 @@ konsekuensi keputusan arsitektur yang memengaruhi implementasi project.
 | TM-ADR-0010 | Deploy One Bounded Diagnostic Service per Tomcat Host | Diagnostic MVP Pilot TN-001 and non-functional contract |
 | TM-ADR-0011 | Use Per-Rule Decision Tables for Diagnostic Confidence | Diagnostic MVP Pilot TN-001 and result contract |
 | TM-ADR-0012 | Decouple TrueSight Through a Disabled Integration Bridge | Diagnostic MVP Pilot TN-001 and integration contract |
+| TM-ADR-0013 | Use Node.js 24 ESM and Isolated Built-In SQLite for Diagnostic Service | Diagnostic MVP Pilot TN-003 and Development |
 
 ## 📝 Summary
 

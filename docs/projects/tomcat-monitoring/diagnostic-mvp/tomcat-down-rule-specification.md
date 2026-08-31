@@ -43,6 +43,15 @@ processing timeout.
 Unavailable evidence is reported as unavailable. It is not interpreted as
 proof that an event did not occur.
 
+The Prometheus adapter has one total five-second deadline per diagnostic run,
+including connection and response processing. It performs one attempt without
+an in-run retry. A timeout produces evidence status `timeout` and does not fail
+the whole diagnostic. The worker continues with every other configured source,
+including bounded Tomcat logs, crash artifacts, application health, and the
+restricted event collector spool. The canonical result and notification must
+identify Prometheus as unavailable rather than omitting it or treating missing
+metrics as proof of a Tomcat condition.
+
 ## ⚖️ Deterministic Decision Table
 
 The first matching branch in this table governs the primary assessment.
@@ -77,8 +86,9 @@ deterministic for the same normalized evidence and `rule_version`.
 
 Tests must cover JMX-only failure, application and JMX failure, OOM kill, JVM
 fatal crash, controlled shutdown, unexplained exit, unavailable evidence,
-duplicate firing, one material update, Mailpit failure, restart persistence,
-and resolved delivery.
+Prometheus completion within five seconds, Prometheus timeout fallback without
+retry, duplicate firing, one material update, Mailpit failure, restart
+persistence, and resolved delivery.
 
 ## 📌 Status
 

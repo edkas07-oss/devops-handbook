@@ -23,6 +23,25 @@ target, incident time, processing status, assessment, confidence when allowed,
 supporting and unavailable evidence summary, recommended operator actions,
 rule identity, and diagnostic identifier.
 
+Plain-text and HTML renderers use the same semantic order:
+
+| Order | Section | Required content |
+| ---: | --- | --- |
+| 1 | Alert Summary | Alert title, lifecycle, severity, environment, target, and incident time |
+| 2 | Diagnostic Assessment | Processing status, classification, primary assessment, and confidence only when the classification allows it |
+| 3 | Key Metrics Snapshot | Bounded primary metrics with observation time and query status, or an explicit unavailable/timeout marker |
+| 4 | Correlated Log Evidence | Bounded sanitized excerpts selected by target, runtime generation, evidence window, and accepted diagnostic rule |
+| 5 | Unavailable or Contradicting Evidence | Sources that timed out, were unavailable, were not configured, or contradicted the primary assessment |
+| 6 | Recommended Operator Actions | Safe actions for an operator; never executable remediation |
+| 7 | Rule and Diagnostic Traceability | Rule ID/version, diagnostic ID, result hash, and evidence timestamps needed for correlation |
+
+The fourth section is not an arbitrary tail of the latest log. It contains only
+correlated excerpts that passed identity, time-window, size, and redaction
+controls. The renderer uses root-cause wording only for a classification that
+permits that claim. Partial, possible, symptom-only, or undetermined results
+state their limitation explicitly. A missing metrics or log section is rendered
+with its collection status and is never silently removed.
+
 Required lifecycle behavior:
 
 - exactly one initial firing diagnostic per incident;

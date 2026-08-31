@@ -18,9 +18,11 @@ All implementation evidence is currently `Not available`.
 | RULE-004 | Contradictions precede supporting evidence | Rule specification | Contradiction fixtures |
 | RULE-005 | Confidence follows decision table | Result contract; ADR | Branch unit tests |
 | RULE-006 | Same inputs and rule version are deterministic | Result contract | Regression hash test |
+| RULE-007 | Prometheus attempt has a five-second deadline, no in-run retry, and explicit fallback | Rule specification | Timely response, timeout, unavailable marker, and continued log/spool evidence tests |
 | RES-001 | Canonical result validates semantic combinations | Result contract | Schema and semantic tests |
 | MSG-001 | Plain-text and HTML preserve canonical meaning | Notification contract | Golden files |
 | MSG-002 | Firing, update, partial, failed, and resolved render | Notification contract | Lifecycle template tests |
+| MSG-003 | Email renders seven ordered sections with bounded sanitized metrics and log evidence | Notification contract | Plain-text/HTML ordering, unavailable section, redaction, and overclaim-prevention tests |
 | DEL-001 | Mailpit is the only active pilot target | Notification contract | SMTP and Mailpit assertions |
 | DEL-002 | Disabled bridge performs no work | Notification contract | Network, queue, and metric assertions |
 | DB-001 | Initialization and migrations are automatic | SQLite contract | Empty-volume startup test |

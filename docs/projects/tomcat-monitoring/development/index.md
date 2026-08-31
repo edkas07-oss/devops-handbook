@@ -35,7 +35,7 @@ Source project dibagi berdasarkan lifecycle dan tanggung jawab berikut:
 | `tomcat-jmx-exporter` | Menyediakan derived Tomcat image dengan embedded JMX Exporter | Current source published and local component build verified |
 | `alertmanager` | Menyediakan generic Alertmanager container image dan lifecycle runtime | Local image `1.0.0` built; Alertmanager, `amtool`, and non-root smoke test passed |
 | `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | Persistent Prometheus–Alertmanager–Mailpit firing/resolved delivery verified; external delivery pending |
-| `tomcat-diagnostic-service` | Memiliki source Diagnostic Service, dependency lock, image lifecycle, migration, dan component test | Repository lokal dan remote tersedia; belum memiliki commit atau implementation |
+| `tomcat-diagnostic-service` | Memiliki source Diagnostic Service, dependency lock, image lifecycle, migration, dan component test | Repository lokal dan remote tersedia; Node.js 24 ESM dan isolated `node:sqlite` plan accepted; implementation belum dimulai |
 | `tomcat-diagnostic-event-collector` | Memiliki source, packaging, dan component test restricted rootless host collector | Ownership diterima; repository belum dibuat |
 
 Target allowlist diagnostic, integrasi Prometheus dan Alertmanager,
@@ -77,7 +77,7 @@ tomcat-jmx-exporter/
 | CI pipeline | Not implemented |
 | Container image publication | Local image only; registry not determined |
 | Diagnostic Service remote repository | Gitea `tomcat-diagnostic-service` tersedia |
-| Diagnostic Service local state | Branch `main` tersedia; belum memiliki commit, source, validation interface, atau image |
+| Diagnostic Service local state | Branch `main` tersedia; belum memiliki commit, source, atau image; repository plan dan validation interface telah diterima |
 | Restricted Event Collector repository | Belum dibuat |
 
 ## Development Workflow
@@ -116,9 +116,12 @@ Podman. Repository lokal tersedia pada:
 
 Repository `tomcat-diagnostic-service` tersedia pada branch `main`, tetapi
 masih kosong dan belum memiliki commit. Ketersediaan repository hanya menutup
-prasyarat lokasi source; bahasa, packaging, dependency, validation interface,
-image, dan component test belum diterapkan atau diverifikasi. Repository
-`tomcat-diagnostic-event-collector` belum tersedia.
+prasyarat lokasi source. Node.js `24.18.0` LTS dengan plain ESM JavaScript dan
+built-in `node:sqlite` telah diterima sebagai implementation contract;
+repository layout dan validation interface juga telah ditetapkan. Source,
+packaging, application dependency, image, dan component test belum diterapkan
+atau diverifikasi. Repository `tomcat-diagnostic-event-collector` belum
+tersedia.
 
 Pada `tomcat-jmx-exporter`, current source tersedia pada branch `main` melalui
 commit `231cb91` dan local `origin/main` menunjuk commit yang sama. Working tree
@@ -176,6 +179,7 @@ menggunakan canonical runtime name `tomcat_server`.
 
 - [TM-ADR-0002 — Separate Generic Runtime Images from Monitoring Integration Configuration](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0002.md)
 - [TM-ADR-0010 — Deploy One Bounded Diagnostic Service per Tomcat Host](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0010.md)
+- [TM-ADR-0013 — Use Node.js 24 ESM and Isolated Built-In SQLite for Diagnostic Service](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0013.md)
 - [Diagnostic MVP](../diagnostic-mvp/index.md)
 - [Development Environment Setup](setup.md)
 - [Architecture](../architecture/index.md)

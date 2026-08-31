@@ -31,6 +31,12 @@ Prometheus -> Alertmanager -> Diagnostic Service
     current-state source of truth, sekaligus menetapkan standar konsolidasi
     feature lintas project.
 
+3. **[TN-003 — Define Diagnostic Service Repository Implementation and Validation Contract](TN-003-define-diagnostic-service-repository-implementation-and-validation-contract.md)**
+
+    Menerima Node.js 24 ESM dan isolated built-in SQLite, menetapkan repository
+    serta validation contract, menutup GAP-001, dan mempertahankan source
+    implementation sebagai authorization terpisah.
+
 ## 📌 Phase Status
 
 **In Progress.** Architecture and documentation contract accepted; source,

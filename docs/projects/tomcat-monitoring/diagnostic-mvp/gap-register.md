@@ -27,6 +27,12 @@ An item is closed append-oriented with observed evidence, accepted value,
 affected artifact, resolver/date, and verification consequence. A decision that
 changes an ADR boundary requires a new or superseding ADR.
 
+## ✅ Closure Records
+
+| ID | Resolution | Affected artifact | Resolver/date | Verification consequence |
+| --- | --- | --- | --- | --- |
+| GAP-001 | Closed. Repository location is observed; Node.js 24 ESM, isolated built-in SQLite, repository layout, source boundary, and validation interface are accepted. | TN-003, TM-ADR-0013, Development | Project owner / 2026-08-31 | Repository governance and static validation baseline may be planned; source implementation still requires a separate approved scope |
+
 ## 📌 Status
 
-**Open — implementation and lab discovery required.**
+**Open — GAP-001 closed; GAP-002 through GAP-015 retain their recorded gates.**
