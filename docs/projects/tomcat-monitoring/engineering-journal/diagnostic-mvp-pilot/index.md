@@ -53,11 +53,17 @@ Prometheus -> Alertmanager -> Diagnostic Service
     Mengimplementasikan trusted target mapping, bounded evidence collection,
     isolation, dan deterministic TD-01 sampai TD-08 engine.
 
+7. **[TN-007 — Implement Worker, Canonical Result, and Renderers](TN-007-implement-worker-canonical-result-and-renderers.md)**
+
+    Mengimplementasikan queue worker, canonical-result persistence,
+    material-update guard, operational state, dan seven-section renderers.
+
 ## 📌 Phase Status
 
 **In Progress.** Durable ingestion, target isolation, evidence adapters, dan
 deterministic engine telah lulus isolated tests. Worker orchestration, result
-persistence, HTTP runtime, notification, dan end-to-end verification tertunda.
+persistence, dan renderers kemudian lulus 22 tests; HTTP/SMTP runtime dan
+end-to-end verification tertunda.
 
 ## 🧭 Reproducibility Status
 
@@ -69,9 +75,11 @@ persistence, HTTP runtime, notification, dan end-to-end verification tertunda.
 | TN-004 | Handbook record `3cd4ea2`; source baseline `03f1296` |
 | TN-005 | Source commit `aa55170`; exact path manifest pada TN |
 | TN-006 | Source commit `aa55170`; 17 substantive tests |
+| TN-007 | Source commit `1ea79fa`; 22 substantive tests |
 
 TN-005 dan TN-006 berbagi satu source commit karena keduanya membentuk satu
-verified diagnostic-engine foundation. Commit masih lokal dan belum dipush.
+verified diagnostic-engine foundation dan telah dipush. TN-007 berada pada
+commit lokal `1ea79fa` dan belum dipush.
 
 ## 🔗 Related Documentation
 

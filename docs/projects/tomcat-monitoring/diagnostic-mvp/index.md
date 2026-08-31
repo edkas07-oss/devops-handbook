@@ -9,6 +9,11 @@ target isolation, bounded evidence adapters, dan deterministic `TomcatDown`
 engine juga telah lulus isolated tests. Configuration, image, container,
 collector, dan end-to-end runtime belum diimplementasikan atau diverifikasi.
 
+Single-worker orchestration, canonical-result persistence, material-update
+guard, health/metrics application model, dan seven-section text/HTML renderers
+telah tersedia pada commit `1ea79fa`. HTTP/TLS, SMTP delivery, dan Mailpit
+component behavior belum diterapkan atau diverifikasi.
+
 Pilot pertama hanya menerima `TomcatDown`. Application health boleh menjadi
 supporting evidence untuk incident tersebut, tetapi bukan diagnostic rule.
 `ApplicationHealthCheckFailed` dan `TomcatHighHeapUsage` tetap deferred.

@@ -11,3 +11,4 @@ arrange:
 - TN-004-establish-diagnostic-service-repository-governance-and-static-validation-baseline.md
 - TN-005-implement-durable-diagnostic-ingestion-and-queue.md
 - TN-006-implement-target-isolation-evidence-adapters-and-tomcatdown-engine.md
+- TN-007-implement-worker-canonical-result-and-renderers.md
