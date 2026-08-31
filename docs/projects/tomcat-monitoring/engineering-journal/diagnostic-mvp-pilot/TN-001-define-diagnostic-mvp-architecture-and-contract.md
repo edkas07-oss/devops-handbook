@@ -156,6 +156,21 @@ Actual result:
 No source, configuration, image, container, volume, network, or runtime
 verification is claimed.
 
+## 🧭 Reproduction Reference
+
+Section ini ditambahkan pada 2026-08-31 untuk memperjelas reproducibility.
+TN-001 menghasilkan architecture dan contract documentation, bukan executable
+artifact. Exact published result berada pada handbook commit `c924459`.
+
+```bash
+git show --stat c924459
+git diff c924459^ c924459 -- docs/adr/tomcat-monitoring docs/projects/tomcat-monitoring
+```
+
+Gunakan accepted ADR dan halaman `diagnostic-mvp/` dari revision tersebut untuk
+mereview decision yang tersedia saat TN-001 selesai. Command ini adalah
+reproduction instruction; ia tidak dijalankan ulang dalam koreksi dokumentasi.
+
 ## 📌 Result
 
 The documentation-only architecture gate is completed. Diagnostic MVP remains

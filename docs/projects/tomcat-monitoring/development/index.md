@@ -35,7 +35,7 @@ Source project dibagi berdasarkan lifecycle dan tanggung jawab berikut:
 | `tomcat-jmx-exporter` | Menyediakan derived Tomcat image dengan embedded JMX Exporter | Current source published and local component build verified |
 | `alertmanager` | Menyediakan generic Alertmanager container image dan lifecycle runtime | Local image `1.0.0` built; Alertmanager, `amtool`, and non-root smoke test passed |
 | `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | Persistent Prometheus–Alertmanager–Mailpit firing/resolved delivery verified; external delivery pending |
-| `tomcat-diagnostic-service` | Memiliki source Diagnostic Service, dependency lock, image lifecycle, migration, dan component test | Governance, dependency-free metadata, dan static validation baseline tersedia pada uncommitted local source; application implementation belum dimulai |
+| `tomcat-diagnostic-service` | Memiliki source Diagnostic Service, dependency lock, image lifecycle, migration, dan component test | Commit `aa55170` memiliki ingestion, target isolation, evidence adapters, deterministic engine, dan 17 passing tests |
 | `tomcat-diagnostic-event-collector` | Memiliki source, packaging, dan component test restricted rootless host collector | Ownership diterima; repository belum dibuat |
 
 Target allowlist diagnostic, integrasi Prometheus dan Alertmanager,
@@ -77,7 +77,7 @@ tomcat-jmx-exporter/
 | CI pipeline | Not implemented |
 | Container image publication | Local image only; registry not determined |
 | Diagnostic Service remote repository | Gitea `tomcat-diagnostic-service` tersedia |
-| Diagnostic Service local state | Branch `main` belum memiliki commit; governance, dependency-free metadata, dan static validator tersedia pada working tree; application source dan image belum tersedia |
+| Diagnostic Service local state | Commit `aa55170`; ingestion, queue, target isolation, evidence adapters, engine, dan tests committed locally; image belum tersedia |
 | Restricted Event Collector repository | Belum dibuat |
 
 ## Development Workflow
@@ -114,13 +114,14 @@ Podman. Repository lokal tersedia pada:
 /home/eddywiyatno/git/tomcat-diagnostic-service
 ```
 
-Repository `tomcat-diagnostic-service` tersedia pada branch `main` dan belum
-memiliki commit. Working tree telah memiliki governance, metadata project serta
-package dependency-free, README, dan static validator yang lulus source-level
-validation pada 2026-08-31. Node.js `24.18.0` LTS dengan plain ESM JavaScript
-dan built-in `node:sqlite` tetap menjadi implementation contract. Application
-source, schema, migration, dependency, packaging image, component test, serta
-runtime belum diterapkan atau diverifikasi. Repository
+Repository `tomcat-diagnostic-service` memiliki current local commit `aa55170`.
+Source menambahkan exact-pinned Ajv, schema, forward migration, isolated
+`node:sqlite` adapter, durable ingestion, deduplication, dan queue berkapasitas
+50. Target registry, bounded evidence adapters, dan TD-01 sampai TD-08 engine
+juga tersedia. Static validation dan 17 substantive isolated tests lulus pada
+2026-08-31.
+Worker orchestration, canonical result persistence, HTTP server, notification,
+image, dan component runtime belum diterapkan atau diverifikasi. Repository
 `tomcat-diagnostic-event-collector` belum tersedia.
 
 Pada `tomcat-jmx-exporter`, current source tersedia pada branch `main` melalui

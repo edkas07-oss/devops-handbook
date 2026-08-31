@@ -43,12 +43,35 @@ Prometheus -> Alertmanager -> Diagnostic Service
     baseline repository Diagnostic Service tanpa business logic, build, atau
     runtime container.
 
+5. **[TN-005 — Implement Durable Diagnostic Ingestion and Queue](TN-005-implement-durable-diagnostic-ingestion-and-queue.md)**
+
+    Mengimplementasikan webhook schema, SQLite migration, durable event
+    ingestion, deduplication, dan bounded persistent queue beserta tests.
+
+6. **[TN-006 — Implement Target Isolation, Evidence Adapters, and TomcatDown Engine](TN-006-implement-target-isolation-evidence-adapters-and-tomcatdown-engine.md)**
+
+    Mengimplementasikan trusted target mapping, bounded evidence collection,
+    isolation, dan deterministic TD-01 sampai TD-08 engine.
+
 ## 📌 Phase Status
 
-**In Progress.** Architecture and documentation contract accepted; Diagnostic
-Service governance and dependency-free static baseline implemented in the
-local uncommitted working tree. Application source, persistence, runtime,
-integration configuration, and end-to-end verification have not started.
+**In Progress.** Durable ingestion, target isolation, evidence adapters, dan
+deterministic engine telah lulus isolated tests. Worker orchestration, result
+persistence, HTTP runtime, notification, dan end-to-end verification tertunda.
+
+## 🧭 Reproducibility Status
+
+| Technical Note | Reproduction anchor |
+| --- | --- |
+| TN-001 | Handbook commit `c924459` |
+| TN-002 | Handbook commit `f50a92d` |
+| TN-003 | Handbook commit `2c0535e` |
+| TN-004 | Handbook record `3cd4ea2`; source baseline `03f1296` |
+| TN-005 | Source commit `aa55170`; exact path manifest pada TN |
+| TN-006 | Source commit `aa55170`; 17 substantive tests |
+
+TN-005 dan TN-006 berbagi satu source commit karena keduanya membentuk satu
+verified diagnostic-engine foundation. Commit masih lokal dan belum dipush.
 
 ## 🔗 Related Documentation
 

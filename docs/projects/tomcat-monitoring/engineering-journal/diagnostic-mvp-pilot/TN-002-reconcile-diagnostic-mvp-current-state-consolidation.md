@@ -160,6 +160,23 @@ command -v mkdocs || true
 command -v mmdc || true
 ```
 
+## 🧭 Reproduction Reference
+
+Section ini ditambahkan pada 2026-08-31. TN-002 adalah documentation
+consolidation; tidak ada application build atau runtime procedure. Exact result
+berada pada handbook commit `f50a92d`.
+
+```bash
+git show --stat f50a92d
+git diff f50a92d^ f50a92d -- \
+  docs/projects/tomcat-monitoring/architecture/index.md \
+  docs/projects/tomcat-monitoring/development/index.md \
+  docs/projects/tomcat-monitoring/infrastructure/index.md
+```
+
+Review diff tersebut terhadap mapping table TN-002. Command ini adalah
+reproduction instruction dan tidak diklaim sebagai command historis TN-002.
+
 ## ✅ Operator Validation
 
 | Element | Value |

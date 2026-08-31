@@ -3,9 +3,11 @@
 ## 🔍 Overview
 
 Diagnostic MVP menambahkan diagnosis deterministik berbasis evidence pada alur
-alert Tomcat Monitoring. Desain telah diterima pada 2026-08-30, tetapi source,
-configuration, image, container, SQLite database, collector, dan end-to-end
-runtime belum diimplementasikan atau diverifikasi.
+alert Tomcat Monitoring. Desain telah diterima pada 2026-08-30. Schema,
+migration, durable SQLite ingestion, dan queue telah diterapkan pada source;
+target isolation, bounded evidence adapters, dan deterministic `TomcatDown`
+engine juga telah lulus isolated tests. Configuration, image, container,
+collector, dan end-to-end runtime belum diimplementasikan atau diverifikasi.
 
 Pilot pertama hanya menerima `TomcatDown`. Application health boleh menjadi
 supporting evidence untuk incident tersebut, tetapi bukan diagnostic rule.
@@ -85,7 +87,7 @@ The pilot may be accepted only after:
 
 ## 📌 Current Status
 
-**Accepted design and implementation plan — not implemented or runtime
-verified.** Approval of this documentation does not authorize source changes,
-dependency installation, image build, container mutation, deployment, atau
-end-to-end testing.
+**Ingestion, isolation, and deterministic rule engine implemented and locally
+tested; diagnostic runtime not implemented or verified.** Source tests tidak
+membuktikan worker orchestration, HTTP, notification, container, deployment,
+atau end-to-end behavior.

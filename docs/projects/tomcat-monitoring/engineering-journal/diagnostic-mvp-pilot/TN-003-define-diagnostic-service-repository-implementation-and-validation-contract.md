@@ -402,6 +402,21 @@ git status --short --branch
 git diff --stat
 ```
 
+## 🧭 Reproduction Reference
+
+Section ini ditambahkan pada 2026-08-31. TN-003 menghasilkan implementation
+contract dan TM-ADR-0013, bukan source aplikasi. Exact published result berada
+pada handbook commit `2c0535e`.
+
+```bash
+git show --stat 2c0535e
+git show 2c0535e:docs/adr/tomcat-monitoring/adr-records/TM-ADR-0013.md
+git show 2c0535e:docs/projects/tomcat-monitoring/engineering-journal/diagnostic-mvp-pilot/TN-003-define-diagnostic-service-repository-implementation-and-validation-contract.md
+```
+
+Source implementation baru dimulai pada TN-004. Karena itu TN-003 tidak dapat
+digunakan sebagai build procedure dan tidak menyatakan sebaliknya.
+
 ## ✅ Verification
 
 | Method | Expected result | Actual result | Evidence |

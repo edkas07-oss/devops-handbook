@@ -9,3 +9,5 @@ arrange:
 - TN-002-reconcile-diagnostic-mvp-current-state-consolidation.md
 - TN-003-define-diagnostic-service-repository-implementation-and-validation-contract.md
 - TN-004-establish-diagnostic-service-repository-governance-and-static-validation-baseline.md
+- TN-005-implement-durable-diagnostic-ingestion-and-queue.md
+- TN-006-implement-target-isolation-evidence-adapters-and-tomcatdown-engine.md

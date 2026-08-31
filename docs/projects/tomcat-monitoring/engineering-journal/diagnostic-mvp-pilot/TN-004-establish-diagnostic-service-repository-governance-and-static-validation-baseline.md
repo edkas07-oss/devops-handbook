@@ -228,6 +228,24 @@ rg -n 'TN-004-establish-diagnostic-service-repository-governance-and-static-vali
 git status --short --branch
 ```
 
+## 🧭 Reproduction Guide
+
+Section ini ditambahkan pada 2026-08-31 setelah baseline disimpan pada
+Diagnostic Service commit `03f1296`. Mulai dari clone repository tersebut:
+
+```bash
+git checkout 03f1296
+git show --stat --oneline 03f1296
+./scripts/validate.sh
+bash -n scripts/*.sh
+```
+
+Expected result adalah sembilan baseline files sesuai `git show --stat`, output
+`Static validation passed: governance and dependency-free baseline are
+consistent.`, serta shell syntax tanpa error. Checkout dan re-run di atas
+merupakan reproduction instruction; aktivitas TN-004 sendiri berlangsung
+sebelum commit dibuat.
+
 ## 🧾 Outcome
 
 Governance, project/package metadata dependency-free, README, dan static

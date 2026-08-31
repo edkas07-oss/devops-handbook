@@ -1,0 +1,267 @@
+# TN-006 — Implement Target Isolation, Evidence Adapters, and TomcatDown Engine
+
+| Field | Value |
+| --- | --- |
+| Status | Completed |
+| Activity Type | Implementation |
+| Record Type | Live |
+| Project | Tomcat Monitoring |
+| Phase | Diagnostic MVP Pilot |
+| Activity Date | 2026-08-31 |
+| Recorded Date | 2026-08-31 |
+| Owner | Project owner |
+| Working Mode | Write |
+| Authorization Status | Approved |
+| Approved By | Project owner |
+| Approval Date | 2026-08-31 |
+
+## 🎯 Objective
+
+Mengimplementasikan target isolation, bounded evidence adapters, dan seluruh
+branch deterministic `TomcatDown` tanpa mengakses runtime aktual.
+
+## 🌍 Background
+
+TN-005 menyediakan durable ingestion dan queue. Tahap berikutnya harus
+mengubah accepted alert menjadi evidence yang tidak dapat melintasi target,
+generation, path, atau time window, lalu mengevaluasinya dengan decision table
+yang telah diterima.
+
+## 📚 Scope
+
+Scope mencakup trusted target registry, canonical evidence, UTC/generation
+window isolation, bounded local-file dan collector-spool reads, Prometheus dan
+application-health adapters, TD-01 sampai TD-08 engine, tests, validator,
+README, dan current-state documentation.
+
+Collector service, HTTP server, notification, image, deployment, integration
+configuration, commit, dan push tidak termasuk scope.
+
+## 📋 Prerequisites
+
+| Prerequisite | State |
+| --- | --- |
+| TN-005 source | Included in shared commit `aa55170` |
+| Target and Evidence Contract | Accepted |
+| TomcatDown Rule Specification | Accepted |
+| Restricted Collector runtime | Not required; fixture spool only |
+| External Prometheus or health endpoint | Not used; fetch fixtures only |
+| Implementation authorization | Approved 2026-08-31 |
+
+## 🧭 Implementation Plan
+
+```text
+Trusted target config -> target registry
+                      -> bounded adapters -> isolated evidence
+                                          -> TD-01 through TD-08
+```
+
+## ⚙️ Implementation
+
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Establish Trusted Target Identity
+
+Target registry membentuk identity `environment/host/tomcat_instance` dari
+local configuration. Ia menolak duplicate identity, unsafe path, non-HTTPS
+health URL, dan Prometheus selector yang bukan exact label matcher. Webhook
+tidak dapat memilih endpoint atau path evidence.
+
+!!! success "Expected Result"
+
+    Hanya target allowlisted yang memperoleh trusted evidence mapping.
+
+**Actual Result:** Unknown target dan unsafe mapping ditolak oleh unit tests.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Implement Bounded Evidence Adapters
+
+| Adapter | Implemented boundary |
+| --- | --- |
+| Prometheus | Trusted selector, one attempt, total timeout 5 seconds |
+| Application health | Trusted HTTPS URL; hanya status HTTP disimpan |
+| Log/crash file | Configured root, maksimum 500 lines/512 KiB, redaction |
+| Collector spool | Read-only JSON, maksimum 16 KiB/record dan 200 files/run |
+
+Traversal dan symbolic link ditolak. Evidence dinormalisasi dengan stable ID,
+target, generation, UTC timestamp, status, strength, value, dan redaction
+state. Evidence di luar identity, generation, atau time window dikeluarkan.
+
+!!! success "Expected Result"
+
+    Adapter menghasilkan bounded evidence tanpa menerima path atau endpoint
+    dari alert payload.
+
+**Actual Result:** Adapter tersedia sebagai source; tidak ada endpoint atau
+host evidence aktual yang diakses.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Implement the TomcatDown Decision Table
+
+| Branch | Decisive evidence | Assessment |
+| --- | --- | --- |
+| TD-01 | JMX gagal, health hidup, container running | JMX/TLS/scrape path probable |
+| TD-02 | JMX dan health gagal plus OOM | Confirmed OOM |
+| TD-03–TD-05 | Correlated crash, bind, atau stop evidence | Confirmed cause |
+| TD-06 | Container exited tanpa cause evidence | Undetermined |
+| TD-07 | Running, health timeout, long pause | Possible unresponsive Tomcat |
+| TD-08 | Missing atau contradicting evidence | Undetermined |
+
+Engine tidak menggunakan numeric score dan tidak menjalankan recommended
+action.
+
+!!! success "Expected Result"
+
+    Evidence dan rule version yang sama selalu menghasilkan branch,
+    classification, dan confidence yang sama.
+
+**Actual Result:** TD-01 sampai TD-08 dan confidence mapping tersedia.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Verify Isolation and Rule Behavior
+
+```bash
+./scripts/validate.sh
+bash -n scripts/*.sh
+podman run --rm --name tomcat-diagnostic-tn006-node --userns=keep-id \
+  -v /home/eddywiyatno/git/tomcat-diagnostic-service:/app:Z -w /app \
+  localhost/nodejs:24.18.0 npm test
+```
+
+Run pertama lulus 16 tests. Review berikutnya menambahkan conflicting-state
+fallback, exact-selector validation, HTTPS enforcement, dan spool-isolation
+test. Run tersebut semula dilaporkan 18 entries; evidence correction kemudian
+membatasi discovery ke `*.test.js` dan menghasilkan 17 substantive tests, 0
+fail.
+
+!!! success "Expected Result"
+
+    Seluruh branch, timeout/no-retry, isolation, bounds, traversal, symlink,
+    dan malformed-spool behavior lulus.
+
+**Actual Result:** Run awal melaporkan 18 entries. Evidence review menemukan
+satu entry adalah fixture file. Setelah `npm test` dibatasi ke `*.test.js`, 17
+substantive tests lulus dan container dihapus otomatis dengan `--rm`.
+
+</div>
+
+</div>
+
+## 📁 Artifact Manifest
+
+TN-006 menambahkan capability berikut di atas source TN-005:
+
+| Path | Responsibility |
+| --- | --- |
+| `src/application/target-registry.js` | Canonical target dan trusted mapping validation |
+| `src/domain/evidence.js` | Evidence identity, status, strength, dan isolation window |
+| `src/domain/tomcat-down-engine.js` | Deterministic TD-01 sampai TD-08 evaluation |
+| `src/adapters/prometheus-adapter.js` | One-attempt query dan five-second timeout status |
+| `src/adapters/application-health-adapter.js` | Bounded health HTTP status evidence |
+| `src/adapters/bounded-file-reader.js` | Root confinement, traversal/symlink rejection, byte/line bounds |
+| `src/adapters/local-file-evidence-adapter.js` | Sanitized log/crash excerpt evidence |
+| `src/adapters/collector-spool-adapter.js` | Bounded read-only collector record ingestion |
+| `test/unit/adapters.test.js` | Prometheus and application-health behavior |
+| `test/unit/collector-spool-adapter.test.js` | Malformed, target, generation, dan time filtering |
+| `test/unit/evidence-isolation.test.js` | Registry, path, target, generation, dan time isolation |
+| `test/unit/tomcat-down-engine.test.js` | TD-01 sampai TD-08, confidence, dan contradiction tests |
+
+## 🧪 Test Scenario Matrix
+
+| Boundary | Scenarios |
+| --- | --- |
+| Target registry | Accepted identity; unknown identity; unsafe path; selector injection; non-HTTPS URL |
+| Filesystem | Traversal; symlink; byte and line truncation |
+| Evidence isolation | Different target, generation, and UTC window rejected |
+| Prometheus | Success; explicit timeout; exactly one attempt |
+| Application health | HTTP `503` recorded as `up=false` without body persistence |
+| Collector spool | Matching record accepted; wrong target/time and malformed JSON excluded |
+| Rule engine | TD-01 through TD-08, contract confidence, conflicting direct state |
+
+## 🧭 Reproduction Boundary
+
+Tests menggunakan Node.js `24.18.0` temporary container, fixture-only HTTP
+responses, temporary directories, dan no external network endpoint. Command
+sequence tersedia pada procedure verification.
+
+TN-005 dan TN-006 source disimpan bersama pada commit `aa55170`. Exact TN-006
+files tercantum pada artifact manifest. Gunakan:
+
+```bash
+git checkout aa55170
+./scripts/validate.sh
+npm test
+```
+
+`npm test` membutuhkan Node.js `24.18.0`; gunakan temporary-container command
+pada procedure bila host tidak menyediakan exact runtime. Commit ini masih
+lokal dan belum membuktikan remote publication.
+
+## ✅ Verification
+
+| Method | Expected Result | Actual Result |
+| --- | --- | --- |
+| `./scripts/validate.sh` | Source dan forbidden-interface boundary konsisten | Passed |
+| `bash -n scripts/*.sh` | Shell syntax valid | Passed |
+| `npm test` pada temporary Node.js `24.18.0` container | Hanya `*.test.js` dijalankan; seluruh branch, timeout/no-retry, isolation, bounds, dan spool filtering lulus | Passed: 17 substantive tests |
+
+Tidak ada network endpoint atau host evidence aktual yang diakses. Temporary
+container dihapus otomatis dengan `--rm`.
+
+## 🖥️ Commands Executed
+
+Command aktual ditempatkan pada procedure sesuai chronology. `npm test`
+dijalankan dua kali. Source dibuat melalui workspace patch; tidak ada shell
+command yang memutasinya.
+
+Read-only discovery dan closure checks yang material:
+
+```bash
+git status --short --branch
+rg --files src test config migrations | sort
+sed -n '1,320p' /home/eddywiyatno/git/devops-handbook/docs/projects/tomcat-monitoring/diagnostic-mvp/target-and-evidence-contract.md
+sed -n '1,300p' /home/eddywiyatno/git/devops-handbook/docs/projects/tomcat-monitoring/diagnostic-mvp/diagnostic-result-and-confidence-contract.md
+sed -n '1,220p' /home/eddywiyatno/git/devops-handbook/docs/projects/tomcat-monitoring/diagnostic-mvp/restricted-event-collector-contract.md
+git diff --check
+git status --short --branch
+podman ps -a --filter name=tomcat-diagnostic-tn006-node --format '{{.Names}} {{.Status}}'
+podman run --rm --name tomcat-diagnostic-test-evidence-correction --userns=keep-id \
+  -v /home/eddywiyatno/git/tomcat-diagnostic-service:/app:Z -w /app \
+  localhost/nodejs:24.18.0 npm test
+git add README.md package.json package-lock.json scripts/validate.sh config migrations src test
+git diff --cached --check
+git commit -m "feat(diagnostic-service): implement durable diagnostic engine foundation"
+```
+
+Source-control result: commit `aa55170`, shared oleh TN-005 dan TN-006.
+
+## 🧾 Outcome
+
+Target and evidence boundary serta deterministic rule engine tersedia dan
+lulus isolated tests. Hasil ini belum membuktikan worker orchestration,
+canonical-result persistence, HTTP runtime, notification, atau end-to-end
+diagnosis.
+
+## ⏭️ Next Steps
+
+Tahap berikutnya mengimplementasikan worker orchestration, canonical result
+version 1, persistence, health/metrics model, dan Mailpit renderer. Image dan
+component runtime tetap digabungkan pada verification teknis berikutnya, bukan
+TN dokumentasi-only.
+
+## 🔗 Related Documentation
+
+- [TN-005 — Implement Durable Diagnostic Ingestion and Queue](TN-005-implement-durable-diagnostic-ingestion-and-queue.md)
+- [Target and Evidence Contract](../../diagnostic-mvp/target-and-evidence-contract.md)
+- [TomcatDown Rule Specification](../../diagnostic-mvp/tomcat-down-rule-specification.md)

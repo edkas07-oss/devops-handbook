@@ -37,7 +37,7 @@ live agar pembaca dapat membedakan histori awal dari perbaikan dokumentasi.
 | --- | --- | --- |
 | [Runtime Monitoring Foundation](runtime-monitoring-foundation/index.md) | Menentukan arsitektur awal, menyiapkan area kerja, dan memverifikasi komponen monitoring pertama | In Progress |
 | [Monitoring Integration and Runtime Deployment](monitoring-integration-and-runtime-deployment/index.md) | Menetapkan contract konfigurasi, validator, dan readiness sebelum integrasi komponen serta deployment runtime | Completed |
-| [Diagnostic MVP Pilot](diagnostic-mvp-pilot/index.md) | Menetapkan dan membuktikan diagnosis deterministik `TomcatDown` sampai Mailpit dan resolved lifecycle | In Progress — architecture accepted; implementation not started |
+| [Diagnostic MVP Pilot](diagnostic-mvp-pilot/index.md) | Menetapkan dan membuktikan diagnosis deterministik `TomcatDown` sampai Mailpit dan resolved lifecycle | In Progress — ingestion, isolation, and rule engine tested; orchestration pending |
 
 !!! note "Phase Lifecycle"
 
