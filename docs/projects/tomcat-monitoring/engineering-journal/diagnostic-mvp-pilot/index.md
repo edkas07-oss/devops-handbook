@@ -58,6 +58,11 @@ Prometheus -> Alertmanager -> Diagnostic Service
     Mengimplementasikan queue worker, canonical-result persistence,
     material-update guard, operational state, dan seven-section renderers.
 
+8. **[TN-008 — Implement Secure Service and SMTP Delivery Boundaries](TN-008-implement-secure-service-and-smtp-delivery-boundaries.md)**
+
+    Mengimplementasikan dan memverifikasi HTTPS request boundary serta SMTP
+    delivery melalui 25 regression dan 2 ephemeral socket component tests.
+
 ## 📌 Phase Status
 
 **In Progress.** Durable ingestion, target isolation, evidence adapters, dan
@@ -76,6 +81,7 @@ end-to-end verification tertunda.
 | TN-005 | Source commit `aa55170`; exact path manifest pada TN |
 | TN-006 | Source commit `aa55170`; 17 substantive tests |
 | TN-007 | Source commit `1ea79fa`; 22 substantive tests |
+| TN-008 | Source commit `bc4b7ae`; 25 regression and 2 socket tests |
 
 TN-005 dan TN-006 berbagi satu source commit karena keduanya membentuk satu
 verified diagnostic-engine foundation dan telah dipush. TN-007 berada pada

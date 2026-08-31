@@ -14,6 +14,12 @@ guard, health/metrics application model, dan seven-section text/HTML renderers
 telah tersedia pada commit `1ea79fa`. HTTP/TLS, SMTP delivery, dan Mailpit
 component behavior belum diterapkan atau diverifikasi.
 
+HTTPS request boundary dan SMTP adapter pada commit `bc4b7ae` telah lulus
+ephemeral socket tests pada TN-008. Certificate test dibersihkan dan tidak
+disimpan di Git. Mailpit aktual,
+application startup configuration, image, deployment, dan end-to-end behavior
+belum diverifikasi.
+
 Pilot pertama hanya menerima `TomcatDown`. Application health boleh menjadi
 supporting evidence untuk incident tersebut, tetapi bukan diagnostic rule.
 `ApplicationHealthCheckFailed` dan `TomcatHighHeapUsage` tetap deferred.

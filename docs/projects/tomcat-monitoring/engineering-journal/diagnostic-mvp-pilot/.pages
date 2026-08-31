@@ -12,3 +12,4 @@ arrange:
 - TN-005-implement-durable-diagnostic-ingestion-and-queue.md
 - TN-006-implement-target-isolation-evidence-adapters-and-tomcatdown-engine.md
 - TN-007-implement-worker-canonical-result-and-renderers.md
+- TN-008-implement-secure-service-and-smtp-delivery-boundaries.md

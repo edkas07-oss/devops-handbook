@@ -77,7 +77,7 @@ tomcat-jmx-exporter/
 | CI pipeline | Not implemented |
 | Container image publication | Local image only; registry not determined |
 | Diagnostic Service remote repository | Gitea `tomcat-diagnostic-service` tersedia |
-| Diagnostic Service local state | Commit `1ea79fa`; TN-005–TN-007 source committed locally; image belum tersedia |
+| Diagnostic Service local state | Commit `bc4b7ae`; TN-005–TN-008 source committed locally; image belum tersedia |
 | Restricted Event Collector repository | Belum dibuat |
 
 ## Development Workflow
@@ -114,14 +114,15 @@ Podman. Repository lokal tersedia pada:
 /home/eddywiyatno/git/tomcat-diagnostic-service
 ```
 
-Repository `tomcat-diagnostic-service` memiliki current local commit `1ea79fa`.
+Repository `tomcat-diagnostic-service` memiliki current local commit `bc4b7ae`.
 Source menambahkan exact-pinned Ajv, schema, forward migration, isolated
 `node:sqlite` adapter, durable ingestion, deduplication, dan queue berkapasitas
 50. Target registry, bounded evidence adapters, dan TD-01 sampai TD-08 engine
 juga tersedia. Worker, canonical-result persistence, health/metrics model, dan
 seven-section renderers kemudian lulus bersama seluruh regression suite: 22
-tests pada 2026-08-31. HTTP/SMTP server, image, dan component runtime belum
-diterapkan atau diverifikasi. Repository
+tests pada 2026-08-31. HTTPS request dan SMTP delivery boundaries kemudian
+lulus 25 regression serta 2 ephemeral socket tests; image dan persistent
+component runtime belum diterapkan atau diverifikasi. Repository
 `tomcat-diagnostic-event-collector` belum tersedia.
 
 Pada `tomcat-jmx-exporter`, current source tersedia pada branch `main` melalui
