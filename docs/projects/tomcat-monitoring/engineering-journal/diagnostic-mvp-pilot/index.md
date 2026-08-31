@@ -37,10 +37,18 @@ Prometheus -> Alertmanager -> Diagnostic Service
     serta validation contract, menutup GAP-001, dan mempertahankan source
     implementation sebagai authorization terpisah.
 
+4. **[TN-004 — Establish Diagnostic Service Repository Governance and Static Validation Baseline](TN-004-establish-diagnostic-service-repository-governance-and-static-validation-baseline.md)**
+
+    Membentuk governance, metadata dependency-free, dan static validation
+    baseline repository Diagnostic Service tanpa business logic, build, atau
+    runtime container.
+
 ## 📌 Phase Status
 
-**In Progress.** Architecture and documentation contract accepted; source,
-configuration, runtime, and end-to-end verification have not started.
+**In Progress.** Architecture and documentation contract accepted; Diagnostic
+Service governance and dependency-free static baseline implemented in the
+local uncommitted working tree. Application source, persistence, runtime,
+integration configuration, and end-to-end verification have not started.
 
 ## 🔗 Related Documentation
 

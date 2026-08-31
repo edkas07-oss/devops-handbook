@@ -35,7 +35,7 @@ Source project dibagi berdasarkan lifecycle dan tanggung jawab berikut:
 | `tomcat-jmx-exporter` | Menyediakan derived Tomcat image dengan embedded JMX Exporter | Current source published and local component build verified |
 | `alertmanager` | Menyediakan generic Alertmanager container image dan lifecycle runtime | Local image `1.0.0` built; Alertmanager, `amtool`, and non-root smoke test passed |
 | `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | Persistent Prometheus–Alertmanager–Mailpit firing/resolved delivery verified; external delivery pending |
-| `tomcat-diagnostic-service` | Memiliki source Diagnostic Service, dependency lock, image lifecycle, migration, dan component test | Repository lokal dan remote tersedia; Node.js 24 ESM dan isolated `node:sqlite` plan accepted; implementation belum dimulai |
+| `tomcat-diagnostic-service` | Memiliki source Diagnostic Service, dependency lock, image lifecycle, migration, dan component test | Governance, dependency-free metadata, dan static validation baseline tersedia pada uncommitted local source; application implementation belum dimulai |
 | `tomcat-diagnostic-event-collector` | Memiliki source, packaging, dan component test restricted rootless host collector | Ownership diterima; repository belum dibuat |
 
 Target allowlist diagnostic, integrasi Prometheus dan Alertmanager,
@@ -77,7 +77,7 @@ tomcat-jmx-exporter/
 | CI pipeline | Not implemented |
 | Container image publication | Local image only; registry not determined |
 | Diagnostic Service remote repository | Gitea `tomcat-diagnostic-service` tersedia |
-| Diagnostic Service local state | Branch `main` tersedia; belum memiliki commit, source, atau image; repository plan dan validation interface telah diterima |
+| Diagnostic Service local state | Branch `main` belum memiliki commit; governance, dependency-free metadata, dan static validator tersedia pada working tree; application source dan image belum tersedia |
 | Restricted Event Collector repository | Belum dibuat |
 
 ## Development Workflow
@@ -114,14 +114,14 @@ Podman. Repository lokal tersedia pada:
 /home/eddywiyatno/git/tomcat-diagnostic-service
 ```
 
-Repository `tomcat-diagnostic-service` tersedia pada branch `main`, tetapi
-masih kosong dan belum memiliki commit. Ketersediaan repository hanya menutup
-prasyarat lokasi source. Node.js `24.18.0` LTS dengan plain ESM JavaScript dan
-built-in `node:sqlite` telah diterima sebagai implementation contract;
-repository layout dan validation interface juga telah ditetapkan. Source,
-packaging, application dependency, image, dan component test belum diterapkan
-atau diverifikasi. Repository `tomcat-diagnostic-event-collector` belum
-tersedia.
+Repository `tomcat-diagnostic-service` tersedia pada branch `main` dan belum
+memiliki commit. Working tree telah memiliki governance, metadata project serta
+package dependency-free, README, dan static validator yang lulus source-level
+validation pada 2026-08-31. Node.js `24.18.0` LTS dengan plain ESM JavaScript
+dan built-in `node:sqlite` tetap menjadi implementation contract. Application
+source, schema, migration, dependency, packaging image, component test, serta
+runtime belum diterapkan atau diverifikasi. Repository
+`tomcat-diagnostic-event-collector` belum tersedia.
 
 Pada `tomcat-jmx-exporter`, current source tersedia pada branch `main` melalui
 commit `231cb91` dan local `origin/main` menunjuk commit yang sama. Working tree
