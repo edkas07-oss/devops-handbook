@@ -6,8 +6,8 @@ Diagnostic MVP menambahkan diagnosis deterministik berbasis evidence pada alur
 alert Tomcat Monitoring. Desain telah diterima pada 2026-08-30. Schema,
 migration, durable SQLite ingestion, dan queue telah diterapkan pada source;
 target isolation, bounded evidence adapters, dan deterministic `TomcatDown`
-engine juga telah lulus isolated tests. Configuration, image, container,
-collector, dan end-to-end runtime belum diimplementasikan atau diverifikasi.
+engine juga telah lulus isolated tests. Image, persistent container, collector,
+dan end-to-end runtime belum diimplementasikan atau diverifikasi.
 
 Single-worker orchestration, canonical-result persistence, material-update
 guard, health/metrics application model, dan seven-section text/HTML renderers
@@ -15,10 +15,12 @@ telah tersedia pada commit `1ea79fa`. HTTP/TLS, SMTP delivery, dan Mailpit
 component behavior belum diterapkan atau diverifikasi.
 
 HTTPS request boundary dan SMTP adapter pada commit `bc4b7ae` telah lulus
-ephemeral socket tests pada TN-008. Certificate test dibersihkan dan tidak
-disimpan di Git. Mailpit aktual,
-application startup configuration, image, deployment, dan end-to-end behavior
-belum diverifikasi.
+ephemeral socket tests pada TN-008. Source commit `a398349` menambahkan versioned
+non-secret configuration, mounted-file secret loader, migration-before-
+readiness startup, tepat satu worker loop, Prometheus text serialization, dan
+graceful shutdown. Tiga component tests membuktikan temporary HTTPS, SQLite,
+dan fake SMTP; seluruh certificate dan database fixture telah dibersihkan.
+Mailpit aktual, image, deployment, dan end-to-end behavior belum diverifikasi.
 
 Pilot pertama hanya menerima `TomcatDown`. Application health boleh menjadi
 supporting evidence untuk incident tersebut, tetapi bukan diagnostic rule.
@@ -98,7 +100,7 @@ The pilot may be accepted only after:
 
 ## 📌 Current Status
 
-**Ingestion, isolation, and deterministic rule engine implemented and locally
-tested; diagnostic runtime not implemented or verified.** Source tests tidak
-membuktikan worker orchestration, HTTP, notification, container, deployment,
-atau end-to-end behavior.
+**Application source, configuration, dan startup lifecycle implemented and
+locally component-tested; image dan persistent diagnostic runtime belum
+tersedia.** Source dan ephemeral component tests tidak membuktikan Mailpit,
+container, deployment, restart durability, atau end-to-end behavior.

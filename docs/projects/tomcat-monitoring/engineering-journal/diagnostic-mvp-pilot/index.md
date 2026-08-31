@@ -63,12 +63,18 @@ Prometheus -> Alertmanager -> Diagnostic Service
     Mengimplementasikan dan memverifikasi HTTPS request boundary serta SMTP
     delivery melalui 25 regression dan 2 ephemeral socket component tests.
 
+9. **[TN-009 — Implement Application Configuration and Startup Lifecycle](TN-009-implement-application-configuration-and-startup-lifecycle.md)**
+
+    Mengimplementasikan konfigurasi non-secret berversi, mounted-file secrets,
+    startup HTTPS dan single worker, Prometheus serialization, serta graceful
+    shutdown; 31 regression dan 3 ephemeral component tests lulus.
+
 ## 📌 Phase Status
 
-**In Progress.** Durable ingestion, target isolation, evidence adapters, dan
-deterministic engine telah lulus isolated tests. Worker orchestration, result
-persistence, dan renderers kemudian lulus 22 tests; HTTP/SMTP runtime dan
-end-to-end verification tertunda.
+**In Progress.** Durable ingestion, target isolation, deterministic engine,
+worker/result lifecycle, HTTPS/SMTP boundaries, dan application startup telah
+lulus source atau ephemeral component tests. Image, persistent runtime,
+Mailpit aktual, restricted collector, dan end-to-end verification tertunda.
 
 ## 🧭 Reproducibility Status
 
@@ -82,6 +88,7 @@ end-to-end verification tertunda.
 | TN-006 | Source commit `aa55170`; 17 substantive tests |
 | TN-007 | Source commit `1ea79fa`; 22 substantive tests |
 | TN-008 | Source commit `bc4b7ae`; 25 regression and 2 socket tests |
+| TN-009 | Source commit `a398349`; 31 regression and 3 ephemeral component tests |
 
 TN-005 dan TN-006 berbagi satu source commit karena keduanya membentuk satu
 verified diagnostic-engine foundation dan telah dipush. TN-007 berada pada
