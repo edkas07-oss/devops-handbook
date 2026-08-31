@@ -3,15 +3,19 @@
 ## Overview
 
 Bagian ini menjelaskan workflow pengembangan Tomcat Monitoring. Source project
-dibagi antara generic Tomcat image, derived JMX Exporter image, dan monitoring
-configuration sesuai repository boundary. Setiap perubahan tetap dapat
-ditelusuri melalui Git tanpa mencampur lifecycle artefak.
+dibagi antara generic Tomcat image, derived JMX Exporter image, monitoring
+configuration, Diagnostic Service, dan restricted event collector sesuai
+repository boundary. Setiap perubahan tetap dapat ditelusuri melalui Git tanpa
+mencampur lifecycle artefak.
 
 Pembagian repository mengikuti kebutuhan pada
 [Deployment Topology](../architecture/index.md#deployment-topology). Repository
 `tomcat` menyediakan runtime dasar, `tomcat-jmx-exporter` menyediakan komponen
 instrumentasi, dan `tomcat-monitoring` akan mengintegrasikan Prometheus,
-Telegraf, alerting, serta deployment automation.
+Telegraf, alerting, serta deployment automation. Repository
+`tomcat-diagnostic-service` memiliki source aplikasi, dependency lock, image
+lifecycle, migration, dan component test Diagnostic Service, sedangkan
+repository collector terpisah direncanakan untuk host-runtime evidence.
 
 Repository `tomcat-monitoring` telah dibuat di Gitea dan di-clone ke
 development environment. Baseline layout, component configurations, dan static
@@ -31,13 +35,13 @@ Source project dibagi berdasarkan lifecycle dan tanggung jawab berikut:
 | `tomcat-jmx-exporter` | Menyediakan derived Tomcat image dengan embedded JMX Exporter | Current source published and local component build verified |
 | `alertmanager` | Menyediakan generic Alertmanager container image dan lifecycle runtime | Local image `1.0.0` built; Alertmanager, `amtool`, and non-root smoke test passed |
 | `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | Persistent Prometheus–Alertmanager–Mailpit firing/resolved delivery verified; external delivery pending |
-| `tomcat-diagnostic-service` | Future Diagnostic Service source, image lifecycle, migrations, and component tests | Ownership accepted; repository not created |
-| `tomcat-diagnostic-event-collector` | Future rootless host collector source, packaging, and component tests | Ownership accepted; repository not created |
+| `tomcat-diagnostic-service` | Memiliki source Diagnostic Service, dependency lock, image lifecycle, migration, dan component test | Repository lokal dan remote tersedia; belum memiliki commit atau implementation |
+| `tomcat-diagnostic-event-collector` | Memiliki source, packaging, dan component test restricted rootless host collector | Ownership diterima; repository belum dibuat |
 
-Diagnostic target allowlist, Prometheus and Alertmanager integration,
-non-secret deployment configuration, and end-to-end verification remain owned
-by `tomcat-monitoring`. Repository creation and implementation require a
-separate approved plan.
+Target allowlist diagnostic, integrasi Prometheus dan Alertmanager,
+configuration deployment non-secret, serta end-to-end verification tetap
+dimiliki `tomcat-monitoring`. Repository yang tersedia tidak memberikan
+authorization otomatis untuk implementation.
 
 Repository `tomcat-jmx-exporter` tidak menyimpan JMX Exporter JAR sebagai binary
 di Git. Build mengambil versi `1.6.0` yang telah dipin dan memverifikasi
@@ -72,6 +76,9 @@ tomcat-jmx-exporter/
 | Upstream tracking | Not configured on local branch |
 | CI pipeline | Not implemented |
 | Container image publication | Local image only; registry not determined |
+| Diagnostic Service remote repository | Gitea `tomcat-diagnostic-service` tersedia |
+| Diagnostic Service local state | Branch `main` tersedia; belum memiliki commit, source, validation interface, atau image |
+| Restricted Event Collector repository | Belum dibuat |
 
 ## Development Workflow
 
@@ -104,7 +111,14 @@ Podman. Repository lokal tersedia pada:
 ```text
 /home/eddywiyatno/git/tomcat-monitoring
 /home/eddywiyatno/git/tomcat-jmx-exporter
+/home/eddywiyatno/git/tomcat-diagnostic-service
 ```
+
+Repository `tomcat-diagnostic-service` tersedia pada branch `main`, tetapi
+masih kosong dan belum memiliki commit. Ketersediaan repository hanya menutup
+prasyarat lokasi source; bahasa, packaging, dependency, validation interface,
+image, dan component test belum diterapkan atau diverifikasi. Repository
+`tomcat-diagnostic-event-collector` belum tersedia.
 
 Pada `tomcat-jmx-exporter`, current source tersedia pada branch `main` melalui
 commit `231cb91` dan local `origin/main` menunjuk commit yang sama. Working tree
@@ -141,6 +155,10 @@ menggunakan canonical runtime name `tomcat_server`.
 - Gunakan placeholder atau environment variable untuk nilai antar-environment.
 - Jangan menyimpan password, private key, token, atau credential di repository.
 - Validasi syntax dan behavior konfigurasi sebelum perubahan di-commit.
+- Simpan source, dependency, migration, image lifecycle, dan component test
+  Diagnostic Service pada repository `tomcat-diagnostic-service`; simpan target
+  allowlist, routing, secret reference, deployment, dan integration validation
+  pada `tomcat-monitoring`.
 - Perbarui dokumentasi current-state ketika implementasi mengubah kondisi
   project.
 
@@ -157,6 +175,8 @@ menggunakan canonical runtime name `tomcat_server`.
 ## Related Pages
 
 - [TM-ADR-0002 — Separate Generic Runtime Images from Monitoring Integration Configuration](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0002.md)
+- [TM-ADR-0010 — Deploy One Bounded Diagnostic Service per Tomcat Host](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0010.md)
+- [Diagnostic MVP](../diagnostic-mvp/index.md)
 - [Development Environment Setup](setup.md)
 - [Architecture](../architecture/index.md)
 - [Infrastructure](../infrastructure/index.md)

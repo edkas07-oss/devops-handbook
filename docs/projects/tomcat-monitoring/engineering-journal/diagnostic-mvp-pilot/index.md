@@ -24,6 +24,13 @@ Prometheus -> Alertmanager -> Diagnostic Service
     result, notification contract, serta documentation-native handoff tanpa
     implementasi atau runtime mutation.
 
+2. **[TN-002 — Reconcile Diagnostic MVP Current-State Consolidation](TN-002-reconcile-diagnostic-mvp-current-state-consolidation.md)**
+
+    Mereview hasil TN-001 dan melebur capability Diagnostic MVP ke section
+    Architecture, Development, dan Infrastructure yang sudah menjadi
+    current-state source of truth, sekaligus menetapkan standar konsolidasi
+    feature lintas project.
+
 ## 📌 Phase Status
 
 **In Progress.** Architecture and documentation contract accepted; source,

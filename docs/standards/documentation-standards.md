@@ -59,6 +59,49 @@ Personal Site
 
 Struktur dapat disesuaikan apabila diperlukan, namun urutan pembahasan harus tetap logis dan konsisten.
 
+## 🔄 Feature Consolidation
+
+Ketika feature atau capability baru diterima, perubahan current-state
+documentation harus dilebur ke struktur project yang sudah menjadi source of
+truth. Jangan membuat section khusus feature apabila halaman existing sudah
+memiliki section dengan tanggung jawab yang sama.
+
+Gunakan mapping berikut sebelum menambahkan section baru:
+
+| Dampak feature | Lokasi konsolidasi utama |
+| --- | --- |
+| Perubahan tujuan atau batas project | Overview, Objectives, dan Scope |
+| Komponen, hubungan, atau alur baru | Architecture Components, topology, dan flow existing |
+| Repository, source, atau workflow baru | Repository Responsibilities, Repository State, dan Development Workflow |
+| Runtime, network, storage, certificate, atau ownership baru | Infrastructure Components dan requirements existing |
+| Perubahan kemampuan yang berlaku | Implementation, Operations, dan Current Status |
+| Keputusan arsitektur | ADR dan Related Architecture Decisions |
+
+Terapkan aturan berikut:
+
+- Perbarui tabel, diagram, daftar requirement, ownership, dan status existing
+  yang terdampak; satu paragraf tambahan di akhir halaman tidak dianggap
+  sebagai konsolidasi lengkap.
+- Pertahankan kondisi current yang telah diverifikasi dan bedakan dari target
+  `Planned`, `Accepted`, `Implemented`, atau `Verified` melalui kolom status,
+  label, legenda, atau gaya diagram yang jelas.
+- Jangan mengganti current topology dengan target yang belum diterapkan.
+  Gabungkan keduanya pada model existing atau beri penanda state tanpa
+  menduplikasi topology pada section feature terpisah.
+- Tambahkan section baru hanya jika feature memperkenalkan concern dokumentasi
+  yang benar-benar baru dan tidak dapat ditempatkan secara logis pada struktur
+  existing. Technical Note harus mencatat alasan penambahan tersebut.
+- Gunakan Bahasa Indonesia untuk narasi utama sesuai gaya halaman project.
+  Pertahankan nama produk, identifier, command, field, status, dan istilah
+  teknis yang diperlukan agar tetap dapat ditelusuri ke source.
+- Setelah konsolidasi, baca halaman sebagai satu kesatuan dan pastikan Overview,
+  tabel, diagram, requirement, ownership, serta Current Status menyampaikan
+  model yang konsisten.
+
+Technical Note tetap menyimpan histori feature dan alasan perubahan. Project
+documentation menyampaikan model project yang terkonsolidasi, bukan kumpulan
+ringkasan feature berdasarkan urutan implementasinya.
+
 ## 📄 Document Templates
 
 Setiap jenis dokumentasi memiliki template standar.

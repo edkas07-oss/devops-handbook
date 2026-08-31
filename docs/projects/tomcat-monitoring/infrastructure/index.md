@@ -5,7 +5,9 @@
 Infrastructure menyediakan environment untuk menjalankan Tomcat Monitoring.
 Tomcat, Prometheus, dan Telegraf dijalankan sebagai container terpisah. JMX
 Exporter menjadi bagian dari JVM di dalam container Tomcat dan tidak
-menggunakan remote JMX.
+menggunakan remote JMX. Target Diagnostic MVP menambahkan satu Diagnostic
+Service dan satu local state volume per host Tomcat serta restricted event
+collector; component tersebut belum diimplementasikan pada runtime.
 
 Provisioning host, network, storage, dan certificate berada di luar lifecycle
 runtime aplikasi. Deployment harus memverifikasi prerequisites, tetapi tidak
@@ -30,6 +32,12 @@ proses infrastructure yang telah ditetapkan.
 | Application health endpoint | Memberikan status aplikasi yang dapat diverifikasi Telegraf | Lab-only JSP `/health` deployed and verified; production application endpoint planned |
 | Alertmanager | Mengelola dan meneruskan alert | Persistent local image `1.0.0` runtime uses named configuration/data volumes; real Prometheus firing/resolved delivery verified |
 | Mailpit SMTP capture | Menangkap email Alertmanager pada persistent lab-only topology | Direct-upstream `v1.31.0` runs without named volume; loopback API and real firing/resolved capture verified |
+| Diagnostic Service | Menerima `TomcatDown`, mengelola state, mengumpulkan evidence terbatas, dan mengirim diagnostic notification | Desain diterima dan repository tersedia; source, image, serta runtime belum diimplementasikan |
+| SQLite diagnostic state | Mempertahankan event, incident, deduplication, canonical result, dan delivery state | Named volume `diagnostic_data` diterima; database dan physical volume belum dibuat |
+| Restricted Event Collector | Mengumpulkan event host dan container yang diizinkan tanpa memberi akses kontrol host kepada Diagnostic Service | Ownership diterima; repository dan host service belum dibuat |
+| Normalized collector spool | Menyediakan record event terbatas melalui mount read-only ke Diagnostic Service | Contract diterima; format fisik, permission, retention, dan runtime belum diimplementasikan |
+| Dedicated diagnostic network | Menghubungkan Alertmanager dan Diagnostic Service tanpa host-published service port | Contract diterima; network attachment belum diimplementasikan |
+| Diagnostic TLS dan bearer material | Mengamankan webhook internal dari Alertmanager | Wajib menggunakan non-Git read-only storage; lifecycle fisik belum ditetapkan |
 | Integration Bridge | Meneruskan alert ke TrueSight | Deferred; TrueSight tidak tersedia pada lab |
 
 `Available` menunjukkan komponen telah tersedia pada kondisi project saat ini.
@@ -65,6 +73,14 @@ configuration.
 - Host menyediakan kapasitas CPU, memory, dan storage yang memadai berdasarkan
   sizing yang belum ditetapkan.
 - Firewall hanya mengizinkan port yang diperlukan oleh alur monitoring.
+- Satu Diagnostic Service direncanakan per host Tomcat dan hanya menangani
+  target lokal yang tercantum pada allowlist.
+- Diagnostic Service menggunakan satu worker, queue maksimum 50, timeout
+  diagnostic 60 detik, memory limit 256 MiB, dan CPU limit 500 millicores.
+- Diagnostic Service tidak memperoleh broad Podman socket, host namespace,
+  arbitrary command, runtime-control, atau arbitrary-path access.
+- Restricted Event Collector berjalan sebagai rootless host service terpisah
+  dan hanya menulis record ternormalisasi yang telah diizinkan.
 
 ## Network Requirements
 
@@ -76,7 +92,10 @@ configuration.
 | Dashboard to Prometheus | HTTP ke host port `9090` pada lab | Trusted VPN lab; TLS dan authentication belum tersedia | Browser tablet verified through `http://edkas-pc1:9090` on 2026-08-24 |
 | Prometheus to Alertmanager | HTTP ke internal `alertmanager:9093` pada `devops-lab` | Container-network-only access; no Alertmanager host port | Healthy active target and real application-health firing/resolved delivery verified on 2026-08-28 |
 | Alertmanager to Mailpit | Internal `mailpit:1025` pada `devops-lab`; SMTP tidak dipublikasikan | Mailpit API/UI hanya `127.0.0.1:8025`; no external relay, credential, atau personal recipient | Persistent lab-only firing/resolved capture verified on 2026-08-28 |
-| Alertmanager to Integration Bridge | Webhook dengan URL dari runtime secret file | Endpoint, authentication, dan TLS contract belum ditentukan | Deferred for lab; synthetic receiver passed isolated firing/resolved verification |
+| Alertmanager to Diagnostic Service | HTTPS ke `diagnostic-service:8443/api/v1/alerts/alertmanager` | Strict TLS, bearer authentication, dedicated internal network, CA dan token read-only dari non-Git storage; tanpa host port | Contract diterima; routing, certificate, token, dan runtime belum diimplementasikan |
+| Diagnostic Service to Prometheus | Query metrics terbatas melalui Prometheus API | Target dan query berasal dari local allowlist; endpoint fisik dan trust contract belum ditetapkan | Direncanakan; belum diimplementasikan atau diverifikasi |
+| Diagnostic Service to Mailpit | SMTP internal untuk diagnostic firing, update, failed/partial, dan resolved | Tidak menggunakan external relay atau personal recipient pada lab | Contract diterima; delivery belum diimplementasikan |
+| Diagnostic Service to Integration Bridge | Canonical JSON projection | Tidak ada endpoint, credential, connection, retry, queue, atau worker ketika disabled | Disabled; activation memerlukan contract terpisah |
 | Integration Bridge to TrueSight | SNMP Trap atau `msend` | Not determined | Designed, not verified |
 
 Hostname, container network, firewall rule, dan port komponen monitoring yang
@@ -154,6 +173,16 @@ Default retention `15d` terlihat pada runtime log, tetapi belum diterima
 sebagai project retention policy. Capacity, growth limit, backup, dan recovery
 tetap berstatus `Not determined`.
 
+Diagnostic Service menggunakan named volume `diagnostic_data` pada path
+`/var/lib/tomcat-diagnostic/diagnostic.db`. SQLite menggunakan WAL mode dengan
+satu logical writer, target ukuran 100 MiB, dan hard acceptance boundary 250
+MiB. Initialization, migration, retention 30 hari untuk resolved data,
+checkpoint, integrity check, capacity check, dan incremental vacuum berjalan
+otomatis menurut accepted contract. Physical volume, schema, migration, backup,
+dan recovery belum diimplementasikan atau diverifikasi. Penghapusan volume atau
+database tetap merupakan exact-target destructive action yang memerlukan
+authorization terpisah.
+
 ## Certificate Requirements
 
 - JMX Exporter menyajikan certificate untuk endpoint HTTPS.
@@ -176,6 +205,14 @@ tetap berstatus `Not determined`.
   authorization.
 - Production issuance, distribution, renewal, revocation, dan ownership tetap
   harus ditetapkan secara terpisah.
+- Webhook Diagnostic Service wajib menggunakan strict TLS dan bearer
+  authentication pada dedicated internal network tanpa host-published port.
+- Alertmanager memverifikasi CA Diagnostic Service. CA dan bearer token berasal
+  dari non-Git storage serta dipasang read-only; nilai token dan authorization
+  header tidak boleh masuk log, SQLite, image, atau repository.
+- Path, ownership, permission, rotation, dan reload process material TLS serta
+  bearer token Diagnostic Service belum ditetapkan dan menjadi prerequisite
+  sebelum webhook deployment.
 
 ## Ownership Boundary
 
@@ -195,6 +232,11 @@ tetap berstatus `Not determined`.
 | Generic Alertmanager image dan runtime lifecycle | Repository `alertmanager` |
 | Dashboard dan Alertmanager configuration | Tomcat Monitoring project |
 | Mailpit persistent lab-only verification utility | Upstream owns image lifecycle; `tomcat-monitoring` owns immutable reference, persistent integration, verification, and exact cleanup |
+| Diagnostic Service source, dependency lock, image lifecycle, migration, dan component test | Repository `tomcat-diagnostic-service` |
+| Diagnostic target allowlist, routing, secret reference, deployment, integration validation, dan lab orchestration | Repository `tomcat-monitoring` |
+| Restricted Event Collector source, packaging, lifecycle, dan component test | Repository `tomcat-diagnostic-event-collector`; repository belum dibuat |
+| SQLite schema, migration, housekeeping, dan application-level data lifecycle | Repository `tomcat-diagnostic-service` |
+| Physical diagnostic volume, network, TLS/token storage, dan host resource allocation | Infrastructure atau platform owner; belum ditetapkan |
 | Integration Bridge dan TrueSight mapping | Tomcat Monitoring project dan TrueSight owner |
 | Runtime service continuity | Project owner/operator; manual start and recovery accepted for persistent lab, automatic host-boot orchestration deferred |
 
@@ -236,6 +278,15 @@ diimplementasikan:
   lifecycle, dan recipient handling bila inbox delivery kembali diperlukan.
 - Ownership Integration Bridge dan koneksi TrueSight ketika future target
   tersedia.
+- Physical SQLite schema, migration, serta empty-volume initialization.
+- Format target allowlist dan stable container generation source.
+- Effective Tomcat log, rotation, JVM fatal artifact, dan read-only mount
+  locations.
+- Rootless collector permission matrix, spool bounds, dan cleanup behavior.
+- Path, permission, rotation, CA mount, serta reload lifecycle TLS dan bearer
+  secret Diagnostic Service.
+- Host CPU, memory, filesystem baseline, dan safe failure-injection procedure
+  sebelum resource serta end-to-end acceptance.
 
 ## Current Status
 
@@ -310,23 +361,21 @@ start dan recovery manual. Dashboard, container-status metrics, CI/CD/Ansible,
 external delivery, production deployment, dan end-to-end verification tetap
 menjadi pekerjaan future pada phase terpisah.
 
-## Diagnostic MVP Infrastructure Status
-
-Diagnostic MVP design reserves a future internal-only HTTPS webhook endpoint,
-named volume `diagnostic_data`, read-only Tomcat evidence mounts, and a
-read-only normalized collector spool. Service and collector repositories,
-non-Git TLS/token lifecycle, physical volume, network attachment, container,
-host service, and deployment orchestration do not yet exist.
-
-The accepted design does not authorize broad Podman socket access, host control,
-new published ports, or automatic host privilege escalation. See
-[Diagnostic MVP](../diagnostic-mvp/index.md) and its gap register before any
-infrastructure implementation.
+Untuk Diagnostic MVP, repository `tomcat-diagnostic-service` telah tersedia
+tetapi masih kosong tanpa commit. Diagnostic Service source dan image,
+collector repository dan host service, SQLite database dan physical volume,
+dedicated network attachment, non-Git TLS/token lifecycle, evidence mounts,
+spool, deployment orchestration, serta end-to-end verification belum tersedia.
+Current persistent lab tetap menggunakan alur Alertmanager langsung ke Mailpit.
 
 ## Related Pages
 
 - [TM-ADR-0003 — Use Host-Managed Non-Git TLS Material for the Persistent Lab](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0003.md)
 - [TM-ADR-0005 — Use Mailpit as the Persistent Lab Notification Verification Target](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0005.md)
+- [TM-ADR-0008 — Use a Restricted Host Event Collector with a Normalized Evidence Spool](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0008.md)
+- [TM-ADR-0009 — Use SQLite for Local Diagnostic State](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0009.md)
+- [TM-ADR-0010 — Deploy One Bounded Diagnostic Service per Tomcat Host](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0010.md)
+- [TM-ADR-0012 — Decouple TrueSight Through a Disabled Integration Bridge](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0012.md)
 - [Architecture](../architecture/index.md)
 - [Development](../development/index.md)
 - [CI/CD](../ci-cd/index.md)
