@@ -14,8 +14,9 @@ ini.
 Diagnostic MVP menambahkan target arsitektur untuk diagnosis deterministik
 `TomcatDown`. Diagnostic Service source dan local image tersedia serta lulus
 disposable verification; integration-owned runtime contract juga diterima.
-Restricted event collector, routing, persistent SQLite, SMTP orchestration,
-dan alur diagnostic belum diimplementasikan atau diverifikasi end to end.
+Restricted event collector, routing, persistent SQLite, rebuilt application
+image, dan alur diagnostic belum diimplementasikan atau diverifikasi end to
+end. SMTP orchestration telah lulus source/socket tests.
 
 ## Deployment Topology
 
@@ -254,9 +255,10 @@ ingestion, bounded worker, secure service boundary, versioned configuration,
 dan digest-pinned Diagnostic Service image telah diimplementasikan dan lulus
 source atau disposable verification. TN-011 juga menetapkan integration-owned
 runtime paths, permissions, ownership, dan multi-component verification
-contract. Alertmanager routing, SMTP worker orchestration, persistent SQLite,
-restricted collector, environment target allowlist, evidence integration, dan
-end-to-end diagnostic flow belum diimplementasikan atau diverifikasi. Alur
+contract. SMTP worker orchestration kemudian lulus source/socket tests pada
+TN-012. Alertmanager routing, rebuilt image, persistent SQLite, restricted
+collector, environment target allowlist, evidence integration, dan end-to-end
+diagnostic flow belum diimplementasikan atau diverifikasi. Alur
 Alertmanager langsung ke Mailpit tetap menjadi current verified runtime sampai
 target Diagnostic MVP benar-benar diterapkan dan diuji.
 

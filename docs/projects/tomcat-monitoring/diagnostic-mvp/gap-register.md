@@ -34,9 +34,12 @@ changes an ADR boundary requires a new or superseding ADR.
 | --- | --- | --- | --- | --- |
 | GAP-001 | Closed. Repository location is observed; Node.js 24 ESM, isolated built-in SQLite, repository layout, source boundary, and validation interface are accepted. | TN-003, TM-ADR-0013, Development | Project owner / 2026-08-31 | Repository governance and static validation baseline may be planned; source implementation still requires a separate approved scope |
 | GAP-003 | Closed. Forward migrations, isolated SQLite adapter, durable ingestion, canonical results, and notification-attempt table are implemented and covered by source/image tests. | Source commit `611a83d`, TN-005 through TN-010 | Project owner / 2026-09-01 | Persistent recovery, retention, and capacity behavior remain verification work, not schema-definition blockers |
+| GAP-010 | Closed. Pilot uses three attempts, 1/5-second backoff, 60-second maximum age, and the existing capacity-50 work queue without a second queue. | TN-012 and `src/application/notification-delivery.js` | Project owner / 2026-09-01 | Value changes require contract review; runtime behavior still requires TN-013 |
+| GAP-016 | Closed. Worker now persists result before rendering/delivery, records bounded attempts, limits material update, and correlates resolved events. | TN-012 source, 36 regression tests, and ephemeral SMTP socket test | Project owner / 2026-09-01 | Mailpit and rebuilt-image evidence remain TN-013 scope |
 
 ## 📌 Status
 
-**Open — GAP-001 and GAP-003 closed. GAP-002, GAP-004 through GAP-016 retain
-their recorded gates. TN-011 defines GAP-009 paths and modes, but rotation and
-reload lifecycle remain open.**
+**Open — GAP-001, GAP-003, GAP-010, dan GAP-016 closed. GAP-002, GAP-004
+through GAP-009, serta GAP-011 through GAP-015 retain their recorded gates.
+TN-011 defines GAP-009 paths and modes, but rotation and reload lifecycle
+remain open.**

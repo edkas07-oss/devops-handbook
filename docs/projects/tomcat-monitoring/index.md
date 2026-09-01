@@ -84,7 +84,7 @@ diimplementasikan.
 | Container status monitoring | Metrics source not determined |
 | Monitoring implementation | Persistent JMX and Telegraf targets `up=1`; persistent Prometheus, Alertmanager, and Mailpit captured real `TelegrafHealthScrapeUnavailable` firing/resolved email on 2026-08-28; external delivery and TrueSight deferred |
 | End-to-end verification | Not started |
-| Diagnostic MVP | Service source and digest-pinned image verified disposable; runtime contract accepted; SMTP orchestration, collector, routing, persistent runtime, and end-to-end verification pending |
+| Diagnostic MVP | Service source including bounded SMTP orchestration verified; TN-010 image and runtime contract available; rebuilt image, Mailpit capture, collector, routing, persistent runtime, and end-to-end verification pending |
 
 ## Diagnostic MVP
 

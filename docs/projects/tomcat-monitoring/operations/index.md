@@ -113,7 +113,8 @@ separate diagnostic rule.
 Diagnostic Service health/metrics endpoints, durable queue, SQLite migrations,
 canonical-result persistence, and graceful shutdown exist in source and passed
 disposable image verification. They are not deployed as an operator-visible
-runtime. SMTP worker orchestration, diagnostic email, resolved correlation,
+runtime. SMTP worker orchestration dan resolved correlation telah lulus
+source/socket tests, tetapi rebuilt image, actual diagnostic email in Mailpit,
 housekeeping/capacity behavior, and end-to-end evidence remain unavailable.
 Operators must continue using the verified monitoring and direct Mailpit flow
 until persistent diagnostic deployment is explicitly approved and verified.

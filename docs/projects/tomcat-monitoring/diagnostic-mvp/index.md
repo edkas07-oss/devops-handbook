@@ -11,10 +11,9 @@ verification. Persistent container, collector, dan end-to-end runtime belum
 diimplementasikan atau diverifikasi.
 
 Single-worker orchestration, canonical-result persistence, material-update
-guard, health/metrics application model, seven-section text/HTML renderers, dan
-SMTP adapter tersedia. Startup worker belum menghubungkan result rendering ke
-SMTP delivery atau notification-attempt persistence; Mailpit component behavior
-belum diterapkan atau diverifikasi.
+guard, health/metrics model, seven-section renderers, bounded SMTP retry,
+attempt persistence, dan firing/material/resolved notification lifecycle telah
+tersedia di source. Mailpit component behavior belum diverifikasi.
 
 HTTPS request boundary dan SMTP adapter pada commit `bc4b7ae` telah lulus
 ephemeral socket tests pada TN-008. Source commit `a398349` menambahkan versioned
@@ -64,7 +63,7 @@ configuration change, container control, atau automatic remediation.
 | Application health as `TomcatDown` evidence | Allowed when mapped to the same target |
 | `ApplicationHealthCheckFailed` diagnostic | Deferred and disabled |
 | `TomcatHighHeapUsage` diagnostic | Deferred and disabled |
-| Mailpit delivery | Active target; adapter tested but worker orchestration and capture pending |
+| Mailpit delivery | Active target; source orchestration/socket tested, Mailpit capture pending |
 | Integration Bridge | Disabled; no connection, retry, or queue work |
 | TrueSight | Disabled and not a pilot dependency |
 | Automatic remediation | Excluded |
@@ -110,8 +109,8 @@ The pilot may be accepted only after:
 
 ## 📌 Current Status
 
-**Application source, configuration, startup lifecycle, local image, dan
-integration-owned runtime contract telah tersedia; persistent diagnostic
-runtime belum tersedia.** Verification sebelumnya tidak membuktikan Mailpit,
-SMTP orchestration, deployment, persistent restart durability, atau end-to-end
-behavior.
+**Application source termasuk notification orchestration, configuration,
+startup lifecycle, TN-010 local image, dan integration-owned runtime contract
+telah tersedia; persistent diagnostic runtime belum tersedia.** TN-010 image
+belum membawa source TN-012. Mailpit, rebuilt image, deployment, persistent
+restart durability, dan end-to-end behavior belum diverifikasi.

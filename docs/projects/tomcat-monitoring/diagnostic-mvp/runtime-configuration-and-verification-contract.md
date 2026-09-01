@@ -7,14 +7,15 @@ Service tanpa memasukkan configuration, target, certificate, atau secret ke
 application image. Contract ini juga menetapkan boundary disposable
 multi-component verification sebelum persistent deployment dipertimbangkan.
 
-Image yang diterima tetap artifact TN-010:
+Image TN-010 tetap menjadi verified baseline:
 
 ```text
 localhost/tomcat-diagnostic-service@sha256:a849a9e39a49ffcacb11733b0ad19e5e5f29c10451f8fd284f2b218f71c2dff1
 ```
 
-Mutable tag `0.1.0` atau `latest` boleh membantu inspeksi lokal, tetapi tidak
-boleh menjadi runtime identity. Consumption selalu menggunakan exact digest.
+Digest tersebut belum membawa source notification TN-012. TN-013 wajib
+membangun dan memverifikasi digest baru dari exact TN-012 revision sebelum
+runtime integration. Mutable tag tidak boleh menjadi runtime identity.
 
 ## 📌 Ownership Boundary
 
@@ -66,6 +67,11 @@ credential lifecycle external SMTP memerlukan contract terpisah.
 Application JSON tidak boleh memuat token, password, private key, certificate
 content, environment credential, atau target yang berasal dari webhook.
 
+Notification retry merupakan fixed pilot policy milik source, bukan
+environment configuration: maksimum tiga attempts, backoff 1 dan 5 detik,
+maximum age 60 detik, dan existing work queue berkapasitas 50 tanpa queue
+kedua. Perubahan nilai memerlukan contract review.
+
 ## 💾 Mount and Permission Contract
 
 | Host artifact | Container target | Mount | Host mode |
@@ -103,12 +109,12 @@ before creation:
 
 | Resource | Exact contract |
 | --- | --- |
-| Network | `tm-tn012-diagnostic` |
-| Diagnostic container | `tm-tn012-diagnostic-service` |
-| HTTPS client container | `tm-tn012-diagnostic-client` |
-| Mailpit container | `tm-tn012-diagnostic-mailpit` |
-| Temporary directory | `mktemp -d /tmp/tomcat-diagnostic-tn012.XXXXXX`; resolved path recorded before runtime authorization |
-| Diagnostic image | Exact TN-010 digest shown above; pull and build prohibited |
+| Network | `tm-tn013-diagnostic` |
+| Diagnostic container | `tm-tn013-diagnostic-service` |
+| HTTPS client container | `tm-tn013-diagnostic-client` |
+| Mailpit container | `tm-tn013-diagnostic-mailpit` |
+| Temporary directory | `mktemp -d /tmp/tomcat-diagnostic-tn013.XXXXXX`; resolved path recorded before runtime authorization |
+| Diagnostic image | Exact TN-012 source-derived digest produced and verified by TN-013; TN-010 digest is baseline only |
 | HTTPS client image | `localhost/nodejs@sha256:76b1444d507be3398f3196f37bd20f7a97a703871ed2716fa91a1a9520fc482d` |
 | Mailpit image | `ghcr.io/axllent/mailpit:v1.31.0@sha256:c96991d9bef73594c246d89ca81411d4e916f03e76a7d2d72fa2ab5dd3c9ce24` |
 | Diagnostic endpoint | Internal `https://diagnostic-service:8443`; no host publication |
@@ -139,12 +145,11 @@ Verification layers must remain distinguishable:
 | Persistent integration | Explicitly outside the disposable activity |
 | End-to-end monitoring | Requires actual Alertmanager route and remains a later activity |
 
-The current image can start HTTPS, accept and persist a webhook, process one
-queue item, persist a canonical result, expose health/metrics, and stop on
-`SIGTERM`. Source review found that application startup does not yet connect
-the renderer and `SmtpAdapter` to the worker or persist notification attempts.
-Therefore the notification row is a mandatory source-owned prerequisite, not
-a claim that TN-012 can already pass.
+TN-012 source connects canonical result persistence, renderer, bounded SMTP
+retry, attempt persistence, initial firing, one material update, dan resolved
+correlation. Source regression and ephemeral SMTP socket tests passed. Current
+TN-010 image does not contain that source, so TN-013 image build remains a
+mandatory prerequisite before Mailpit verification.
 
 Before runtime authorization, the next Technical Note must publish the exact
 resolved temporary directory, image identities, container names, network,
@@ -154,8 +159,8 @@ Image removal is excluded.
 
 ## 📌 Status
 
-**Accepted contract.** Configuration paths, ownership, permissions, immutable
-consumption, and disposable topology are defined. No integration files,
-container resources, SQLite data, or persistent deployment have been created.
-SMTP delivery orchestration and retry policy remain prerequisites for full
-notification verification.
+**Accepted contract.** Configuration paths, ownership, permissions, retry
+policy, and TN-013 disposable topology are defined. Source notification
+orchestration is verified; new image identity, Mailpit capture, integration
+files, container resources, SQLite runtime data, and persistent deployment
+remain unverified.

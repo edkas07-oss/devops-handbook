@@ -66,8 +66,9 @@ automatic remediation path.
 
 ## 📌 Status
 
-**Accepted and partially implemented.** Renderers and SMTP adapter have source
-and ephemeral socket evidence. Application worker orchestration, persisted
-attempt/retry behavior, actual Mailpit capture, and resolved correlation remain
-unimplemented or unverified. Existing direct Alertmanager–Mailpit delivery
-remains the verified current runtime.
+**Accepted and implemented in source.** Renderer, worker orchestration,
+persisted attempts, bounded retry, initial/material/resolved lifecycle, dan
+ephemeral SMTP socket delivery have evidence. New application image, actual
+Mailpit capture, persistent runtime, and Alertmanager correlation remain
+unverified. Existing direct Alertmanager–Mailpit delivery remains the verified
+current runtime.

@@ -35,7 +35,7 @@ Source project dibagi berdasarkan lifecycle dan tanggung jawab berikut:
 | `tomcat-jmx-exporter` | Menyediakan derived Tomcat image dengan embedded JMX Exporter | Current source published and local component build verified |
 | `alertmanager` | Menyediakan generic Alertmanager container image dan lifecycle runtime | Local image `1.0.0` built; Alertmanager, `amtool`, and non-root smoke test passed |
 | `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | Persistent Prometheus–Alertmanager–Mailpit firing/resolved delivery verified; external delivery pending |
-| `tomcat-diagnostic-service` | Memiliki source Diagnostic Service, dependency lock, image lifecycle, migration, dan component test | Commit `611a83d` menghasilkan verified local image digest `sha256:a849a9e39a49ffcacb11733b0ad19e5e5f29c10451f8fd284f2b218f71c2dff1` |
+| `tomcat-diagnostic-service` | Memiliki source Diagnostic Service, dependency lock, image lifecycle, migration, dan component test | Current source commit `84c42c1`; image digest `sha256:a849a9e39a49ffcacb11733b0ad19e5e5f29c10451f8fd284f2b218f71c2dff1` tetap artifact TN-010 dari commit `611a83d` |
 | `tomcat-diagnostic-event-collector` | Memiliki source, packaging, dan component test restricted rootless host collector | Ownership diterima; repository belum dibuat |
 
 Target allowlist diagnostic, integrasi Prometheus dan Alertmanager,
@@ -77,7 +77,7 @@ tomcat-jmx-exporter/
 | CI pipeline | Not implemented |
 | Container image publication | Local image only; registry not determined |
 | Diagnostic Service remote repository | Gitea `tomcat-diagnostic-service` tersedia |
-| Diagnostic Service local state | Commit `611a83d`; 31 regression lulus; version/latest tags menunjuk verified image ID `20841a7d` |
+| Diagnostic Service local state | Source commit `84c42c1`; 36 regression dan 2 SMTP socket component tests lulus; version/latest tags masih menunjuk TN-010 image ID `20841a7d` |
 | Restricted Event Collector repository | Belum dibuat |
 
 ## Development Workflow
@@ -114,7 +114,7 @@ Podman. Repository lokal tersedia pada:
 /home/eddywiyatno/git/tomcat-diagnostic-service
 ```
 
-Repository `tomcat-diagnostic-service` memiliki current local commit `611a83d`.
+Repository `tomcat-diagnostic-service` memiliki current local commit `84c42c1`.
 Source menambahkan exact-pinned Ajv, schema, forward migration, isolated
 `node:sqlite` adapter, durable ingestion, deduplication, dan queue berkapasitas
 50. Target registry, bounded evidence adapters, dan TD-01 sampai TD-08 engine
@@ -137,9 +137,10 @@ Image tetap lokal; persistent runtime dan deployment belum dilakukan.
 
 Runtime consumption menggunakan exact digest, configuration dan allowlist
 non-secret milik `tomcat-monitoring`, serta certificate/token/SMTP credential
-dari non-Git storage. Current worker belum menghubungkan canonical result ke
-SMTP adapter; source-owned notification orchestration tetap menjadi
-prerequisite sebelum Mailpit multi-component test.
+dari non-Git storage. TN-012 menghubungkan canonical result, renderer,
+persisted attempts, bounded retry, dan SMTP adapter serta lulus source/socket
+tests. TN-010 image belum membawa perubahan tersebut; rebuild menjadi
+prerequisite Mailpit multi-component test.
 
 Pada `tomcat-jmx-exporter`, current source tersedia pada branch `main` melalui
 commit `231cb91` dan local `origin/main` menunjuk commit yang sama. Working tree

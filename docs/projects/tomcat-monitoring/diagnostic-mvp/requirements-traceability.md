@@ -22,9 +22,9 @@ persistent or end-to-end diagnostic evidence is available.
 | RULE-007 | Prometheus attempt has a five-second deadline, no in-run retry, and explicit fallback | Rule specification | Timely response, timeout, unavailable marker, and continued log/spool evidence tests |
 | RES-001 | Canonical result validates semantic combinations | Result contract | Source semantic tests passed; integration persistence remains |
 | MSG-001 | Plain-text and HTML preserve canonical meaning | Notification contract | Source renderer tests passed; delivered-message comparison remains |
-| MSG-002 | Firing, update, partial, failed, and resolved render | Notification contract | Lifecycle template tests |
+| MSG-002 | Firing, update, partial, failed, and resolved render | Notification contract | Initial firing, one material update, partial, and resolved source tests passed; failed-message content remains runtime evidence |
 | MSG-003 | Email renders seven ordered sections with bounded sanitized metrics and log evidence | Notification contract | Plain-text/HTML ordering, unavailable section, redaction, and overclaim-prevention tests |
-| DEL-001 | Mailpit is the only active pilot target | Notification contract | SMTP adapter socket test passed; worker wiring and Mailpit assertions remain |
+| DEL-001 | Mailpit is the only active pilot target | Notification contract | Worker-to-SMTP socket passed; actual Mailpit assertions remain |
 | DEL-002 | Disabled bridge performs no work | Notification contract | Network, queue, and metric assertions |
 | DB-001 | Initialization and migrations are automatic | SQLite contract | Temporary directory and image migration tests passed; empty named volume remains |
 | DB-002 | Incident and dedup state survive restart | SQLite contract | Source reopen test passed; persistent-volume restart remains |

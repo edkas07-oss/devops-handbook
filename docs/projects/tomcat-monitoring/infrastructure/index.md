@@ -368,9 +368,10 @@ commit `611a83d`; source, migration, secure startup, dan digest-pinned image
 telah lulus source atau disposable verification. TN-011 menetapkan exact
 runtime paths, lab permissions, immutable image consumption, artifact
 ownership, dan disposable topology. Collector repository dan host service,
-persistent SQLite volume, environment allowlist, routing, SMTP worker
-orchestration, evidence mounts, spool, deployment orchestration, serta
-end-to-end verification belum tersedia. Current persistent lab tetap
+persistent SQLite volume, environment allowlist, routing, rebuilt application
+image, evidence mounts, spool, deployment orchestration, serta end-to-end
+verification belum tersedia. SMTP worker orchestration telah lulus source dan
+ephemeral socket tests. Current persistent lab tetap
 menggunakan alur Alertmanager langsung ke Mailpit.
 
 ## Related Pages

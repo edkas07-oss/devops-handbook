@@ -80,13 +80,20 @@ Prometheus -> Alertmanager -> Diagnostic Service
     consumption, ownership, dan disposable multi-component verification
     contract sebelum persistent deployment.
 
+12. **[TN-012 — Implement Bounded Notification Delivery Orchestration](TN-012-implement-bounded-notification-delivery-orchestration.md)**
+
+    Menghubungkan canonical result, renderer, SMTP adapter, lifecycle
+    notification, persistence attempt, dan bounded retry sebelum runtime
+    multi-component diverifikasi.
+
 ## 📌 Phase Status
 
 **In Progress.** Durable ingestion, target isolation, deterministic engine,
-worker/result lifecycle, HTTPS/SMTP adapter boundaries, dan application startup
+worker/result lifecycle, HTTPS/SMTP delivery boundaries, dan application startup
 telah lulus source atau ephemeral component tests. Diagnostic application image
-juga telah lulus disposable verification dan integration-owned runtime contract
-telah ditetapkan. SMTP orchestration, persistent runtime, Mailpit aktual,
+TN-010 telah lulus disposable verification dan integration-owned runtime
+contract telah ditetapkan. Notification orchestration dan bounded retry telah
+lulus source/socket tests; rebuilt image, persistent runtime, Mailpit aktual,
 restricted collector, dan end-to-end verification tertunda.
 
 ## 🧭 Reproducibility Status
@@ -104,6 +111,7 @@ restricted collector, dan end-to-end verification tertunda.
 | TN-009 | Source commit `a398349`; 31 regression and 3 ephemeral component tests |
 | TN-010 | Source commit `611a83d`; image digest `sha256:a849a9e39a49ffcacb11733b0ad19e5e5f29c10451f8fd284f2b218f71c2dff1` |
 | TN-011 | Source commit `611a83d`; documentation contract, no runtime artifact |
+| TN-012 | Source commit `84c42c1`; 36 regression and 2 SMTP socket component tests |
 
 TN-005 dan TN-006 berbagi satu source commit karena keduanya membentuk satu
 verified diagnostic-engine foundation dan telah dipush. TN-007 berada pada
