@@ -114,7 +114,7 @@ Podman. Repository lokal tersedia pada:
 /home/eddywiyatno/git/tomcat-diagnostic-service
 ```
 
-Repository `tomcat-diagnostic-service` memiliki current local commit `a398349`.
+Repository `tomcat-diagnostic-service` memiliki current local commit `611a83d`.
 Source menambahkan exact-pinned Ajv, schema, forward migration, isolated
 `node:sqlite` adapter, durable ingestion, deduplication, dan queue berkapasitas
 50. Target registry, bounded evidence adapters, dan TD-01 sampai TD-08 engine
@@ -124,14 +124,22 @@ tests pada 2026-08-31. HTTPS request dan SMTP delivery boundaries kemudian
 lulus 25 regression serta 2 ephemeral socket tests. Versioned configuration,
 mounted-file secret loading, migration-before-readiness startup, single worker
 loop, Prometheus serialization, dan graceful shutdown kemudian lulus 31
-regression serta 3 ephemeral component tests; image dan persistent component
-runtime belum diterapkan atau diverifikasi. Repository
+regression serta 3 ephemeral component tests. TN-010 membangun dan
+memverifikasi digest-pinned image; TN-011 menetapkan integration-owned runtime
+configuration contract. Persistent component runtime belum diterapkan atau
+diverifikasi. Repository
 `tomcat-diagnostic-event-collector` belum tersedia.
 
 TN-010 mem-pin base `localhost/nodejs` ke OCI digest, membangun application
 image `0.1.0` dan `latest`, serta memverifikasi non-root runtime, production
 dependencies, mounted HTTPS configuration, SQLite migrations, dan SIGTERM.
 Image tetap lokal; persistent runtime dan deployment belum dilakukan.
+
+Runtime consumption menggunakan exact digest, configuration dan allowlist
+non-secret milik `tomcat-monitoring`, serta certificate/token/SMTP credential
+dari non-Git storage. Current worker belum menghubungkan canonical result ke
+SMTP adapter; source-owned notification orchestration tetap menjadi
+prerequisite sebelum Mailpit multi-component test.
 
 Pada `tomcat-jmx-exporter`, current source tersedia pada branch `main` melalui
 commit `231cb91` dan local `origin/main` menunjuk commit yang sama. Working tree

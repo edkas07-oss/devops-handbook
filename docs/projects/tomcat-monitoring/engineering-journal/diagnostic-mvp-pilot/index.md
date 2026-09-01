@@ -74,12 +74,19 @@ Prometheus -> Alertmanager -> Diagnostic Service
     Mem-pin immutable Node.js base, membangun application image, dan
     memverifikasi disposable HTTPS/SQLite/SIGTERM runtime tanpa persistent state.
 
+11. **[TN-011 — Define Diagnostic Service Runtime Configuration Contract](TN-011-define-diagnostic-service-runtime-configuration-contract.md)**
+
+    Menetapkan exact runtime paths, mount/permission boundary, immutable image
+    consumption, ownership, dan disposable multi-component verification
+    contract sebelum persistent deployment.
+
 ## 📌 Phase Status
 
 **In Progress.** Durable ingestion, target isolation, deterministic engine,
-worker/result lifecycle, HTTPS/SMTP boundaries, dan application startup telah
-lulus source atau ephemeral component tests. Diagnostic application image juga
-telah lulus disposable verification; persistent runtime, Mailpit aktual,
+worker/result lifecycle, HTTPS/SMTP adapter boundaries, dan application startup
+telah lulus source atau ephemeral component tests. Diagnostic application image
+juga telah lulus disposable verification dan integration-owned runtime contract
+telah ditetapkan. SMTP orchestration, persistent runtime, Mailpit aktual,
 restricted collector, dan end-to-end verification tertunda.
 
 ## 🧭 Reproducibility Status
@@ -96,6 +103,7 @@ restricted collector, dan end-to-end verification tertunda.
 | TN-008 | Source commit `bc4b7ae`; 25 regression and 2 socket tests |
 | TN-009 | Source commit `a398349`; 31 regression and 3 ephemeral component tests |
 | TN-010 | Source commit `611a83d`; image digest `sha256:a849a9e39a49ffcacb11733b0ad19e5e5f29c10451f8fd284f2b218f71c2dff1` |
+| TN-011 | Source commit `611a83d`; documentation contract, no runtime artifact |
 
 TN-005 dan TN-006 berbagi satu source commit karena keduanya membentuk satu
 verified diagnostic-engine foundation dan telah dipush. TN-007 berada pada

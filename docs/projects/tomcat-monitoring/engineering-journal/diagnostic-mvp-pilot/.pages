@@ -15,3 +15,4 @@ arrange:
 - TN-008-implement-secure-service-and-smtp-delivery-boundaries.md
 - TN-009-implement-application-configuration-and-startup-lifecycle.md
 - TN-010-build-and-verify-diagnostic-service-image.md
+- TN-011-define-diagnostic-service-runtime-configuration-contract.md

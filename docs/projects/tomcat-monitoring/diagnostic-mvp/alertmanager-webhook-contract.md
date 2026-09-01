@@ -94,4 +94,6 @@ not repeat diagnostic or notification work.
 
 ## 📌 Status
 
-**Accepted contract — not implemented or verified.**
+**Accepted and implemented in source.** TLS, authentication, request limits,
+schema validation, durable acceptance, and disposable image behavior have test
+evidence; actual Alertmanager routing and persistent runtime remain unverified.

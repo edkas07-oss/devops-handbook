@@ -56,4 +56,7 @@ must not expose sensitive label or evidence content.
 
 ## 📌 Status
 
-**Accepted limits — representative resource tests have not been run.**
+**Accepted limits.** Request, queue, timeout, health, metrics, TLS, token, and
+non-root image boundaries have source or disposable evidence. Representative
+resource, capacity-shedding, housekeeping, and persistent runtime tests have
+not been run.

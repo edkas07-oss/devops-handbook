@@ -22,6 +22,7 @@ claim implementation readiness where repository or lab evidence is absent.
 | GAP-013 | Safe failure injection procedures | Approved OOM, JMX loss, stop, crash, outage, and recovery methods | Before end-to-end tests | Project owner / engineer |
 | GAP-014 | Production TLS, HA, backup, and recovery | Production architecture decision | Production-only | Security/platform owner |
 | GAP-015 | TrueSight class, slots, credentials, and delivery semantics | Separate accepted integration contract | Deferred | Integration owner |
+| GAP-016 | Connect canonical result rendering, SMTP delivery, notification-attempt persistence, and bounded retry to the application worker | Source implementation and source/component tests | Before Mailpit multi-component verification | Service owner |
 
 An item is closed append-oriented with observed evidence, accepted value,
 affected artifact, resolver/date, and verification consequence. A decision that
@@ -32,7 +33,10 @@ changes an ADR boundary requires a new or superseding ADR.
 | ID | Resolution | Affected artifact | Resolver/date | Verification consequence |
 | --- | --- | --- | --- | --- |
 | GAP-001 | Closed. Repository location is observed; Node.js 24 ESM, isolated built-in SQLite, repository layout, source boundary, and validation interface are accepted. | TN-003, TM-ADR-0013, Development | Project owner / 2026-08-31 | Repository governance and static validation baseline may be planned; source implementation still requires a separate approved scope |
+| GAP-003 | Closed. Forward migrations, isolated SQLite adapter, durable ingestion, canonical results, and notification-attempt table are implemented and covered by source/image tests. | Source commit `611a83d`, TN-005 through TN-010 | Project owner / 2026-09-01 | Persistent recovery, retention, and capacity behavior remain verification work, not schema-definition blockers |
 
 ## 📌 Status
 
-**Open — GAP-001 closed; GAP-002 through GAP-015 retain their recorded gates.**
+**Open — GAP-001 and GAP-003 closed. GAP-002, GAP-004 through GAP-016 retain
+their recorded gates. TN-011 defines GAP-009 paths and modes, but rotation and
+reload lifecycle remain open.**

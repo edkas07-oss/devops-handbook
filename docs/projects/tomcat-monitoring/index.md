@@ -84,11 +84,11 @@ diimplementasikan.
 | Container status monitoring | Metrics source not determined |
 | Monitoring implementation | Persistent JMX and Telegraf targets `up=1`; persistent Prometheus, Alertmanager, and Mailpit captured real `TelegrafHealthScrapeUnavailable` firing/resolved email on 2026-08-28; external delivery and TrueSight deferred |
 | End-to-end verification | Not started |
-| Diagnostic MVP | `TomcatDown` architecture accepted; service, SQLite, collector, rule, routing, and runtime verification not implemented |
+| Diagnostic MVP | Service source and digest-pinned image verified disposable; runtime contract accepted; SMTP orchestration, collector, routing, persistent runtime, and end-to-end verification pending |
 
 ## Diagnostic MVP
 
-The accepted Diagnostic MVP design adds a future deterministic flow from
+The accepted Diagnostic MVP design defines a deterministic flow from
 Prometheus through Alertmanager, Diagnostic Service, bounded evidence and
 SQLite correlation, then Mailpit and resolved notification. Only `TomcatDown`
 is in pilot scope. Application health may support that diagnosis but is not a
@@ -96,9 +96,11 @@ Diagnostic MVP rule. `ApplicationHealthCheckFailed`, `TomcatHighHeapUsage`,
 Integration Bridge, TrueSight, and automatic remediation remain disabled or
 deferred.
 
-See [Diagnostic MVP](diagnostic-mvp/index.md) for the accepted contracts and
-explicit implementation gaps. Existing direct Alertmanager–Mailpit delivery
-remains the verified runtime; the diagnostic path has not been deployed.
+Diagnostic Service source and local image are implemented, and TN-011 defines
+the integration-owned runtime contract. See
+[Diagnostic MVP](diagnostic-mvp/index.md) for exact state and gaps. Existing
+direct Alertmanager–Mailpit delivery remains the verified runtime; the
+diagnostic path has not been deployed.
 
 ## Documentation Structure
 

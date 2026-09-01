@@ -4,15 +4,17 @@
 
 Diagnostic MVP menambahkan diagnosis deterministik berbasis evidence pada alur
 alert Tomcat Monitoring. Desain telah diterima pada 2026-08-30. Schema,
-migration, durable SQLite ingestion, dan queue telah diterapkan pada source;
-target isolation, bounded evidence adapters, dan deterministic `TomcatDown`
-engine juga telah lulus isolated tests. Image, persistent container, collector,
-dan end-to-end runtime belum diimplementasikan atau diverifikasi.
+migration, durable SQLite ingestion, queue, target isolation, bounded evidence
+adapters, dan deterministic `TomcatDown` engine telah diterapkan pada source.
+Digest-pinned application image telah lulus disposable HTTPS/SQLite/SIGTERM
+verification. Persistent container, collector, dan end-to-end runtime belum
+diimplementasikan atau diverifikasi.
 
 Single-worker orchestration, canonical-result persistence, material-update
-guard, health/metrics application model, dan seven-section text/HTML renderers
-telah tersedia pada commit `1ea79fa`. HTTP/TLS, SMTP delivery, dan Mailpit
-component behavior belum diterapkan atau diverifikasi.
+guard, health/metrics application model, seven-section text/HTML renderers, dan
+SMTP adapter tersedia. Startup worker belum menghubungkan result rendering ke
+SMTP delivery atau notification-attempt persistence; Mailpit component behavior
+belum diterapkan atau diverifikasi.
 
 HTTPS request boundary dan SMTP adapter pada commit `bc4b7ae` telah lulus
 ephemeral socket tests pada TN-008. Source commit `a398349` menambahkan versioned
@@ -25,14 +27,18 @@ non-root metadata, dependency content, mounted HTTPS configuration, SQLite
 migration, serta SIGTERM secara disposable. Mailpit aktual, persistent runtime,
 deployment, dan end-to-end behavior belum diverifikasi.
 
+TN-011 menetapkan exact runtime configuration paths, mount/permission boundary,
+immutable image consumption, ownership, dan disposable multi-component
+verification contract. Contract tersebut tidak membuat integration files atau
+runtime resources.
+
 Pilot pertama hanya menerima `TomcatDown`. Application health boleh menjadi
 supporting evidence untuk incident tersebut, tetapi bukan diagnostic rule.
 `ApplicationHealthCheckFailed` dan `TomcatHighHeapUsage` tetap deferred.
 
-Implementation plan menerima Node.js `24.18.0` LTS dengan plain ESM JavaScript
-dan built-in `node:sqlite` yang diisolasi melalui satu adapter. Keputusan
-toolchain tersebut belum berarti source, dependency, image, atau runtime telah
-tersedia.
+Implementation menggunakan Node.js `24.18.0` LTS dengan plain ESM JavaScript
+dan built-in `node:sqlite` yang diisolasi melalui satu adapter. Source,
+dependency, dan local image tersedia; persistent runtime belum tersedia.
 
 ## 🎯 Pilot Objective
 
@@ -54,11 +60,11 @@ configuration change, container control, atau automatic remediation.
 
 | Capability | Pilot state |
 | --- | --- |
-| `TomcatDown` diagnostic | Accepted design; not implemented |
+| `TomcatDown` diagnostic | Engine and source lifecycle implemented; end-to-end flow not verified |
 | Application health as `TomcatDown` evidence | Allowed when mapped to the same target |
 | `ApplicationHealthCheckFailed` diagnostic | Deferred and disabled |
 | `TomcatHighHeapUsage` diagnostic | Deferred and disabled |
-| Mailpit delivery | Active target for the future pilot flow |
+| Mailpit delivery | Active target; adapter tested but worker orchestration and capture pending |
 | Integration Bridge | Disabled; no connection, retry, or queue work |
 | TrueSight | Disabled and not a pilot dependency |
 | Automatic remediation | Excluded |
@@ -77,9 +83,10 @@ the Diagnostic Service and are not part of Diagnostic MVP acceptance.
 7. [SQLite Lifecycle Contract](sqlite-lifecycle-contract.md).
 8. [Notification and Integration Contract](notification-and-integration-contract.md).
 9. [Non-Functional and Security Contract](non-functional-and-security-contract.md).
-10. [Requirements Traceability](requirements-traceability.md).
-11. [Gap Register](gap-register.md).
-12. Related accepted ADRs in the Tomcat Monitoring ADR catalog.
+10. [Runtime Configuration and Verification Contract](runtime-configuration-and-verification-contract.md).
+11. [Requirements Traceability](requirements-traceability.md).
+12. [Gap Register](gap-register.md).
+13. Related accepted ADRs in the Tomcat Monitoring ADR catalog.
 
 An accepted ADR takes precedence for its architectural decision. A dedicated
 contract governs its domain. Repository source and verified runtime evidence
@@ -103,7 +110,8 @@ The pilot may be accepted only after:
 
 ## 📌 Current Status
 
-**Application source, configuration, startup lifecycle, dan local image telah
-diimplementasikan serta diuji secara disposable; persistent diagnostic runtime
-belum tersedia.** Verification tersebut tidak membuktikan Mailpit, deployment,
-restart durability, atau end-to-end behavior.
+**Application source, configuration, startup lifecycle, local image, dan
+integration-owned runtime contract telah tersedia; persistent diagnostic
+runtime belum tersedia.** Verification sebelumnya tidak membuktikan Mailpit,
+SMTP orchestration, deployment, persistent restart durability, atau end-to-end
+behavior.

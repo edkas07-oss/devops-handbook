@@ -37,7 +37,7 @@ proses infrastructure yang telah ditetapkan.
 | Restricted Event Collector | Mengumpulkan event host dan container yang diizinkan tanpa memberi akses kontrol host kepada Diagnostic Service | Ownership diterima; repository dan host service belum dibuat |
 | Normalized collector spool | Menyediakan record event terbatas melalui mount read-only ke Diagnostic Service | Contract diterima; format fisik, permission, retention, dan runtime belum diimplementasikan |
 | Dedicated diagnostic network | Menghubungkan Alertmanager dan Diagnostic Service tanpa host-published service port | Contract diterima; network attachment belum diimplementasikan |
-| Diagnostic TLS dan bearer material | Mengamankan webhook internal dari Alertmanager | Wajib menggunakan non-Git read-only storage; lifecycle fisik belum ditetapkan |
+| Diagnostic TLS dan bearer material | Mengamankan webhook internal dari Alertmanager | Exact container paths and lab modes accepted; generation, rotation, and deployment pending |
 | Integration Bridge | Meneruskan alert ke TrueSight | Deferred; TrueSight tidak tersedia pada lab |
 
 `Available` menunjukkan komponen telah tersedia pada kondisi project saat ini.
@@ -178,10 +178,13 @@ Diagnostic Service menggunakan named volume `diagnostic_data` pada path
 satu logical writer, target ukuran 100 MiB, dan hard acceptance boundary 250
 MiB. Initialization, migration, retention 30 hari untuk resolved data,
 checkpoint, integrity check, capacity check, dan incremental vacuum berjalan
-otomatis menurut accepted contract. Physical volume, schema, migration, backup,
-dan recovery belum diimplementasikan atau diverifikasi. Penghapusan volume atau
-database tetap merupakan exact-target destructive action yang memerlukan
-authorization terpisah.
+otomatis menurut accepted contract. Schema, migration, dan disposable database
+lifecycle telah diimplementasikan; physical named volume, backup, recovery,
+retention, dan capacity behavior belum diverifikasi. Disposable
+multi-component verification menggunakan temporary bind directory dan tidak
+mengubah persistent named-volume decision. Penghapusan volume atau database
+tetap merupakan exact-target destructive action yang memerlukan authorization
+terpisah.
 
 ## Certificate Requirements
 
@@ -210,9 +213,9 @@ authorization terpisah.
 - Alertmanager memverifikasi CA Diagnostic Service. CA dan bearer token berasal
   dari non-Git storage serta dipasang read-only; nilai token dan authorization
   header tidak boleh masuk log, SQLite, image, atau repository.
-- Path, ownership, permission, rotation, dan reload process material TLS serta
-  bearer token Diagnostic Service belum ditetapkan dan menjadi prerequisite
-  sebelum webhook deployment.
+- Container path, lab ownership, dan permission material TLS serta bearer token
+  Diagnostic Service ditetapkan TN-011. Rotation, reload/replacement, dan
+  production lifecycle tetap prerequisite sebelum webhook deployment.
 
 ## Ownership Boundary
 
@@ -236,7 +239,7 @@ authorization terpisah.
 | Diagnostic target allowlist, routing, secret reference, deployment, integration validation, dan lab orchestration | Repository `tomcat-monitoring` |
 | Restricted Event Collector source, packaging, lifecycle, dan component test | Repository `tomcat-diagnostic-event-collector`; repository belum dibuat |
 | SQLite schema, migration, housekeeping, dan application-level data lifecycle | Repository `tomcat-diagnostic-service` |
-| Physical diagnostic volume, network, TLS/token storage, dan host resource allocation | Infrastructure atau platform owner; belum ditetapkan |
+| Physical diagnostic volume, network, TLS/token storage, dan host resource allocation | Integration/platform owner; lab paths and modes accepted, persistent resource creation pending |
 | Integration Bridge dan TrueSight mapping | Tomcat Monitoring project dan TrueSight owner |
 | Runtime service continuity | Project owner/operator; manual start and recovery accepted for persistent lab, automatic host-boot orchestration deferred |
 
@@ -278,13 +281,12 @@ diimplementasikan:
   lifecycle, dan recipient handling bila inbox delivery kembali diperlukan.
 - Ownership Integration Bridge dan koneksi TrueSight ketika future target
   tersedia.
-- Physical SQLite schema, migration, serta empty-volume initialization.
 - Format target allowlist dan stable container generation source.
 - Effective Tomcat log, rotation, JVM fatal artifact, dan read-only mount
   locations.
 - Rootless collector permission matrix, spool bounds, dan cleanup behavior.
-- Path, permission, rotation, CA mount, serta reload lifecycle TLS dan bearer
-  secret Diagnostic Service.
+- Rotation, CA distribution, serta reload/replacement lifecycle TLS dan bearer
+  secret Diagnostic Service; TN-011 telah menetapkan container path dan lab mode.
 - Host CPU, memory, filesystem baseline, dan safe failure-injection procedure
   sebelum resource serta end-to-end acceptance.
 
@@ -361,12 +363,15 @@ start dan recovery manual. Dashboard, container-status metrics, CI/CD/Ansible,
 external delivery, production deployment, dan end-to-end verification tetap
 menjadi pekerjaan future pada phase terpisah.
 
-Untuk Diagnostic MVP, repository `tomcat-diagnostic-service` telah tersedia
-tetapi masih kosong tanpa commit. Diagnostic Service source dan image,
-collector repository dan host service, SQLite database dan physical volume,
-dedicated network attachment, non-Git TLS/token lifecycle, evidence mounts,
-spool, deployment orchestration, serta end-to-end verification belum tersedia.
-Current persistent lab tetap menggunakan alur Alertmanager langsung ke Mailpit.
+Untuk Diagnostic MVP, repository `tomcat-diagnostic-service` tersedia pada
+commit `611a83d`; source, migration, secure startup, dan digest-pinned image
+telah lulus source atau disposable verification. TN-011 menetapkan exact
+runtime paths, lab permissions, immutable image consumption, artifact
+ownership, dan disposable topology. Collector repository dan host service,
+persistent SQLite volume, environment allowlist, routing, SMTP worker
+orchestration, evidence mounts, spool, deployment orchestration, serta
+end-to-end verification belum tersedia. Current persistent lab tetap
+menggunakan alur Alertmanager langsung ke Mailpit.
 
 ## Related Pages
 

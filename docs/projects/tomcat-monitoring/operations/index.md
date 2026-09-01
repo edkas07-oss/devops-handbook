@@ -110,8 +110,10 @@ for the same target. Application health can show that Tomcat still serves the
 lab application while the JMX/TLS/scrape path fails; it does not become a
 separate diagnostic rule.
 
-No Diagnostic Service health endpoint, queue metric, SQLite housekeeping,
-canonical result, diagnostic email, or resolved correlation is currently
-available. Operators must continue using the verified monitoring and Mailpit
-flow until implementation and end-to-end evidence explicitly replace this
-status.
+Diagnostic Service health/metrics endpoints, durable queue, SQLite migrations,
+canonical-result persistence, and graceful shutdown exist in source and passed
+disposable image verification. They are not deployed as an operator-visible
+runtime. SMTP worker orchestration, diagnostic email, resolved correlation,
+housekeeping/capacity behavior, and end-to-end evidence remain unavailable.
+Operators must continue using the verified monitoring and direct Mailpit flow
+until persistent diagnostic deployment is explicitly approved and verified.

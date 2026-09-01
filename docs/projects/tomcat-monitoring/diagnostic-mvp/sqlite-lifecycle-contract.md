@@ -55,4 +55,7 @@ incidents.
 
 ## 📌 Status
 
-**Accepted lifecycle — database not implemented or verified.**
+**Accepted and partially implemented.** Migrations, durable ingestion,
+deduplication, queue, canonical results, and disposable database lifecycle have
+source/image evidence. Persistent named-volume restart, housekeeping,
+retention, capacity, corruption, and recovery behavior remain unverified.

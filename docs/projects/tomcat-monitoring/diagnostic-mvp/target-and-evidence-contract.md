@@ -65,4 +65,7 @@ most 256 KiB of summarized evidence.
 
 ## 📌 Status
 
-**Accepted contract — not implemented or verified.**
+**Accepted and partially implemented.** Target registry, isolation checks, and
+bounded evidence adapters have source-test evidence. Environment allowlist,
+real evidence mounts, restricted collector, and end-to-end isolation remain
+unverified.

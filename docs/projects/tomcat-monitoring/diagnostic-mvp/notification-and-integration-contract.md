@@ -66,5 +66,8 @@ automatic remediation path.
 
 ## 📌 Status
 
-**Accepted contract — Diagnostic Service delivery not implemented. Existing
-direct Alertmanager–Mailpit delivery remains the verified current state.**
+**Accepted and partially implemented.** Renderers and SMTP adapter have source
+and ephemeral socket evidence. Application worker orchestration, persisted
+attempt/retry behavior, actual Mailpit capture, and resolved correlation remain
+unimplemented or unverified. Existing direct Alertmanager–Mailpit delivery
+remains the verified current runtime.

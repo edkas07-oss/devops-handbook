@@ -13,5 +13,6 @@ arrange:
 - sqlite-lifecycle-contract.md
 - notification-and-integration-contract.md
 - non-functional-and-security-contract.md
+- runtime-configuration-and-verification-contract.md
 - requirements-traceability.md
 - gap-register.md
