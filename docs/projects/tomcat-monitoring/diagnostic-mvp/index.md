@@ -20,7 +20,10 @@ non-secret configuration, mounted-file secret loader, migration-before-
 readiness startup, tepat satu worker loop, Prometheus text serialization, dan
 graceful shutdown. Tiga component tests membuktikan temporary HTTPS, SQLite,
 dan fake SMTP; seluruh certificate dan database fixture telah dibersihkan.
-Mailpit aktual, image, deployment, dan end-to-end behavior belum diverifikasi.
+TN-010 kemudian membangun digest-pinned application image dan memverifikasi
+non-root metadata, dependency content, mounted HTTPS configuration, SQLite
+migration, serta SIGTERM secara disposable. Mailpit aktual, persistent runtime,
+deployment, dan end-to-end behavior belum diverifikasi.
 
 Pilot pertama hanya menerima `TomcatDown`. Application health boleh menjadi
 supporting evidence untuk incident tersebut, tetapi bukan diagnostic rule.
@@ -100,7 +103,7 @@ The pilot may be accepted only after:
 
 ## 📌 Current Status
 
-**Application source, configuration, dan startup lifecycle implemented and
-locally component-tested; image dan persistent diagnostic runtime belum
-tersedia.** Source dan ephemeral component tests tidak membuktikan Mailpit,
-container, deployment, restart durability, atau end-to-end behavior.
+**Application source, configuration, startup lifecycle, dan local image telah
+diimplementasikan serta diuji secara disposable; persistent diagnostic runtime
+belum tersedia.** Verification tersebut tidak membuktikan Mailpit, deployment,
+restart durability, atau end-to-end behavior.

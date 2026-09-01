@@ -35,7 +35,7 @@ Source project dibagi berdasarkan lifecycle dan tanggung jawab berikut:
 | `tomcat-jmx-exporter` | Menyediakan derived Tomcat image dengan embedded JMX Exporter | Current source published and local component build verified |
 | `alertmanager` | Menyediakan generic Alertmanager container image dan lifecycle runtime | Local image `1.0.0` built; Alertmanager, `amtool`, and non-root smoke test passed |
 | `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | Persistent Prometheus–Alertmanager–Mailpit firing/resolved delivery verified; external delivery pending |
-| `tomcat-diagnostic-service` | Memiliki source Diagnostic Service, dependency lock, image lifecycle, migration, dan component test | Commit `a398349` memiliki configuration/startup dan lulus 31 regression serta 3 ephemeral component tests |
+| `tomcat-diagnostic-service` | Memiliki source Diagnostic Service, dependency lock, image lifecycle, migration, dan component test | Commit `611a83d` menghasilkan verified local image digest `sha256:a849a9e39a49ffcacb11733b0ad19e5e5f29c10451f8fd284f2b218f71c2dff1` |
 | `tomcat-diagnostic-event-collector` | Memiliki source, packaging, dan component test restricted rootless host collector | Ownership diterima; repository belum dibuat |
 
 Target allowlist diagnostic, integrasi Prometheus dan Alertmanager,
@@ -77,7 +77,7 @@ tomcat-jmx-exporter/
 | CI pipeline | Not implemented |
 | Container image publication | Local image only; registry not determined |
 | Diagnostic Service remote repository | Gitea `tomcat-diagnostic-service` tersedia |
-| Diagnostic Service local state | Commit `a398349`; 31 regression dan 3 ephemeral component tests lulus; image belum tersedia |
+| Diagnostic Service local state | Commit `611a83d`; 31 regression lulus; version/latest tags menunjuk verified image ID `20841a7d` |
 | Restricted Event Collector repository | Belum dibuat |
 
 ## Development Workflow
@@ -127,6 +127,11 @@ loop, Prometheus serialization, dan graceful shutdown kemudian lulus 31
 regression serta 3 ephemeral component tests; image dan persistent component
 runtime belum diterapkan atau diverifikasi. Repository
 `tomcat-diagnostic-event-collector` belum tersedia.
+
+TN-010 mem-pin base `localhost/nodejs` ke OCI digest, membangun application
+image `0.1.0` dan `latest`, serta memverifikasi non-root runtime, production
+dependencies, mounted HTTPS configuration, SQLite migrations, dan SIGTERM.
+Image tetap lokal; persistent runtime dan deployment belum dilakukan.
 
 Pada `tomcat-jmx-exporter`, current source tersedia pada branch `main` melalui
 commit `231cb91` dan local `origin/main` menunjuk commit yang sama. Working tree

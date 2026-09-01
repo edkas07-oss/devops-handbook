@@ -14,3 +14,4 @@ arrange:
 - TN-007-implement-worker-canonical-result-and-renderers.md
 - TN-008-implement-secure-service-and-smtp-delivery-boundaries.md
 - TN-009-implement-application-configuration-and-startup-lifecycle.md
+- TN-010-build-and-verify-diagnostic-service-image.md
