@@ -54,6 +54,79 @@ Pada tahap sebelumnya, persistent runtime monitoring ([TN-015](TN-015-deploy-per
 | **Execute Incident Simulation and Firing Verification** | Menghentikan container Tomcat, memverifikasi rekaman spool atomik, firing `TomcatDown`, evaluasi branch TD-06, penyimpanan SQLite, dan email *firing* di Mailpit. |
 | **Execute Recovery Simulation and Resolved Verification** | Menjalankan kembali Tomcat, memverifikasi rekaman status running, resolusi alert, persistensi SQLite, dan email *resolved* di Mailpit. |
 
+## 🔍 Diagnostic Pipeline and Decision Engine Architecture
+
+Diagnostic Service dirancang sebagai *Automated Incident Investigator* deterministik yang menghubungkan metrik monitoring, telemetri container, dan bukti log ke dalam pohon keputusan (*decision table*):
+
+```mermaid
+flowchart TD
+    A[Prometheus Alert: TomcatDown] -->|Webhook POST /api/v1/alerts/alertmanager| B[Diagnostic Service Ingestion]
+    B -->|Durable Ingestion & Dedup| C[(SQLite: events & work_queue)]
+    C -->|Single Worker Claim| D[Diagnostic Worker Loop]
+    D -->|Bounded Time Window| E[Evidence Collection Pipeline]
+    
+    subgraph Evidence Sources
+        E1[Prometheus Adapter: JMX Scrape & Metrics]
+        E2[Restricted Collector Spool: container_state & runtime_oom]
+        E3[Local File Reader: catalina.out & hs_err logs]
+        E4[Application Health Probe: HTTP endpoint]
+    end
+    
+    E --> E1
+    E --> E2
+    E --> E3
+    E --> E4
+    
+    E1 & E2 & E3 & E4 --> F[Diagnostic Engine: evaluateTomcatDown]
+    F -->|Deterministic Decision Table| G{Decision Branches TD-01..TD-08}
+    
+    G -->|TD-01..TD-08 Match| H[Build Canonical Result & SHA-256 Hash]
+    H -->|Persist Result & Evidence| I[(SQLite: canonical_results & evidence_summaries)]
+    H -->|Material Change Guard| J{Is Material Change?}
+    J -->|Yes / Initial / Resolved| K[7-Section Structured Renderer]
+    J -->|No / Duplicate| L[Suppress Notification]
+    K -->|SMTP Delivery| M[Mailpit Web UI / Operator Notification]
+```
+
+### ⚖️ Tabel Keputusan Diagnostik (Deterministic Decision Table)
+
+Seluruh bukti yang terkumpul dinormalisasi menjadi objek terstruktur dan dievaluasi secara berurutan (*top-down priority*) oleh engine ([`src/domain/tomcat-down-engine.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/domain/tomcat-down-engine.js)):
+
+| Branch | Sumber Bukti yang Terkorelasi (*Correlated Evidence*) | Hasil Diagnosis (*Primary Assessment*) | Klasifikasi & Keyakinan |
+| :---: | :--- | :--- | :--- |
+| **TD-08** | Ditemukan bukti kontradiktif (misal: status container `running` sekaligus `exited`). | *Cause undetermined from contradicting evidence* | `undetermined` *(no confidence)* |
+| **TD-02** | Scrape JMX gagal + Health probe gagal + Bukti OOM (`oomKilled: true` / cgroup OOM event). | *Container terminated by OOM mechanism* | `confirmed_cause` *(Confidence: high)* |
+| **TD-03** | Ditemukan file crash dump JVM `hs_err_pid*.log` + fatal marker JVM. | *JVM fatal crash* | `confirmed_cause` *(Confidence: high)* |
+| **TD-04** | Log startup `catalina.out` mencatat `java.net.BindException` (port bentrok/terpakai). | *Connector startup failed because the configured port could not bind* | `confirmed_cause` *(Confidence: high)* |
+| **TD-05** | Log `catalina.out` mencatat *"A valid shutdown command was received"* + event stop teratur. | *Controlled or externally requested shutdown* | `confirmed_cause` *(Confidence: high)* |
+| **TD-01** | Scrape JMX gagal, **tetapi** container tetap `running` dan HTTP Application Health `UP`. | *Tomcat is not proven down; JMX Exporter, TLS, or scrape path failed* | `probable_cause` *(Confidence: medium)* |
+| **TD-06** | Container berstatus `exited` (mati), namun tidak ditemukan bukti OOM/Bind/Crash spesifik. | *Container exited; cause undetermined* | `undetermined` *(no confidence)* |
+| **TD-07** | Container `running`, JMX & Health timeout, serta terdapat bukti jeda GC panjang (*long pause*). | *Tomcat may be unresponsive; process is not proven down* | `possible_cause` *(Confidence: medium)* |
+| **TD-08** | Tidak ada bukti yang cukup atau sumber bukti wajib berstatus `unavailable`. | *Cause undetermined from available evidence* | `undetermined` *(no confidence)* |
+
+> **Peran Bukti Log dalam Evaluasi:** Log server (`catalina.out`) dan artefak crash (`hs_err_pid*.log`) merupakan bagian integral dari pohon keputusan engine. Pada cabang **TD-03**, **TD-04**, dan **TD-05**, bukti log menjadi penentu utama status `confirmed_cause` dengan tingkat keyakinan `high`.
+
+### 🔬 Sampel Evaluasi Insiden Riil (Contoh Kasus Live TD-06)
+
+Pada simulasi insiden penghentian Tomcat (`podman stop tomcat-jmx-exporter`):
+
+1. **Pengumpulan Bukti Spool:**
+   - `container_state`: `{"state": "exited"}` (status: `collected`, strength: `direct`)
+   - `runtime_oom`: `{"exitCode": 143, "oomKilled": false}` (status: `collected`, strength: `direct`)
+   - `logDirectory`: `not_configured` *(karena bind mount log Tomcat aktual belum dipasang)*
+2. **Evaluasi Berurutan pada Engine:**
+   - Evaluasi TD-02 (OOM)? -> *False* (karena `oomKilled: false` dan exitCode 143).
+   - Evaluasi TD-03 (Crash)? -> *False* (tidak ada file `hs_err_pid*.log`).
+   - Evaluasi TD-04 (BindException)? -> *False* (tidak ada error bind di log).
+   - Evaluasi TD-05 (Orderly Shutdown)? -> *False* (log belum terkonfigurasi).
+   - Evaluasi TD-01 (Tomcat Up)? -> *False* (container dalam keadaan `exited`).
+   - **Evaluasi TD-06 (Container Exited)? -> MATCH (COCOK)!**
+3. **Hasil Assessment:**
+   - **Branch:** `TD-06`
+   - **Klasifikasi:** `undetermined`
+   - **Assessment:** `"Container exited; cause undetermined"`
+   - **Rekomendasi:** Panduan operasional SOP pemeriksaan status container dan start ulang layanan.
+
 ## ⚙️ Implementation
 
 <div class="procedure-sequence" markdown>
