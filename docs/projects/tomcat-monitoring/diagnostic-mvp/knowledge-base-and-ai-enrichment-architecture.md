@@ -12,30 +12,20 @@ Knowledge base pada platform Tomcat Monitoring dibagi ke dalam **5 lapisan fungs
 
 ```mermaid
 flowchart TD
-    subgraph L1 ["Layer 1: Logic & Decision Engine"]
-        L1_Desc["Pohon Keputusan Deterministik (TD-01..TD-08)<br/>File: src/domain/tomcat-down-engine.js"]
-    end
+    L5["<b>Layer 5: Enterprise Governance & ADR</b><br/>Spesifikasi Kontrak, Aturan, & Handbook<br/><i>(devops-handbook/docs/projects/...)</i>"]
     
-    subgraph L2 ["Layer 2: Operational Actions & SOP"]
-        L2_Desc["Katalog Rekomendasi Mitigasi Operator<br/>File: src/application/result-renderer.js"]
-    end
+    L3["<b>Layer 3: Target Topology & Mapping</b><br/>Allowlist Target, Spool, & Log Root<br/><i>(config/targets.json)</i>"]
     
-    subgraph L3 ["Layer 3: Target Topology & Mapping"]
-        L3_Desc["Allowlist Target, Path Spool, & Log Root<br/>File: config/targets.json"]
-    end
+    L1["<b>Layer 1: Logic & Decision Engine</b><br/>Pohon Keputusan Deterministik TD-01..TD-08<br/><i>(src/domain/tomcat-down-engine.js)</i>"]
     
-    subgraph L4 ["Layer 4: Persistent Incident History"]
-        L4_Desc["SQLite: canonical_results & evidence_summaries<br/>File: /var/lib/tomcat-diagnostic/diagnostic.db"]
-    end
+    L2["<b>Layer 2: Operational Actions & SOP</b><br/>Katalog Rekomendasi Mitigasi Operator<br/><i>(src/application/result-renderer.js)</i>"]
     
-    subgraph L5 ["Layer 5: Enterprise Governance & ADR"]
-        L5_Desc["Kontrak Arsitektur, Aturan, & Handbook<br/>File: devops-handbook/docs/projects/..."]
-    end
+    L4["<b>Layer 4: Persistent Incident History</b><br/>Database SQLite Persisten (diagnostic.db)<br/><i>(canonical_results & summaries)</i>"]
 
-    L1 --> L2
-    L3 --> L1
-    L1 --> L4
-    L5 -.->|Governs| L1 & L2 & L3 & L4
+    L5 -.->|"Tata Kelola"| L3 & L1 & L2 & L4
+    L3 -->|"Metadata Target"| L1
+    L1 -->|"Evaluasi Diagnosis"| L2
+    L1 -->|"Simpan Hasil"| L4
 ```
 
 ### 📋 Matriks Komponen 5-Layer Knowledge Base
@@ -56,24 +46,25 @@ Ketika terjadi insiden kegagalan yang **belum terpetakan dalam basis aturan (*un
 
 ```mermaid
 flowchart TD
-    A["Insiden Baru Masuk<br/>(TomcatDown Firing)"] --> B{"Pola Cocok dengan<br/>Rule TD-01..TD-05?"}
+    A["<b>Insiden Baru Masuk</b><br/>(TomcatDown Firing)"] --> B{"Pola Cocok dengan<br/>Rule TD-01 s/d TD-05?"}
     
-    B -->|"Ya (Cocok)"| C["Eksekusi Branch Spesifik<br/>(TD-01, TD-02, TD-03, TD-04, TD-05)"]
+    B -->|"Ya (Cocok)"| C["<b>Eksekusi Branch Terkait</b><br/>• TD-01: Scrape/TLS Fail<br/>• TD-02: OOM Kill<br/>• TD-03: JVM Crash<br/>• TD-04: BindException<br/>• TD-05: Orderly Stop"]
+    
     B -->|"Tidak (Pola Asing)"| D{"Status Container<br/>saat Diamati?"}
     
-    D -->|"Container Exited"| E["Branch TD-06<br/>Container exited; cause undetermined"]
-    D -->|"Container Running / Bukti Kurang"| F["Branch TD-08<br/>Cause undetermined from available evidence"]
-    D -->|"Bukti Saling Bertentangan"| G["Branch TD-08<br/>Cause undetermined from contradicting evidence"]
+    D -->|"Container Exited"| E["<b>Branch TD-06</b><br/>Container exited;<br/>cause undetermined"]
+    D -->|"Container Running"| F["<b>Branch TD-08</b><br/>Cause undetermined<br/>from available evidence"]
+    D -->|"Bukti Kontradiksi"| G["<b>Branch TD-08</b><br/>Cause undetermined<br/>from contradicting evidence"]
     
-    E & F & G --> H["Klasifikasi: UNDETERMINED<br/>Tingkat Keyakinan: NONE (null)"]
+    E & F & G --> H["<b>Klasifikasi: UNDETERMINED</b><br/>Tingkat Keyakinan: NONE (null)"]
     
-    H --> I["Kumpulkan Semua Fakta Forensik Mentah<br/>(Metrik, Exit Code, Spool, Log Excerpt di Seksi 3-5)"]
+    H --> I["<b>Kumpulkan Fakta Forensik</b><br/>• Metrik Scrape Terakhir<br/>• Exit Code & Telemetri Spool<br/>• Potongan Baris Log Terakhir"]
     
-    I --> J["Terbitkan Panduan Investigasi SOP Aman<br/>(Seksi 6: Recommended Operator Actions)"]
+    I --> J["<b>Terbitkan Panduan SOP</b><br/>(Seksi 6: Operator Actions)"]
     
-    J --> K[("Arsipkan ke SQLite Database<br/>canonical_results & evidence_summaries")]
+    J --> K[("<b>Arsipkan ke SQLite</b><br/>canonical_results & summaries")]
     
-    K --> L["Bahan Analisis Post-Mortem & Pengayaan AI"]
+    K --> L["<b>Bahan Analisis Post-Mortem</b><br/>& Pengayaan Rule via AI"]
 ```
 
 ### 📋 Matriks Penanganan Insiden Belum Terpetakan (*Unmapped Handling Matrix*)
