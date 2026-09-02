@@ -82,6 +82,29 @@ podman run --rm --name tomcat-diagnostic-tn005-node --userns=keep-id \
   localhost/nodejs:24.18.0 npm install --ignore-scripts --no-audit --no-fund
 ```
 
+**Parameter:**
+
+| Flag | Penjelasan |
+|------|-----------|
+| `podman run` | Menjalankan container baru |
+| `--rm` | Otomatis hapus container setelah selesai |
+| `--name tomcat-diagnostic-tn005-node` | Beri nama container untuk identifikasi |
+| `--userns=keep-id` | Rootless mode - pertahankan user ID host |
+| `-v /home/.../app:Z` | Mount source ke `/app` dengan SELinux relabel |
+| `-w /app` | Working directory di dalam container |
+| `localhost/nodejs:24.18.0` | Image runtime base |
+| `npm install ...` | Instalasi dependency |
+
+**Opsi npm:**
+
+| Opsi | Penjelasan |
+|------|-----------|
+| `--ignore-scripts` | Jangan jalankan lifecycle script |
+| `--no-audit` | Lewati audit kerentanan |
+| `--no-fund` | Jangan tampilkan funding info |
+
+**Tujuan:** Menginstal dependency `ajv@8.20.0` dan membuat `package-lock.json` dalam environment container yang terisolasi, tanpa menjalankan script yang berpotensi tidak aman.
+
 !!! success "Expected Result"
 
     Schema dan lockfile tersedia tanpa framework atau ORM.
@@ -127,6 +150,34 @@ podman run --rm --name tomcat-diagnostic-tn005-node --userns=keep-id \
   -v /home/eddywiyatno/git/tomcat-diagnostic-service:/app:Z -w /app \
   localhost/nodejs:24.18.0 npm test
 ```
+
+**Step 1: Static Validation**
+
+```bash
+./scripts/validate.sh
+```
+
+Memvalidasi source code, dependency, schema, dan migration boundary tanpa menjalankan test runtime.
+
+**Step 2: Shell Script Syntax Check**
+
+```bash
+bash -n scripts/*.sh
+```
+
+Memeriksa syntax Bash semua script tanpa mengeksekusinya (dry-run mode dengan opsi `-n` = noexec).
+
+**Step 3: Run Tests dalam Container**
+
+| Komponen | Penjelasan |
+|----------|-----------|
+| `podman run --rm` | Jalankan container baru dan hapus otomatis setelah selesai |
+| `--userns=keep-id` | Rootless mode - pertahankan user ID host |
+| `-v /home/.../app:Z` | Mount source ke `/app` dengan SELinux relabel |
+| `-w /app` | Working directory di dalam container |
+| `npm test` | Menjalankan test suite (unit + integration tests) |
+
+**Tujuan:** Memvalidasi source code, script syntax, dan menjalankan keseluruhan test suite untuk memastikan migration, persistence, queue behavior, dan deduplication berfungsi dengan benar dalam environment container yang terisolasi.
 
 Run pertama menghasilkan 6 pass dan 1 fail. Row SQLite benar, tetapi assertion
 membandingkan null-prototype row dengan object biasa. Assertion diperbaiki

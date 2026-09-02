@@ -98,6 +98,13 @@ Prometheus -> Alertmanager -> Diagnostic Service
     dan menetapkan Alertmanager sub-route beserta receiver `lab-diagnostic-service`
     yang mengirim webhook ke Diagnostic Service.
 
+15. **[TN-015 — Deploy Persistent Monitoring Runtime](TN-015-deploy-persistent-monitoring-runtime.md)**
+
+    Mengimplementasikan script deployment persisten untuk Prometheus, Alertmanager,
+    dan Diagnostic Service. Melakukan deployment ke environment `devops-lab` dan
+    memverifikasi integrasi end-to-end `TomcatDown` webhook `firing` dan `resolved`
+    secara persisten.
+
 ## 📌 Phase Status
 
 **In Progress.** Durable ingestion, target isolation, deterministic engine,
@@ -105,8 +112,7 @@ worker/result lifecycle, HTTPS/SMTP delivery boundaries, dan application
 startup telah lulus source atau ephemeral component tests. TN-013 image
 `0.1.1` serta disposable Diagnostic Service–SQLite–Mailpit flow telah lulus,
 termasuk exact cleanup. Alertmanager diagnostic route (TN-014) telah terverifikasi
-secara ephemeral. Persistent runtime, restricted collector, dan end-to-end
-verification tertunda.
+secara ephemeral. Persistent runtime Prometheus, Alertmanager, dan Diagnostic Service telah ter-deploy (TN-015) dengan end-to-end webhook `firing` dan `resolved` terverifikasi. Restricted collector tertunda.
 
 ## 🧭 Reproducibility Status
 
@@ -126,6 +132,7 @@ verification tertunda.
 | TN-012 | Source commit `84c42c1`; 36 regression and 2 SMTP socket component tests |
 | TN-013 | Baseline `84c42c1` plus verified working-tree manifest; image digest `sha256:94bf8fbe4ce75e60f3481b9346cb0e79bdb397a36d32e7de4e2adfbe9f5fa20f`; final commit pending |
 | TN-014 | Baseline `84c42c1` plus verified working-tree manifest; disposable verification Alertmanager route; final commit pending |
+| TN-015 | End-to-end verification passed persistently in `devops-lab`; final commit pending |
 
 TN-005 dan TN-006 berbagi satu source commit karena keduanya membentuk satu
 verified diagnostic-engine foundation dan telah dipush. TN-007 berada pada
