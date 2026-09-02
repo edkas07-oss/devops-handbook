@@ -35,7 +35,7 @@ Source project dibagi berdasarkan lifecycle dan tanggung jawab berikut:
 | `tomcat-jmx-exporter` | Menyediakan derived Tomcat image dengan embedded JMX Exporter | Current source published and local component build verified |
 | `alertmanager` | Menyediakan generic Alertmanager container image dan lifecycle runtime | Local image `1.0.0` built; Alertmanager, `amtool`, and non-root smoke test passed |
 | `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | Persistent Prometheus–Alertmanager–Mailpit firing/resolved delivery verified; external delivery pending |
-| `tomcat-diagnostic-service` | Memiliki source Diagnostic Service, dependency lock, image lifecycle, migration, dan component test | Current source commit `84c42c1`; image digest `sha256:a849a9e39a49ffcacb11733b0ad19e5e5f29c10451f8fd284f2b218f71c2dff1` tetap artifact TN-010 dari commit `611a83d` |
+| `tomcat-diagnostic-service` | Memiliki source Diagnostic Service, dependency lock, image lifecycle, migration, dan component test | TN-013 working tree verified as image `0.1.1`, digest `sha256:94bf8fbe4ce75e60f3481b9346cb0e79bdb397a36d32e7de4e2adfbe9f5fa20f`; final source commit pending |
 | `tomcat-diagnostic-event-collector` | Memiliki source, packaging, dan component test restricted rootless host collector | Ownership diterima; repository belum dibuat |
 
 Target allowlist diagnostic, integrasi Prometheus dan Alertmanager,
@@ -77,7 +77,7 @@ tomcat-jmx-exporter/
 | CI pipeline | Not implemented |
 | Container image publication | Local image only; registry not determined |
 | Diagnostic Service remote repository | Gitea `tomcat-diagnostic-service` tersedia |
-| Diagnostic Service local state | Source commit `84c42c1`; 36 regression dan 2 SMTP socket component tests lulus; version/latest tags masih menunjuk TN-010 image ID `20841a7d` |
+| Diagnostic Service local state | Baseline commit `84c42c1` plus TN-013 working-tree changes; 36 regression tests and disposable Mailpit runtime passed; `0.1.1`/`latest` point to image ID `1c8261a2` |
 | Restricted Event Collector repository | Belum dibuat |
 
 ## Development Workflow
@@ -126,7 +126,8 @@ mounted-file secret loading, migration-before-readiness startup, single worker
 loop, Prometheus serialization, dan graceful shutdown kemudian lulus 31
 regression serta 3 ephemeral component tests. TN-010 membangun dan
 memverifikasi digest-pinned image; TN-011 menetapkan integration-owned runtime
-configuration contract. Persistent component runtime belum diterapkan atau
+configuration contract. TN-013 membangun `0.1.1` dan memverifikasi disposable
+Mailpit/SQLite runtime. Persistent component runtime belum diterapkan atau
 diverifikasi. Repository
 `tomcat-diagnostic-event-collector` belum tersedia.
 
@@ -139,8 +140,8 @@ Runtime consumption menggunakan exact digest, configuration dan allowlist
 non-secret milik `tomcat-monitoring`, serta certificate/token/SMTP credential
 dari non-Git storage. TN-012 menghubungkan canonical result, renderer,
 persisted attempts, bounded retry, dan SMTP adapter serta lulus source/socket
-tests. TN-010 image belum membawa perubahan tersebut; rebuild menjadi
-prerequisite Mailpit multi-component test.
+tests. TN-013 rebuild memuat perubahan tersebut dan lulus Mailpit
+multi-component test; persistent route tetap menjadi pekerjaan terpisah.
 
 Pada `tomcat-jmx-exporter`, current source tersedia pada branch `main` melalui
 commit `231cb91` dan local `origin/main` menunjuk commit yang sama. Working tree

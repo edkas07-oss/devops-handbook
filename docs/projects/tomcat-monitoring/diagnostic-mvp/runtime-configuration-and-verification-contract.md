@@ -7,15 +7,16 @@ Service tanpa memasukkan configuration, target, certificate, atau secret ke
 application image. Contract ini juga menetapkan boundary disposable
 multi-component verification sebelum persistent deployment dipertimbangkan.
 
-Image TN-010 tetap menjadi verified baseline:
+Image TN-013 menjadi verified current application artifact:
 
 ```text
-localhost/tomcat-diagnostic-service@sha256:a849a9e39a49ffcacb11733b0ad19e5e5f29c10451f8fd284f2b218f71c2dff1
+localhost/tomcat-diagnostic-service@sha256:94bf8fbe4ce75e60f3481b9346cb0e79bdb397a36d32e7de4e2adfbe9f5fa20f
 ```
 
-Digest tersebut belum membawa source notification TN-012. TN-013 wajib
-membangun dan memverifikasi digest baru dari exact TN-012 revision sebelum
-runtime integration. Mutable tag tidak boleh menjadi runtime identity.
+Digest tersebut membawa notification lifecycle TN-012 serta SQLite permission
+resolution TN-013 dan telah lulus image-static serta disposable runtime
+verification. Digest TN-010 tetap menjadi historical baseline. Mutable tag
+tidak boleh menjadi runtime identity.
 
 ## 📌 Ownership Boundary
 
@@ -114,7 +115,7 @@ before creation:
 | HTTPS client container | `tm-tn013-diagnostic-client` |
 | Mailpit container | `tm-tn013-diagnostic-mailpit` |
 | Temporary directory | `mktemp -d /tmp/tomcat-diagnostic-tn013.XXXXXX`; resolved path recorded before runtime authorization |
-| Diagnostic image | Exact TN-012 source-derived digest produced and verified by TN-013; TN-010 digest is baseline only |
+| Diagnostic image | Exact TN-013 verified digest; TN-010 digest is historical baseline only |
 | HTTPS client image | `localhost/nodejs@sha256:76b1444d507be3398f3196f37bd20f7a97a703871ed2716fa91a1a9520fc482d` |
 | Mailpit image | `ghcr.io/axllent/mailpit:v1.31.0@sha256:c96991d9bef73594c246d89ca81411d4e916f03e76a7d2d72fa2ab5dd3c9ce24` |
 | Diagnostic endpoint | Internal `https://diagnostic-service:8443`; no host publication |
@@ -148,8 +149,9 @@ Verification layers must remain distinguishable:
 TN-012 source connects canonical result persistence, renderer, bounded SMTP
 retry, attempt persistence, initial firing, one material update, dan resolved
 correlation. Source regression and ephemeral SMTP socket tests passed. Current
-TN-010 image does not contain that source, so TN-013 image build remains a
-mandatory prerequisite before Mailpit verification.
+TN-013 image memuat source tersebut. Disposable verification membuktikan
+firing/duplicate/resolved delivery, persisted attempts, Mailpit text/HTML,
+SQLite mode `0600`, database reopen, dan graceful shutdown.
 
 Before runtime authorization, the next Technical Note must publish the exact
 resolved temporary directory, image identities, container names, network,
@@ -159,8 +161,8 @@ Image removal is excluded.
 
 ## 📌 Status
 
-**Accepted contract.** Configuration paths, ownership, permissions, retry
-policy, and TN-013 disposable topology are defined. Source notification
-orchestration is verified; new image identity, Mailpit capture, integration
-files, container resources, SQLite runtime data, and persistent deployment
-remain unverified.
+**Accepted and disposable-runtime verified.** Configuration paths, ownership,
+permissions, retry policy, exact image identity, integration interface,
+Mailpit capture, temporary SQLite lifecycle, and TN-013 topology are verified.
+Persistent deployment, actual Alertmanager route, named-volume durability,
+collector integration, dan production secret lifecycle remain unverified.

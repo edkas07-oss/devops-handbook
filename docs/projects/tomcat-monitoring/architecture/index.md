@@ -166,7 +166,7 @@ menunjukkan target yang belum diimplementasikan; webhook tidak mengembalikan
 | Dashboard and Alert | Melakukan query ke Prometheus serta menampilkan metrics dan status alert |
 | Alertmanager | Mengelompokkan, melakukan deduplication, dan meneruskan alert |
 | Mailpit | Menangkap email firing dan resolved pada persistent lab-only topology tanpa external delivery |
-| Diagnostic Service | Menerima `TomcatDown`, menyimpan event, mengumpulkan evidence terbatas, menghasilkan canonical result, dan membentuk lifecycle notification; source, secure interfaces, configuration, startup, dan local image telah diuji secara disposable; Mailpit aktual dan persistent runtime belum tersedia |
+| Diagnostic Service | Menerima `TomcatDown`, menyimpan event, mengumpulkan evidence terbatas, menghasilkan canonical result, dan membentuk lifecycle notification; source, secure interfaces, configuration, `0.1.1` image, SQLite reopen, dan Mailpit aktual telah diuji secara disposable; persistent runtime belum tersedia |
 | SQLite | Menyimpan event, incident, deduplication, canonical result, dan delivery state lokal; source migration/adapter serta ephemeral lifecycle verification tersedia, persistent restart belum diverifikasi |
 | Restricted Event Collector | Menulis event host dan container yang telah dinormalisasi ke spool terbatas tanpa memberi Diagnostic Service akses kontrol host; belum diimplementasikan |
 | Integration Bridge | Mengubah webhook menjadi event yang diterima TrueSight |

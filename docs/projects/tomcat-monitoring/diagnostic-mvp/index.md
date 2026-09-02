@@ -7,13 +7,14 @@ alert Tomcat Monitoring. Desain telah diterima pada 2026-08-30. Schema,
 migration, durable SQLite ingestion, queue, target isolation, bounded evidence
 adapters, dan deterministic `TomcatDown` engine telah diterapkan pada source.
 Digest-pinned application image telah lulus disposable HTTPS/SQLite/SIGTERM
-verification. Persistent container, collector, dan end-to-end runtime belum
+dan Mailpit notification verification. Persistent container, collector, dan end-to-end runtime belum
 diimplementasikan atau diverifikasi.
 
 Single-worker orchestration, canonical-result persistence, material-update
 guard, health/metrics model, seven-section renderers, bounded SMTP retry,
 attempt persistence, dan firing/material/resolved notification lifecycle telah
-tersedia di source. Mailpit component behavior belum diverifikasi.
+tersedia di source. TN-013 membuktikan Mailpit firing/resolved delivery,
+duplicate suppression, persisted attempts, text/HTML content, dan SQLite reopen.
 
 HTTPS request boundary dan SMTP adapter pada commit `bc4b7ae` telah lulus
 ephemeral socket tests pada TN-008. Source commit `a398349` menambahkan versioned
@@ -21,10 +22,10 @@ non-secret configuration, mounted-file secret loader, migration-before-
 readiness startup, tepat satu worker loop, Prometheus text serialization, dan
 graceful shutdown. Tiga component tests membuktikan temporary HTTPS, SQLite,
 dan fake SMTP; seluruh certificate dan database fixture telah dibersihkan.
-TN-010 kemudian membangun digest-pinned application image dan memverifikasi
+TN-010 membangun baseline image. TN-013 kemudian membangun image `0.1.1` dan memverifikasi
 non-root metadata, dependency content, mounted HTTPS configuration, SQLite
-migration, serta SIGTERM secara disposable. Mailpit aktual, persistent runtime,
-deployment, dan end-to-end behavior belum diverifikasi.
+migration, Mailpit aktual, serta SIGTERM secara disposable. Persistent runtime,
+deployment, actual Alertmanager route, dan end-to-end behavior belum diverifikasi.
 
 TN-011 menetapkan exact runtime configuration paths, mount/permission boundary,
 immutable image consumption, ownership, dan disposable multi-component
@@ -63,7 +64,7 @@ configuration change, container control, atau automatic remediation.
 | Application health as `TomcatDown` evidence | Allowed when mapped to the same target |
 | `ApplicationHealthCheckFailed` diagnostic | Deferred and disabled |
 | `TomcatHighHeapUsage` diagnostic | Deferred and disabled |
-| Mailpit delivery | Active target; source orchestration/socket tested, Mailpit capture pending |
+| Mailpit delivery | Active target; source/socket and disposable actual Mailpit capture verified |
 | Integration Bridge | Disabled; no connection, retry, or queue work |
 | TrueSight | Disabled and not a pilot dependency |
 | Automatic remediation | Excluded |
@@ -110,7 +111,7 @@ The pilot may be accepted only after:
 ## 📌 Current Status
 
 **Application source termasuk notification orchestration, configuration,
-startup lifecycle, TN-010 local image, dan integration-owned runtime contract
-telah tersedia; persistent diagnostic runtime belum tersedia.** TN-010 image
-belum membawa source TN-012. Mailpit, rebuilt image, deployment, persistent
-restart durability, dan end-to-end behavior belum diverifikasi.
+startup lifecycle, TN-013 local image, dan disposable Mailpit integration telah
+terverifikasi; persistent diagnostic runtime belum tersedia.** Deployment,
+actual Alertmanager route, named-volume restart durability, collector, dan
+end-to-end behavior belum diverifikasi.

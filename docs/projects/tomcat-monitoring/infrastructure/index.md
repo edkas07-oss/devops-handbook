@@ -32,7 +32,7 @@ proses infrastructure yang telah ditetapkan.
 | Application health endpoint | Memberikan status aplikasi yang dapat diverifikasi Telegraf | Lab-only JSP `/health` deployed and verified; production application endpoint planned |
 | Alertmanager | Mengelola dan meneruskan alert | Persistent local image `1.0.0` runtime uses named configuration/data volumes; real Prometheus firing/resolved delivery verified |
 | Mailpit SMTP capture | Menangkap email Alertmanager pada persistent lab-only topology | Direct-upstream `v1.31.0` runs without named volume; loopback API and real firing/resolved capture verified |
-| Diagnostic Service | Menerima `TomcatDown`, mengelola state, mengumpulkan evidence terbatas, dan mengirim diagnostic notification | Source, digest-pinned local image, dan disposable HTTPS/SQLite/SIGTERM verification tersedia; Mailpit aktual serta persistent runtime belum tersedia |
+| Diagnostic Service | Menerima `TomcatDown`, mengelola state, mengumpulkan evidence terbatas, dan mengirim diagnostic notification | Source, digest-pinned `0.1.1` image, dan disposable HTTPS/SQLite/Mailpit/SIGTERM verification tersedia; persistent runtime belum tersedia |
 | SQLite diagnostic state | Mempertahankan event, incident, deduplication, canonical result, dan delivery state | Named volume `diagnostic_data` diterima; database dan physical volume belum dibuat |
 | Restricted Event Collector | Mengumpulkan event host dan container yang diizinkan tanpa memberi akses kontrol host kepada Diagnostic Service | Ownership diterima; repository dan host service belum dibuat |
 | Normalized collector spool | Menyediakan record event terbatas melalui mount read-only ke Diagnostic Service | Contract diterima; format fisik, permission, retention, dan runtime belum diimplementasikan |
@@ -94,7 +94,7 @@ configuration.
 | Alertmanager to Mailpit | Internal `mailpit:1025` pada `devops-lab`; SMTP tidak dipublikasikan | Mailpit API/UI hanya `127.0.0.1:8025`; no external relay, credential, atau personal recipient | Persistent lab-only firing/resolved capture verified on 2026-08-28 |
 | Alertmanager to Diagnostic Service | HTTPS ke `diagnostic-service:8443/api/v1/alerts/alertmanager` | Strict TLS, bearer authentication, dedicated internal network, CA dan token read-only dari non-Git storage; tanpa host port | Contract diterima; routing, certificate, token, dan runtime belum diimplementasikan |
 | Diagnostic Service to Prometheus | Query metrics terbatas melalui Prometheus API | Target dan query berasal dari local allowlist; endpoint fisik dan trust contract belum ditetapkan | Direncanakan; belum diimplementasikan atau diverifikasi |
-| Diagnostic Service to Mailpit | SMTP internal untuk diagnostic firing, update, failed/partial, dan resolved | Tidak menggunakan external relay atau personal recipient pada lab | Contract diterima; delivery belum diimplementasikan |
+| Diagnostic Service to Mailpit | SMTP internal untuk diagnostic firing, update, failed/partial, dan resolved | Tidak menggunakan external relay atau personal recipient pada lab | Disposable firing/resolved delivery verified; persistent delivery belum diimplementasikan |
 | Diagnostic Service to Integration Bridge | Canonical JSON projection | Tidak ada endpoint, credential, connection, retry, queue, atau worker ketika disabled | Disabled; activation memerlukan contract terpisah |
 | Integration Bridge to TrueSight | SNMP Trap atau `msend` | Not determined | Designed, not verified |
 

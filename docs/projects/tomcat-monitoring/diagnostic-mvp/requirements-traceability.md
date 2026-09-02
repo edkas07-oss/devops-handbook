@@ -9,7 +9,7 @@ persistent or end-to-end diagnostic evidence is available.
 | ID | Requirement | Contract | Evidence state and remaining requirement |
 | --- | --- | --- | --- |
 | PILOT-001 | Only `TomcatDown` enters diagnostic routing | Scope; rule specification | Enabled-rule and Alertmanager route tests |
-| ING-001 | Authenticated firing/resolved webhook | Webhook contract | Source and disposable HTTPS/token tests passed; firing/resolved integration remains |
+| ING-001 | Authenticated firing/resolved webhook | Webhook contract | TN-013 disposable HTTPS/token firing/resolved integration passed; actual Alertmanager route remains |
 | ING-002 | SQLite commit occurs before `202` | Webhook; SQLite | Failure-injection and restart test |
 | ING-003 | Duplicate event is idempotent across restart | Webhook; SQLite | Temporary-database source replay passed; persistent-volume restart remains |
 | ID-001 | Only allowlisted canonical target is accepted | Target contract | Source unknown/mismatch tests passed; multi-target runtime remains |
@@ -21,12 +21,12 @@ persistent or end-to-end diagnostic evidence is available.
 | RULE-006 | Same inputs and rule version are deterministic | Result contract | Regression hash test |
 | RULE-007 | Prometheus attempt has a five-second deadline, no in-run retry, and explicit fallback | Rule specification | Timely response, timeout, unavailable marker, and continued log/spool evidence tests |
 | RES-001 | Canonical result validates semantic combinations | Result contract | Source semantic tests passed; integration persistence remains |
-| MSG-001 | Plain-text and HTML preserve canonical meaning | Notification contract | Source renderer tests passed; delivered-message comparison remains |
+| MSG-001 | Plain-text and HTML preserve canonical meaning | Notification contract | Source renderer and TN-013 delivered-message comparison passed |
 | MSG-002 | Firing, update, partial, failed, and resolved render | Notification contract | Initial firing, one material update, partial, and resolved source tests passed; failed-message content remains runtime evidence |
 | MSG-003 | Email renders seven ordered sections with bounded sanitized metrics and log evidence | Notification contract | Plain-text/HTML ordering, unavailable section, redaction, and overclaim-prevention tests |
-| DEL-001 | Mailpit is the only active pilot target | Notification contract | Worker-to-SMTP socket passed; actual Mailpit assertions remain |
+| DEL-001 | Mailpit is the only active pilot target | Notification contract | Worker-to-SMTP socket and actual TN-013 Mailpit assertions passed; persistent route remains |
 | DEL-002 | Disabled bridge performs no work | Notification contract | Network, queue, and metric assertions |
-| DB-001 | Initialization and migrations are automatic | SQLite contract | Temporary directory and image migration tests passed; empty named volume remains |
+| DB-001 | Initialization and migrations are automatic | SQLite contract | Image and TN-013 temporary-bind migrations 1–4, mode `0600`, and application reopen passed; empty named volume remains |
 | DB-002 | Incident and dedup state survive restart | SQLite contract | Source reopen test passed; persistent-volume restart remains |
 | DB-003 | Retention and capacity protection are automatic | SQLite contract | Housekeeping and limit tests |
 | NFR-001 | One bounded service isolates multiple local targets | NFR; deployment ADR | Multi-target isolation test |
@@ -47,4 +47,6 @@ Deferred items are not pilot failures.
 
 ## 📌 Status
 
-**Requirements accepted; implementation and verification evidence pending.**
+**Requirements accepted; source, image, and selected disposable integration
+evidence available.** Persistent runtime, actual Alertmanager route, collector,
+multi-target/failure scenarios, and full pilot exit evidence remain pending.

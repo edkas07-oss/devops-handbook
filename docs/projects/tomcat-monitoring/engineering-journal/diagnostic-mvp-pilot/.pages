@@ -17,3 +17,4 @@ arrange:
 - TN-010-build-and-verify-diagnostic-service-image.md
 - TN-011-define-diagnostic-service-runtime-configuration-contract.md
 - TN-012-implement-bounded-notification-delivery-orchestration.md
+- TN-013-rebuild-and-verify-diagnostic-service-mailpit-runtime.md

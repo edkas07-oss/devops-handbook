@@ -66,9 +66,10 @@ automatic remediation path.
 
 ## 📌 Status
 
-**Accepted and implemented in source.** Renderer, worker orchestration,
-persisted attempts, bounded retry, initial/material/resolved lifecycle, dan
-ephemeral SMTP socket delivery have evidence. New application image, actual
-Mailpit capture, persistent runtime, and Alertmanager correlation remain
+**Accepted, implemented, and disposable-runtime verified.** Renderer, worker
+orchestration, persisted attempts, bounded retry, initial/resolved lifecycle,
+duplicate suppression, and actual Mailpit plain-text/HTML capture have evidence
+on the TN-013 image digest. Persistent runtime, actual Alertmanager diagnostic
+route, material/failed runtime scenarios, and end-to-end correlation remain
 unverified. Existing direct Alertmanager–Mailpit delivery remains the verified
-current runtime.
+persistent monitoring runtime.
