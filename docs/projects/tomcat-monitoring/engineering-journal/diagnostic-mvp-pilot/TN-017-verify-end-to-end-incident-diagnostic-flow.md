@@ -113,9 +113,9 @@ Pada tahap sebelumnya, persistent runtime monitoring ([TN-015](TN-015-deploy-per
 
 !!! success "Expected Result"
 
-    Canonical result tersimpan di SQLite dengan branch `TD-06` dan bukti `container_state`/`runtime_oom`, serta email berlabel `[firing] TomcatDown lab/tomcat-01/default` diterima di Mailpit dengan 7 seksi analisis lengkap.
+    Canonical result tersimpan di SQLite dengan branch `TD-06` dan bukti `container_state`/`runtime_oom`, serta email berformat standar enterprise `[CRITICAL] [LAB] Tomcat Service: TomcatDown (Target: lab/tomcat-01/default)` diterima di Mailpit dengan 7 seksi analisis lengkap dan rekomendasi operator terstruktur.
 
-**Actual Result:** Canonical result `diag-e5b861cd...` (ID 5) dan `diag-392fa5fe...` (ID 7) tersimpan di SQLite dengan branch TD-06, notification attempt berstatus `sent`, dan email HTML 7 seksi diterima di Mailpit.
+**Actual Result:** Canonical result `diag-e5b861cd...` (ID 5) dan `diag-392fa5fe...` (ID 7) tersimpan di SQLite dengan branch TD-06, notification attempt berstatus `sent`, dan email HTML 7 seksi dengan subjek standar enterprise diterima di Mailpit.
 
 </div>
 
@@ -128,13 +128,13 @@ Pada tahap sebelumnya, persistent runtime monitoring ([TN-015](TN-015-deploy-per
 1. Collector mencatat snapshot `container_state: "running"` dan `runtime_oom: {"exitCode": 0, "oomKilled": false}`.
 2. Prometheus melakukan scrape ulang dan mendeteksi target `up == 1`, alert `TomcatDown` bertransisi menjadi `inactive` (resolved).
 3. Alertmanager mengirimkan webhook `resolved` ke Diagnostic Service.
-4. Diagnostic Service memproses event resolved, mengorelasikannya dengan riwayat firing sebelumnya (ID 7), menyimpan canonical result (ID 8) ke SQLite, dan mengirimkan email notifikasi pemulihan `[resolved] TomcatDown lab/tomcat-01/default` ke Mailpit.
+4. Diagnostic Service memproses event resolved, mengorelasikannya dengan riwayat firing sebelumnya (ID 7), menyimpan canonical result (ID 8) ke SQLite, dan mengirimkan email notifikasi pemulihan `[RESOLVED] [LAB] Tomcat Service: TomcatDown Restored (Target: lab/tomcat-01/default)` ke Mailpit.
 
 !!! success "Expected Result"
 
     Canonical result resolusi tersimpan di SQLite (lifecycleStatus `resolved`), notification attempt berstatus `sent`, dan email resolusi diterima di Mailpit.
 
-**Actual Result:** Canonical result ID 8 tersimpan di SQLite dengan status `resolved` (branch TD-06), notification attempt berhasil dikirim, dan email pemulihan diterima di Mailpit.
+**Actual Result:** Canonical result ID 8 tersimpan di SQLite dengan status `resolved` (branch TD-06), notification attempt berhasil dikirim, dan email pemulihan diterima di Mailpit dengan jeda waktu operasional alami.
 
 </div>
 
@@ -150,8 +150,8 @@ Pada tahap sebelumnya, persistent runtime monitoring ([TN-015](TN-015-deploy-per
 | Alertmanager Route Dispatch | Alertmanager mengirim webhook ke receiver `lab-diagnostic-service` | Lulus | Webhook diterima pada Diagnostic Service port 8443 |
 | Engine Decision Evaluation | Diagnostic Service mengevaluasi bukti spool menjadi branch TD-06 | Lulus | Canonical result branch `TD-06`, classification `undetermined` |
 | SQLite Persistence | Result, evidence summaries, dan notification attempts tersimpan di SQLite | Lulus | Record tersimpan di tabel `canonical_results`, `evidence_summaries`, `notification_attempts` |
-| Mailpit Firing Notification | Email laporan diagnosis insiden diterima di Mailpit | Lulus | Message `[firing] TomcatDown lab/tomcat-01/default` dengan 7 seksi HTML |
-| Mailpit Resolved Notification | Email notifikasi pemulihan diterima di Mailpit | Lulus | Message `[resolved] TomcatDown lab/tomcat-01/default` diterima di Mailpit |
+| Mailpit Firing Notification | Email laporan diagnosis insiden diterima di Mailpit dengan subjek `[CRITICAL] [LAB] Tomcat Service: TomcatDown` | Lulus | Message `[CRITICAL] [LAB] Tomcat Service: TomcatDown (Target: lab/tomcat-01/default)` dengan 7 seksi HTML dan rekomendasi operator Bahasa Indonesia |
+| Mailpit Resolved Notification | Email notifikasi pemulihan diterima di Mailpit dengan subjek `[RESOLVED] [LAB] Tomcat Service: TomcatDown Restored` | Lulus | Message `[RESOLVED] [LAB] Tomcat Service: TomcatDown Restored (Target: lab/tomcat-01/default)` diterima di Mailpit |
 
 ## ✅ Operator Validation
 
