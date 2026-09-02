@@ -60,16 +60,16 @@ Diagnostic Service dirancang sebagai *Automated Incident Investigator* determini
 
 ```mermaid
 flowchart TD
-    A[Prometheus Alert: TomcatDown] -->|Webhook POST /api/v1/alerts/alertmanager| B[Diagnostic Service Ingestion]
-    B -->|Durable Ingestion & Dedup| C[(SQLite: events & work_queue)]
-    C -->|Single Worker Claim| D[Diagnostic Worker Loop]
-    D -->|Bounded Time Window| E[Evidence Collection Pipeline]
+    A["Prometheus Alert<br/>TomcatDown (up == 0)"] -->|"Webhook POST<br/>/api/v1/alerts/alertmanager"| B["Diagnostic Service<br/>HTTPS Ingestion"]
+    B -->|"Durable Ingestion<br/>& Deduplication"| C[("SQLite Database<br/>events & work_queue")]
+    C -->|"Single Worker<br/>Claim"| D["Diagnostic Worker<br/>Single Processing Loop"]
+    D -->|"Bounded Window<br/>(±5 Menit)"| E["Evidence Collection<br/>Pipeline"]
     
-    subgraph Evidence Sources
-        E1[Prometheus Adapter: JMX Scrape & Metrics]
-        E2[Restricted Collector Spool: container_state & runtime_oom]
-        E3[Local File Reader: catalina.out & hs_err logs]
-        E4[Application Health Probe: HTTP endpoint]
+    subgraph Evidence_Sources ["Sumber Bukti Diagnostik (Evidence Sources)"]
+        E1["Prometheus Adapter<br/>(JMX Scrape & Metrics)"]
+        E2["Restricted Collector Spool<br/>(container_state & runtime_oom)"]
+        E3["Local File Evidence Reader<br/>(catalina.out & hs_err logs)"]
+        E4["Application Health Probe<br/>(HTTP Endpoint)"]
     end
     
     E --> E1
@@ -77,15 +77,15 @@ flowchart TD
     E --> E3
     E --> E4
     
-    E1 & E2 & E3 & E4 --> F[Diagnostic Engine: evaluateTomcatDown]
-    F -->|Deterministic Decision Table| G{Decision Branches TD-01..TD-08}
+    E1 & E2 & E3 & E4 --> F["Diagnostic Engine<br/>evaluateTomcatDown()"]
+    F -->|"Evaluasi Berurutan"| G{"Tabel Keputusan<br/>TD-01 s/d TD-08"}
     
-    G -->|TD-01..TD-08 Match| H[Build Canonical Result & SHA-256 Hash]
-    H -->|Persist Result & Evidence| I[(SQLite: canonical_results & evidence_summaries)]
-    H -->|Material Change Guard| J{Is Material Change?}
-    J -->|Yes / Initial / Resolved| K[7-Section Structured Renderer]
-    J -->|No / Duplicate| L[Suppress Notification]
-    K -->|SMTP Delivery| M[Mailpit Web UI / Operator Notification]
+    G -->|"Branch Terpilih"| H["Build Canonical Result<br/>& SHA-256 Hash"]
+    H -->|"Persistensi Hasil"| I[("SQLite Persistence<br/>results & summaries")]
+    H -->|"Guard Notifikasi"| J{"Perubahan<br/>Material?"}
+    J -->|"Ya / Awal / Resolved"| K["7-Section Structured<br/>Report Renderer"]
+    J -->|"Tidak / Duplikat"| L["Redam Notifikasi<br/>(Suppress Duplicates)"]
+    K -->|"SMTP Delivery<br/>(mailpit:1025)"| M["Mailpit Web UI<br/>(Laporan Operator)"]
 ```
 
 ### ⚖️ Tabel Keputusan Diagnostik (Deterministic Decision Table)
