@@ -303,5 +303,6 @@ Konsolidasi hasil verifikasi fase Diagnostic MVP Pilot ke dokumentasi arsitektur
 - [TN-015 — Deploy Persistent Monitoring Runtime](TN-015-deploy-persistent-monitoring-runtime.md)
 - [TN-016 — Implement Restricted Collector and Tomcat Runtime](TN-016-implement-restricted-collector-and-tomcat-runtime.md)
 - [Diagnostic MVP Pilot Engineering Journal](index.md)
+- [Knowledge Base and AI Enrichment Architecture](../../diagnostic-mvp/knowledge-base-and-ai-enrichment-architecture.md)
 - [Target and Evidence Contract](../../diagnostic-mvp/target-and-evidence-contract.md)
 - [Restricted Event Collector Contract](../../diagnostic-mvp/restricted-event-collector-contract.md)

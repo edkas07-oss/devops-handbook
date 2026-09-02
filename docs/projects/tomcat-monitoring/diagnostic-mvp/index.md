@@ -85,8 +85,9 @@ the Diagnostic Service and are not part of Diagnostic MVP acceptance.
 9. [Non-Functional and Security Contract](non-functional-and-security-contract.md).
 10. [Runtime Configuration and Verification Contract](runtime-configuration-and-verification-contract.md).
 11. [Requirements Traceability](requirements-traceability.md).
-12. [Gap Register](gap-register.md).
-13. Related accepted ADRs in the Tomcat Monitoring ADR catalog.
+12. [Knowledge Base and AI Enrichment Architecture](knowledge-base-and-ai-enrichment-architecture.md).
+13. [Gap Register](gap-register.md).
+14. Related accepted ADRs in the Tomcat Monitoring ADR catalog.
 
 An accepted ADR takes precedence for its architectural decision. A dedicated
 contract governs its domain. Repository source and verified runtime evidence
