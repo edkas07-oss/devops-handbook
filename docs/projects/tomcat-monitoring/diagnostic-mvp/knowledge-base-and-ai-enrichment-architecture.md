@@ -12,17 +12,17 @@ Knowledge base pada platform Tomcat Monitoring dibagi ke dalam **5 lapisan fungs
 
 ```mermaid
 flowchart TD
-    L5["<b>Layer 5: Enterprise Governance & ADR</b><br/>Spesifikasi Kontrak, Aturan, & Handbook<br/><i>(devops-handbook/docs/projects/...)</i>"]
-    
-    L3["<b>Layer 3: Target Topology & Mapping</b><br/>Allowlist Target, Spool, & Log Root<br/><i>(config/targets.json)</i>"]
-    
-    L1["<b>Layer 1: Logic & Decision Engine</b><br/>Pohon Keputusan Deterministik TD-01..TD-08<br/><i>(src/domain/tomcat-down-engine.js)</i>"]
-    
-    L2["<b>Layer 2: Operational Actions & SOP</b><br/>Katalog Rekomendasi Mitigasi Operator<br/><i>(src/application/result-renderer.js)</i>"]
-    
-    L4["<b>Layer 4: Persistent Incident History</b><br/>Database SQLite Persisten (diagnostic.db)<br/><i>(canonical_results & summaries)</i>"]
+    L5["Layer 5: Governance<br/>Kontrak Arsitektur<br/>(devops-handbook)"]
+    L3["Layer 3: Target Topology<br/>Allowlist & Spool Path<br/>(targets.json)"]
+    L1["Layer 1: Decision Engine<br/>Logika Aturan TD-01..TD-08<br/>(tomcat-down-engine.js)"]
+    L2["Layer 2: Operational SOP<br/>Rekomendasi Mitigasi<br/>(result-renderer.js)"]
+    L4["Layer 4: Incident History<br/>Database SQLite<br/>(diagnostic.db)"]
 
-    L5 -.->|"Tata Kelola"| L3 & L1 & L2 & L4
+    L5 -.->|"Tata Kelola"| L3
+    L5 -.->|"Tata Kelola"| L1
+    L5 -.->|"Tata Kelola"| L2
+    L5 -.->|"Tata Kelola"| L4
+    
     L3 -->|"Metadata Target"| L1
     L1 -->|"Evaluasi Diagnosis"| L2
     L1 -->|"Simpan Hasil"| L4
