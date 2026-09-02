@@ -44,41 +44,87 @@ Konfigurasi statis Prometheus (`prometheus.yml` dan rules `TomcatDown`) serta Al
 3. **Update Validation Contract:** Menambahkan ketiga skrip deployment tersebut ke dalam `REQUIRED_FILES` pada `scripts/validate.sh`.
 4. **Deploy Monitoring Runtime:** Menjalankan ketiga skrip deployment ke network `devops-lab`.
 
-## ⚙️ Implementation
+<div class="procedure-sequence" markdown>
 
-### 1. Update Runtime Repositories
+<div class="procedure-step" markdown>
+
+### Update Runtime Repositories
+
 **Action:** Modifikasi `git/alertmanager/scripts/run.sh` untuk menambahkan parameter `<truststore-volume>` agar identik dengan Prometheus.
-**Result:** Script sukses diperbarui dan dicommit.
 
-### 2. Implement Deployment Scripts
-**Action:** Membuat skrip bash untuk mengorkestrasi container. Diagnostic Service diatur dengan self-signed cert dan TLS. Port yang terpublish untuk DS dimatikan (hanya menggunakan network alias) untuk menghindari konflik port.
-**Result:** Skrip `deploy-*.sh` berhasil ditambahkan di `tomcat-monitoring`.
+!!! success "Expected Result"
 
-### 3. Update Validation Contract
-**Action:** `scripts/validate.sh` di `tomcat-monitoring` diperbarui.
-**Result:** Validasi berhasil memverifikasi seluruh komponen tanpa error.
+    `run.sh` menerima argumen volume tambahan untuk me-mount `/run/secrets/tomcat-monitoring`.
 
-### 4. Deploy Monitoring Runtime
-**Action:** Skrip deployment dijalankan untuk menginisiasi `diagnostic_data`, `alertmanager_truststore`, dan lain-lain.
-**Result:** Seluruh container (`prometheus`, `alertmanager`, `diagnostic-service`) berhasil berstatus UP secara persisten pada network `devops-lab`.
+**Actual Result:** Script sukses diperbarui dan dicommit.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Implement Deployment Scripts
+
+**Action:** Membuat `scripts/deploy-prometheus.sh`, `scripts/deploy-alertmanager.sh`, dan `scripts/deploy-diagnostic-service.sh` di repositori `tomcat-monitoring`. Skrip-skrip ini akan mengatur file konfigurasi, TLS (khusus untuk diagnostic-service), volume persisten, dan menginisiasi `podman run`.
+
+!!! success "Expected Result"
+
+    Semua script deployment tersedia dan siap dijalankan dengan TLS dinamis.
+
+**Actual Result:** Skrip `deploy-*.sh` berhasil ditambahkan di `tomcat-monitoring`.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Update Validation Contract
+
+**Action:** `scripts/validate.sh` di `tomcat-monitoring` diperbarui dengan memasukkan tiga script deployment di atas.
+
+!!! success "Expected Result"
+
+    `validate.sh` lulus. Tiga file script ditambahkan ke array `REQUIRED_FILES`.
+
+**Actual Result:** Validasi berhasil memverifikasi seluruh komponen tanpa error.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Deploy Monitoring Runtime
+
+**Action:** Skrip deployment dijalankan untuk menginisiasi container secara persisten di `devops-lab`.
+
+!!! success "Expected Result"
+
+    `diagnostic_data`, `alertmanager_config`, dan `prometheus_data` volume persisten terbentuk. Container menyala terus (UP).
+
+**Actual Result:** Seluruh container (`prometheus`, `alertmanager`, `diagnostic-service`) berhasil berstatus UP secara persisten pada network `devops-lab`.
+
+</div>
+
+</div>
 
 ## ✅ Verification
 
-### Skenario End-to-End `TomcatDown` Alert
-**Criteria:** Alertmanager mengirimkan webhook `firing` ketika container target mati dan `resolved` saat hidup, lalu SQLite mencatat event tersebut.
+| Method | Expected Result | Actual Result |
+| --- | --- | --- |
+| Verifikasi Webhook Firing | Alertmanager berhasil mengirim webhook ketika Tomcat down, Probe script `sqlite_firing=1` | Lulus (`sqlite_firing=1`) |
+| Verifikasi Webhook Resolved | Alertmanager berhasil mengirim webhook ketika Tomcat up, Probe script `sqlite_resolved=1` | Lulus (`sqlite_resolved=1`) |
 
-**Execution:**
-1. Hentikan eksportir: `podman stop tomcat-jmx-exporter`
-2. Tunggu selama 2 menit. Prometheus mendeteksi status *firing* dan mengirim alert ke Alertmanager.
-3. Alertmanager meneruskan webhook HTTPS ke `diagnostic-service` menggunakan TLS truststore yang dikonfigurasi.
-4. Lakukan verifikasi payload `firing` di SQLite melalui skrip _probe_.
-   - **Evidence:** Probe sukses (`sqlite_firing=1`).
-5. Hidupkan kembali eksportir: `podman start tomcat-jmx-exporter`
-6. Tunggu hingga Prometheus mendeteksi *up == 1* dan mengirimkan resolusi alert.
-7. Lakukan verifikasi payload `resolved` di SQLite.
-   - **Evidence:** Probe sukses membaca `sqlite_resolved=1` (berarti `sqlite_events=2`).
+## 🖥️ Commands Executed
 
-**Result:** Semua tahapan verifikasi berhasil. `TomcatDown` berjalan persisten dan terekam di database `diagnostic.db`.
+```bash
+# Verifikasi End-to-End
+podman stop tomcat-jmx-exporter
+podman logs alertmanager # observe connection to diagnostic-service
+podman run --rm -v "diagnostic_data:/data:ro" <probe-image> /probe/probe.js /data/diagnostic.db
+# sqlite_events=1 sqlite_firing=1 sqlite_resolved=0
+
+podman start tomcat-jmx-exporter
+# tunggu prometheus resolve alert
+podman run --rm -v "diagnostic_data:/data:ro" <probe-image> /probe/probe.js /data/diagnostic.db
+# sqlite_events=2 sqlite_firing=1 sqlite_resolved=1
+```
 
 ## 🧾 Outcome
 
