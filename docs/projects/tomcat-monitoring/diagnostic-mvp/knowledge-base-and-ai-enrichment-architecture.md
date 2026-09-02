@@ -8,131 +8,124 @@ Dokumen ini mendefinisikan arsitektur pengelolaan *Knowledge Base* (basis penget
 
 ## 🏛️ Arsitektur 5-Layer Knowledge Base
 
-Knowledge base pada sistem ini tidak disimpan dalam satu file monolitik, melainkan dibagi ke dalam **5 lapisan (*layers*) fungsional** yang terisolasi dan memiliki tanggung jawab yang jelas:
+Knowledge base pada platform Tomcat Monitoring dibagi ke dalam **5 lapisan fungsional (*functional layers*)** yang terpisah untuk menjaga isolasi, keamanan, dan determinisme sistem:
 
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│ Layer 1: Logic & Decision Engine (Code & Rule Specification)           │
-│ • Lokasi: `src/domain/tomcat-down-engine.js`                          │
-│ • Spesifikasi: `tomcat-down-rule-specification.md`                     │
-│ • Isi: Logika pohon keputusan deterministik TD-01 s/d TD-08, pola      │
-│   pencocokan bukti (evidence pattern), klasifikasi, & keyakinan.       │
-├────────────────────────────────────────────────────────────────────────┤
-│ Layer 2: Operational Playbook & Actions (Renderer & Runbook Catalog)   │
-│ • Lokasi: `src/application/result-renderer.js` & `troubleshooting/`   │
-│ • Isi: Rekomendasi tindakan mitigasi operator (SOP) per branch insiden.│
-├────────────────────────────────────────────────────────────────────────┤
-│ Layer 3: Target Topology & Mapping Catalog (Configuration Allowlist)   │
-│ • Lokasi: `/run/tomcat-diagnostic/config/targets.json`                 │
-│ • Isi: Metadata pemetaan identitas container, path spool, log, & health│
-├────────────────────────────────────────────────────────────────────────┤
-│ Layer 4: Persistent Incident History (SQLite Database)                 │
-│ • Lokasi: `/var/lib/tomcat-diagnostic/diagnostic.db` (diagnostic_data) │
-│ • Isi: Canonical results JSON, hash SHA-256, snapshot bukti mentah,   │
-│   dan riwayat siklus firing/resolved untuk keperluan audit & postmortem│
-├────────────────────────────────────────────────────────────────────────┤
-│ Layer 5: Enterprise Governance & ADR (DevOps Handbook)                 │
-│ • Lokasi: `devops-handbook/docs/projects/tomcat-monitoring/`           │
-│ • Isi: Single source of truth untuk kontrak arsitektur & tata kelola.  │
-└────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph L1 ["Layer 1: Logic & Decision Engine"]
+        L1_Desc["Pohon Keputusan Deterministik (TD-01..TD-08)<br/>File: src/domain/tomcat-down-engine.js"]
+    end
+    
+    subgraph L2 ["Layer 2: Operational Actions & SOP"]
+        L2_Desc["Katalog Rekomendasi Mitigasi Operator<br/>File: src/application/result-renderer.js"]
+    end
+    
+    subgraph L3 ["Layer 3: Target Topology & Mapping"]
+        L3_Desc["Allowlist Target, Path Spool, & Log Root<br/>File: config/targets.json"]
+    end
+    
+    subgraph L4 ["Layer 4: Persistent Incident History"]
+        L4_Desc["SQLite: canonical_results & evidence_summaries<br/>File: /var/lib/tomcat-diagnostic/diagnostic.db"]
+    end
+    
+    subgraph L5 ["Layer 5: Enterprise Governance & ADR"]
+        L5_Desc["Kontrak Arsitektur, Aturan, & Handbook<br/>File: devops-handbook/docs/projects/..."]
+    end
+
+    L1 --> L2
+    L3 --> L1
+    L1 --> L4
+    L5 -.->|Governs| L1 & L2 & L3 & L4
 ```
+
+### 📋 Matriks Komponen 5-Layer Knowledge Base
+
+| Layer | Nama Lapisan | Lokasi Berkas / Sumber | Tanggung Jawab & Isi |
+| :---: | :--- | :--- | :--- |
+| **1** | **Logic & Decision Engine** | [`src/domain/tomcat-down-engine.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/domain/tomcat-down-engine.js) | Logika pohon keputusan deterministik (TD-01 s/d TD-08), aturan pencocokan pola bukti (*evidence pattern*), penetapan klasifikasi insiden, dan penentuan tingkat keyakinan (*confidence*). |
+| **2** | **Operational Actions & Runbook** | [`src/application/result-renderer.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/application/result-renderer.js) & [`troubleshooting/`](file:///home/eddywiyatno/git/devops-handbook/docs/projects/tomcat-monitoring/troubleshooting/) | Katalog instruksi mitigasi dan panduan investigasi standar (SOP) bagi operator yang terikat pada masing-masing branch diagnosis. |
+| **3** | **Target Topology & Mapping** | `/run/tomcat-diagnostic/config/targets.json` | Konfigurasi allowlist target yang memetakan identitas logis (`environment`, `host`, `tomcat_instance`) ke lokasi fisik partisi spool, direktori log, URL health check, dan crash dump. |
+| **4** | **Persistent Incident History** | Database SQLite persisten (`diagnostic.db`) | Penyimpanan permanen seluruh *canonical result JSON*, hash SHA-256, snapshot bukti mentah, dan riwayat siklus insiden untuk keperluan audit dan analisis *post-mortem*. |
+| **5** | **Enterprise Governance & ADR** | Repositori [`devops-handbook`](file:///home/eddywiyatno/git/devops-handbook) | *Single Source of Truth* (SSOT) yang memuat spesifikasi aturan formal, batas-batas keamanan (*security boundaries*), dan catatan keputusan arsitektur. |
 
 ---
 
 ## 🛡️ Protokol Penanganan Masalah Tanpa Knowledge Base (*Unknown Issue Protocol*)
 
-Ketika terjadi kegagalan aplikasi atau runtime Tomcat yang **belum memiliki aturan spesifik (*unmapped failure pattern*)**, Diagnostic Service memberlakukan prinsip **"Deterministic Honesty" (Kejujuran Deterministik Tanpa Halusinasi)** melalui 5 langkah:
+Ketika terjadi insiden kegagalan yang **belum terpetakan dalam basis aturan (*unmapped failure pattern*)**, Diagnostic Service memberlakukan prinsip **"Deterministic Honesty" (Kejujuran Deterministik Tanpa Halusinasi)**:
 
 ```mermaid
 flowchart TD
-    A["Insiden Baru / Pola Error Asing Masuk"] --> B{"Apakah Cocok dengan<br/>Rule TD-01 s/d TD-05?"}
+    A["Insiden Baru Masuk<br/>(TomcatDown Firing)"] --> B{"Pola Cocok dengan<br/>Rule TD-01..TD-05?"}
     
-    B -->|Tidak / Tidak Ada Match| C{"Apakah Container<br/>Berstatus Exited?"}
+    B -->|"Ya (Cocok)"| C["Eksekusi Branch Spesifik<br/>(TD-01, TD-02, TD-03, TD-04, TD-05)"]
+    B -->|"Tidak (Pola Asing)"| D{"Status Container<br/>saat Diamati?"}
     
-    C -->|Ya| D["Branch TD-06<br/>Container exited; cause undetermined"]
-    C -->|Tidak / Masih Running| E["Branch TD-08<br/>Cause undetermined from available evidence"]
+    D -->|"Container Exited"| E["Branch TD-06<br/>Container exited; cause undetermined"]
+    D -->|"Container Running / Bukti Kurang"| F["Branch TD-08<br/>Cause undetermined from available evidence"]
+    D -->|"Bukti Saling Bertentangan"| G["Branch TD-08<br/>Cause undetermined from contradicting evidence"]
     
-    D & E --> F["Tetapkan Klasifikasi: UNDETERMINED<br/>Tingkat Keyakinan: NONE (null)"]
+    E & F & G --> H["Klasifikasi: UNDETERMINED<br/>Tingkat Keyakinan: NONE (null)"]
     
-    F --> G["Kumpulkan & Sajikan Semua Bukti Forensik Mentah<br/>(Metrik, Exit Code, Log Excerpt di Seksi 3-5)"]
+    H --> I["Kumpulkan Semua Fakta Forensik Mentah<br/>(Metrik, Exit Code, Spool, Log Excerpt di Seksi 3-5)"]
     
-    G --> H["Terbitkan Panduan Investigasi SOP Aman<br/>(Seksi 6: Recommended Operator Actions)"]
+    I --> J["Terbitkan Panduan Investigasi SOP Aman<br/>(Seksi 6: Recommended Operator Actions)"]
     
-    H --> I[("Simpan Rekam Jejak ke SQLite<br/>canonical_results & evidence_summaries")]
+    J --> K[("Arsipkan ke SQLite Database<br/>canonical_results & evidence_summaries")]
     
-    I --> J["Bahan Analisis Post-Mortem & Pengayaan AI"]
+    K --> L["Bahan Analisis Post-Mortem & Pengayaan AI"]
 ```
 
-1. **Fallback Deterministik ke Branch TD-06 atau TD-08:**
-   - Jika container terhenti tanpa bukti penyebab spesifik $\rightarrow$ **TD-06** (*Container exited; cause undetermined*).
-   - Jika container masih berjalan atau bukti tidak mencukupi $\rightarrow$ **TD-08** (*Cause undetermined from available evidence*).
-   - Jika ditemukan bukti yang saling bertentangan $\rightarrow$ **TD-08** (*Cause undetermined from contradicting evidence*).
-2. **Penegasan Klasifikasi `UNDETERMINED`:**
-   - Sistem secara eksplisit menetapkan klasifikasi `undetermined` dengan tingkat keyakinan `none` (`confidence: null`).
-   - Sistem dilarang keras menebak akar masalah tanpa bukti langsung.
-3. **Penyajian Bukti Forensik Mentah (*Evidence-First*):**
-   - Seluruh data telemetri aktual (exit code, metrik scrape terakhir, status endpoint health, potongan log) tetap ditampilkan transparan di email 7-seksi guna memandu investigasi operator.
-4. **Instruksi Mitigasi yang Aman (*Safe Action Guidelines*):**
-   - Memberikan SOP investigasi manual standar untuk mencegah eksekusi tindakan berisiko secara membabi-buta.
-5. **Pencatatan Persisten untuk *Continuous Improvement*:**
-   - Insiden tercatat lengkap di SQLite sebagai kandidat utama untuk dianalisis pada sesi *post-mortem*.
+### 📋 Matriks Penanganan Insiden Belum Terpetakan (*Unmapped Handling Matrix*)
+
+| Skenario Insiden | Branch Terpilih | Hasil Diagnosis (*Assessment*) | Klasifikasi & Keyakinan | Tindakan Sistem & Rekomendasi Operator |
+| :--- | :---: | :--- | :---: | :--- |
+| **Container Mati Tanpa Bukti Spesifik** | `TD-06` | *Container exited; cause undetermined* | `undetermined`<br/>*(confidence: none)* | Sajikan exit code aktual (misal: 143/137) di Seksi 3; berikan rekomendasi SOP pemeriksaan log container dan start ulang layanan di Seksi 6. |
+| **Container Hidup / Bukti Tidak Cukup** | `TD-08` | *Cause undetermined from available evidence* | `undetermined`<br/>*(confidence: none)* | Sajikan status ketersediaan sumber data di Seksi 5; instruksikan operator melakukan investigasi manual terhadap endpoint dan jaringan. |
+| **Ditemukan Bukti Bertentangan** | `TD-08` | *Cause undetermined from contradicting evidence* | `undetermined`<br/>*(confidence: none)* | Tampilkan anomali kontradiksi bukti di Seksi 5; rekomendasikan verifikasi status container dan health probe secara langsung. |
 
 ---
 
 ## 🤖 Strategi Pengayaan Knowledge Base Berbasis AI Eksternal (*AI Enrichment Strategy*)
 
-Untuk memperluas cakupan deteksi dan memperkaya basis pengetahuan secara berkelanjutan, sistem memanfaatkan **AI / LLM eksternal yang beroperasi di luar jalur kritis (*out-of-band / offline analysis*)**:
+Untuk memperkaya basis pengetahuan secara berkelanjutan tanpa mengorbankan stabilitas dan keamanan runtime, integrasi AI dilakukan secara **di luar jalur kritis (*out-of-band / offline post-mortem*)**:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Runtime as Diagnostic Runtime (SQLite)
-    participant SRE as Tim SRE / DevOps Operator
+    actor SRE as Tim SRE / DevOps
+    participant DB as SQLite Runtime (diagnostic.db)
     participant AI as External AI / LLM Analyzer
-    participant Codebase as Diagnostic Service Repository
+    participant Repo as Diagnostic Repository
 
-    Note over Runtime: Terjadi insiden baru berstatus UNDETERMINED
-    Runtime->>SRE: Laporan notifikasi & log insiden tersimpan di SQLite
-    SRE->>AI: Input: Snapshot bukti, stack trace log, & histori insiden
-    Note over AI: AI menganalisis akar masalah, pola error, & mitigasi
-    AI-->>SRE: Output: Rekomendasi Rule Baru (Branch, Pattern, & SOP Actions)
-    SRE->>Codebase: Review & Import Rule ke Knowledge Base
-    Note over Codebase: Unit test & validation (npm test & validate.sh)
-    Codebase->>Runtime: Deploy versi rilis baru (Automated Investigation Aktif)
-```
-
-### 1. Titik Pembaruan (*Update Touchpoints*) Saat Ini (Code-Level)
-
-Hasil analisis AI eksternal diimpor ke dalam repositori [`tomcat-diagnostic-service`](file:///home/eddywiyatno/git/tomcat-diagnostic-service) melalui 2 berkas utama:
-
-#### A. Logika Deteksi Masalah (`src/domain/tomcat-down-engine.js`)
-Menambahkan branch baru (misal: `TD-09` untuk *Database Connection Pool Exhaustion* atau `TD-10` untuk *Garbage Collection Thrashing*):
-
-```javascript
-// Aturan Baru Hasil Rekomendasi AI: Deteksi DB Connection Pool Exhaustion
-if (found(evidence, "orderly_shutdown", (value) => value?.excerpt?.includes("CannotGetJdbcConnectionException"))) {
-  return result("TD-09", "Tomcat unresponsive: Database connection pool exhausted", "confirmed_cause", "high");
-}
-```
-
-#### B. Rekomendasi Tindakan Operator (`src/application/result-renderer.js`)
-Menambahkan instruksi SOP terstruktur pada fungsi `getRecommendedActions(result)`:
-
-```javascript
-case "TD-09":
-  return [
-    "Periksa utilisasi koneksi dan beban aktif pada server Database backend.",
-    "Tinjau parameter maxTotal dan maxWaitMillis pada Resource DataSource (/conf/context.xml).",
-    "Periksa stack trace thread dump untuk mendeteksi potensi connection leak pada aplikasi.",
-    "Lakukan restart layanan Tomcat secara terkontrol setelah koneksi database stabil."
-  ];
+    Note over DB: Insiden baru berstatus UNDETERMINED tersimpan
+    SRE->>DB: 1. Ambil data forensik (canonical result & evidence summaries)
+    DB-->>SRE: 2. Snapshot JSON, exit code, metrik, & log stack trace
+    SRE->>AI: 3. Input prompt: Data forensik insiden + konteks error
+    Note over AI: AI menganalisis akar masalah, pola kegagalan, & solusi mitigasi
+    AI-->>SRE: 4. Output: Rekomendasi Rule Baru (Branch, Log Pattern, & SOP Actions)
+    SRE->>Repo: 5. Review & Implementasi Rule baru ke engine & renderer
+    Note over Repo: 6. Validasi & Automated Testing (npm test & validate.sh)
+    Repo->>DB: 7. Deploy rilis baru (Sistem kini mengenali insiden tersebut secara otomatis)
 ```
 
 ---
 
-### 2. Roadmap Desain Masa Depan: Impor Deklaratif (`diagnostic-rules.json`)
+### 🛠️ Perbandingan Metode Pembaruan Knowledge Base
 
-Sebagai pengembangan ke depan, sistem dapat dilengkapi dengan *Rulepack Loader* deklaratif (`config/diagnostic-rules.json`) sehingga hasil keluaran AI dalam format JSON dapat langsung diimpor ke runtime tanpa perlu modifikasi kode JavaScript:
+| Kategori | Metode Saat Ini (Code-Level Implementation) | Roadmap Masa Depan (Declarative Rulepack) |
+| :--- | :--- | :--- |
+| **Media Berkas** | [`src/domain/tomcat-down-engine.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/domain/tomcat-down-engine.js)<br/>[`src/application/result-renderer.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/application/result-renderer.js) | File konfigurasi terpisah:<br/>`/run/tomcat-diagnostic/config/diagnostic-rules.json` |
+| **Format Masukan** | Kode JavaScript (fungsi deterministik). | File JSON terstruktur hasil *export* langsung dari AI. |
+| **Workflow Update** | 1. Tambah branch logic (misal `TD-09`).<br/>2. Tambah SOP text di renderer.<br/>3. Jalankan unit test & rebuild image. | 1. Letakkan file JSON baru ke folder konfigurasi.<br/>2. Restart / reload container tanpa *rebuild image*. |
+| **Keunggulan** | Validasi tipe data ketat, performa tinggi, dan teruji penuh melalui *unit test suite*. | Memungkinkan integrasi pipeline otomatis (*auto-ingestion*) hasil analisis AI tanpa *code changes*. |
+| **Status** | **Aktif & Terverifikasi (Current Production Baseline).** | **Tahap Desain & Roadmap Integrasi.** |
+
+---
+
+### 📝 Contoh Format Impor Deklaratif (`diagnostic-rules.json`)
+
+Berikut adalah struktur baku yang disiapkan untuk menerima hasil generasi AI secara langsung:
 
 ```json
 [
@@ -145,9 +138,10 @@ Sebagai pengembangan ke depan, sistem dapat dilengkapi dengan *Rulepack Loader* 
     "classification": "confirmed_cause",
     "confidence": "high",
     "recommendedActions": [
-      "Periksa status dan kapasitas koneksi database backend.",
-      "Tinjau parameter maxTotal pada DataSource Context Tomcat.",
-      "Periksa thread dump untuk mendeteksi kebocoran koneksi database."
+      "Periksa utilisasi koneksi dan beban aktif pada server Database PostgreSQL/MySQL backend.",
+      "Tinjau parameter maxTotal dan maxWaitMillis pada Resource DataSource (/conf/context.xml).",
+      "Periksa stack trace thread dump untuk mendeteksi potensi connection leak pada aplikasi.",
+      "Lakukan restart layanan Tomcat secara terkontrol setelah koneksi database stabil."
     ]
   }
 ]
@@ -155,8 +149,8 @@ Sebagai pengembangan ke depan, sistem dapat dilengkapi dengan *Rulepack Loader* 
 
 ---
 
-## 📌 Kesimpulan & Standar Tata Kelola
+## 📌 Standar Tata Kelola dan Keamanan
 
-1. **Pemisahan Peran:** AI eksternal berfungsi sebagai analis *post-mortem* dan perumus pola; Diagnostic Service bertindak sebagai eksekutor deterministik yang cepat, aman, dan tanpa halusinasi saat insiden terjadi secara *real-time*.
-2. **Review Manusia (Human-in-the-Loop):** Setiap aturan baru hasil rekomendasi AI wajib melalui verifikasi insinyur DevOps/SRE dan pengujian unit (*test suite*) sebelum di-deploy ke lingkungan produksi.
-3. **Auditability:** Setiap diagnosis yang diputuskan sistem dapat dilacak kembali ke spesifikasi aturan formal dan bukti snapshot historis di SQLite.
+1. **Deterministic Execution:** Runtime Diagnostic Service murni mengeksekusi logika pencocokan berbasis aturan; tidak ada *prompting* atau inferensi LLM langsung di jalur penanganan insiden *real-time*.
+2. **Human-in-the-Loop Verification:** Setiap *rule* dan *action* yang dirumuskan oleh AI wajib ditinjau dan disetujui oleh insinyur DevOps/SRE sebelum diintegrasikan ke lingkungan produksi.
+3. **Auditability & Traceability:** Setiap keputusan insiden selalu memiliki referensi silang ke *rule version*, *evidence hash*, dan data historis di SQLite.
