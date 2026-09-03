@@ -10,7 +10,7 @@ Sistem mengadopsi prinsip **Human-in-the-Loop Governance** di mana kecerdasan bu
 
 ```mermaid
 flowchart TD
-    subgraph SRE_Env["Lingkungan Operator SRE (PC Lokal)"]
+    subgraph SRE_Env["Laptop Operator SRE (Remote / Local)"]
         MC["<b>Master Rules Catalog</b><br/>(master-rules.json)"]
         PROMPT["<b>AI Prompt Formulation</b><br/>(Domain / Log Evidence)"]
         QA["<b>SRE QA Review</b><br/>(Pattern & SOP Check)"]
@@ -20,8 +20,8 @@ flowchart TD
         LLM["<b>LLM Analyzer</b><br/>(Gemini / Claude / GPT)"]
     end
 
-    subgraph Runtime_Env["DevOps Lab Container Network"]
-        API["<b>Diagnostic Service API</b><br/>POST /api/v1/rules<br/>(Port 8443 TLS)"]
+    subgraph Runtime_Env["Monitoring Platform Network"]
+        API["<b>Diagnostic Service REST API</b><br/>POST /api/v1/rules<br/>(Port 8443 TLS)"]
         GUARD["<b>5-Layer Ingestion Guard</b><br/>Auth • Schema • Collision<br/>Immutability • Payload Size"]
         ENGINE["<b>Dynamic Rule Evaluator</b><br/>(In-Memory RAM Engine)"]
         DB[("<b>SQLite Database</b><br/>(custom_rules table)")]
@@ -30,11 +30,11 @@ flowchart TD
     MC --> PROMPT
     PROMPT -->|"Kirim Konteks"| LLM
     LLM -->|"JSON Rulepack"| QA
-    QA -->|"Ingest via CLI"| API
+    QA -->|"REST API / curl / CLI"| API
     API --> GUARD
     GUARD -->|"Hot-Reload"| ENGINE
     GUARD -->|"Persistensi"| DB
-    DB -.->|"Ekspor & Verifikasi"| MC
+    DB -.->|"GET /api/v1/rules"| MC
 ```
 
 ### 📋 Empat Pilar Tata Kelola Operasional
@@ -147,23 +147,34 @@ sequenceDiagram
 
 ### Export & Backup Master Catalog
 
-**Action:** Mengambil salinan seluruh aturan diagnosis aktif atau memeriksa daftar kategori dari Diagnostic Service dan menyimpannya ke direktori kerja PC lokal operator.
+**Action:** Mengambil salinan seluruh aturan diagnosis aktif atau memeriksa daftar kategori dari Diagnostic Service REST API (`https://<DIAGNOSTIC_HOST>:8443/api/v1/rules`) dan menyimpannya ke berkas kerja lokal operator (`~/master-rules.json`).
 
+#### Opsi A: Menggunakan REST API Langsung (Universal `curl` dari laptop SRE mana saja)
+```bash
+# 1. Ekspor seluruh katalog master aktif ke berkas lokal
+curl -k -s -H "Authorization: Bearer test-token-12345" \
+  https://localhost:8443/api/v1/rules > ~/master-rules.json
+
+# 2. Atau ekspor per kategori failure domain spesifik
+curl -k -s -H "Authorization: Bearer test-token-12345" \
+  "https://localhost:8443/api/v1/rules?category=database_persistence"
+```
+
+#### Opsi B: Menggunakan Helper CLI (dari direktori repositori tomcat-monitoring)
 ```bash
 # 1. Menampilkan daftar ringkasan seluruh kategori aktif beserta jumlah aturan
-/home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh --categories
+./scripts/export-rules.sh --categories
 
 # 2. Ekspor seluruh katalog aturan aktif ke berkas lokal
-/home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh > ~/master-rules.json
+./scripts/export-rules.sh > ~/master-rules.json
 
 # 3. Atau ekspor per kategori failure domain spesifik
-/home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh --category database_persistence
-/home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh --category jvm_memory
+./scripts/export-rules.sh --category database_persistence
 ```
 
 !!! success "Expected Result"
 
-    Operator dapat melihat daftar ringkasan kategori aktif di terminal, dan berkas `master-rules.json` tersimpan di PC lokal operator dalam format JSON terstruktur yang memuat seluruh deklarasi aturan aktif (`TD-09` s/d `TD-18`) beserta kategori domainnya.
+    Operator menerima respons HTTP 200 OK dan berkas `~/master-rules.json` tersimpan di PC lokal operator dalam format JSON terstruktur yang memuat seluruh deklarasi aturan aktif (`TD-09` s/d `TD-18`) beserta kategori domainnya.
 
 </div>
 
@@ -260,26 +271,38 @@ Lalu simpan output jsonnya kedalam file ~/rule-td19.json
 
 ### Ingest Rulepack via Diagnostic API
 
-**Action:** Mengirimkan payload JSON yang telah divalidasi ke endpoint `POST /api/v1/rules` pada Diagnostic Service menggunakan helper CLI [`scripts/ingest-rule.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/ingest-rule.sh) dengan kredensial Bearer Token resmi operator.
+**Action:** Mengirimkan payload JSON yang telah divalidasi ke endpoint `POST /api/v1/rules` pada Diagnostic Service menggunakan HTTP POST Bearer Token resmi operator.
 
-#### Ingest Berkas Batch Array (Mode Proaktif)
+#### Opsi A: Menggunakan REST API Langsung (Universal `curl` dari laptop SRE mana saja)
 ```bash
-BEARER_TOKEN="test-token-12345" /home/eddywiyatno/git/tomcat-monitoring/scripts/ingest-rule.sh ~/proactive-rules.json
+# 1. Ingest Berkas Batch Array (Mode Proaktif)
+curl -k -s -X POST https://localhost:8443/api/v1/rules \
+  -H "Authorization: Bearer test-token-12345" \
+  -H "Content-Type: application/json" \
+  -d @~/proactive-rules.json
+
+# 2. Ingest Berkas Tunggal (Mode Reaktif)
+curl -k -s -X POST https://localhost:8443/api/v1/rules \
+  -H "Authorization: Bearer test-token-12345" \
+  -H "Content-Type: application/json" \
+  -d @~/rule-td19.json
 ```
 
-#### Ingest Berkas Tunggal (Mode Reaktif)
+#### Opsi B: Menggunakan Helper CLI (dengan fitur validasi & auto-skip duplikasi)
 ```bash
-BEARER_TOKEN="test-token-12345" /home/eddywiyatno/git/tomcat-monitoring/scripts/ingest-rule.sh ~/rule-td19.json
-```
+# 1. Ingest Berkas Batch Array (Mode Proaktif)
+BEARER_TOKEN="test-token-12345" ./scripts/ingest-rule.sh ~/proactive-rules.json
 
-#### Ingest Langsung via Stdin Pipe
-```bash
-cat ~/new-rule.json | BEARER_TOKEN="test-token-12345" /home/eddywiyatno/git/tomcat-monitoring/scripts/ingest-rule.sh -
+# 2. Ingest Berkas Tunggal (Mode Reaktif)
+BEARER_TOKEN="test-token-12345" ./scripts/ingest-rule.sh ~/rule-td19.json
+
+# 3. Ingest Langsung via Stdin Pipe
+cat ~/new-rule.json | BEARER_TOKEN="test-token-12345" ./scripts/ingest-rule.sh -
 ```
 
 !!! success "Expected Result"
 
-    Endpoint mengembalikan HTTP status `201 Created`. Aturan baru langsung ter-rehidrasi di memori `DynamicRuleEvaluator` secara *hot-reload* dan tercatat permanen di tabel SQLite `custom_rules`. Pada mode batch, aturan yang sudah terdaftar akan dilewati (`409 Conflict`) tanpa memutus alur aturan lainnya.
+    Endpoint mengembalikan HTTP status `201 Created`. Aturan baru langsung ter-rehidrasi di memori `DynamicRuleEvaluator` secara *hot-reload* dan tercatat permanen di tabel SQLite `custom_rules`. Pada mode batch via CLI, aturan yang sudah terdaftar akan dilewati (`409 Conflict`) tanpa memutus alur aturan lainnya.
 
 </div>
 
@@ -287,20 +310,29 @@ cat ~/new-rule.json | BEARER_TOKEN="test-token-12345" /home/eddywiyatno/git/tomc
 
 ### Verify Hot-Reload & Synchronize Master Catalog
 
-**Action:** Memverifikasi ketersediaan aturan baru di lingkungan runtime dan memperbarui berkas master catalog di PC lokal operator.
+**Action:** Memverifikasi ketersediaan aturan baru di lingkungan runtime dan menyinkronkan kembali berkas master catalog di PC lokal operator.
 
+#### Opsi A: Menggunakan REST API Langsung (Universal `curl`)
 ```bash
 # 1. Verifikasi aturan spesifik yang baru di-ingest
-/home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh TD-19
+curl -k -s -H "Authorization: Bearer test-token-12345" \
+  https://localhost:8443/api/v1/rules/TD-19
 
-# 2. Verifikasi aturan terdaftar pada kategori domain terkait
-/home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh --category database_persistence
+# 2. Sinkronkan seluruh katalog master ke PC lokal operator
+curl -k -s -H "Authorization: Bearer test-token-12345" \
+  https://localhost:8443/api/v1/rules > ~/master-rules.json
+```
 
-# 3. Periksa daftar ringkasan kategori aktif terbaru
-/home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh --categories
+#### Opsi B: Menggunakan Helper CLI
+```bash
+# 1. Verifikasi aturan spesifik yang baru di-ingest
+./scripts/export-rules.sh TD-19
 
-# 4. Sinkronkan seluruh katalog master ke PC lokal operator
-/home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh > ~/master-rules.json
+# 2. Periksa daftar ringkasan kategori aktif terbaru
+./scripts/export-rules.sh --categories
+
+# 3. Sinkronkan seluruh katalog master ke PC lokal operator
+./scripts/export-rules.sh > ~/master-rules.json
 ```
 
 !!! success "Expected Result"
