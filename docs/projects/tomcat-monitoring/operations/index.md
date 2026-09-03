@@ -118,3 +118,10 @@ source/socket tests, tetapi rebuilt image, actual diagnostic email in Mailpit,
 housekeeping/capacity behavior, and end-to-end evidence remain unavailable.
 Operators must continue using the verified monitoring and direct Mailpit flow
 until persistent diagnostic deployment is explicitly approved and verified.
+
+## Operational Runbooks & AI Knowledge Management
+
+Untuk prosedur operasional pengelolaan basis pengetahuan diagnosis (*declarative rulepacks*), impor/ekspor katalog master, dan alur pengayaan berbasis AI secara proaktif maupun reaktif, silakan merujuk ke:
+
+* [Runbook: AI Knowledge Enrichment & Declarative Rule Management](ai-knowledge-enrichment-and-rule-management-runbook.md)
+
