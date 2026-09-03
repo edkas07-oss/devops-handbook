@@ -179,9 +179,7 @@ Kamu adalah Principal JVM & Tomcat SRE Architect.
 Saya sedang melakukan PROACTIVE KNOWLEDGE ENRICHMENT untuk Tomcat Diagnostic Service.
 
 Berikut adalah Katalog Master Rule aktif yang diekspor dari sistem (master-rules.json):
-```json
-<TEMPELKAN ISI BERKAS master-rules.json ATAU DAFTAR ATURAN HASIL EKSPOR DI SINI>
-```
+~/master-rules.json
 
 Catatan Arsitektur:
 - Branch TD-01 s/d TD-08 adalah built-in system rules yang bersifat immutable (jangan gunakan ID ini).
@@ -204,6 +202,7 @@ Rumuskan 3-5 failure patterns baru yang paling sering terjadi di level productio
 10. "createdBy": "sre-proactive-enrichment"
 
 Keluarkan HANYA satu blok Array JSON valid: [ {...}, {...} ] tanpa teks pengantar di luar blok.
+Lalu simpan output jsonnya kedalam file ~/proactive-rules.json
 ````
 
 #### B. Template Prompt Reaktif (Berdasarkan Insiden Riil)
@@ -211,9 +210,12 @@ Keluarkan HANYA satu blok Array JSON valid: [ {...}, {...} ] tanpa teks penganta
 Kamu adalah Enterprise SRE Expert untuk platform Tomcat Diagnostic.
 Terdapat insiden kegagalan baru yang saat ini berstatus UNDETERMINED.
 
-Referensi Katalog Master Aturan (master-rules.json):
-- Branch Terproteksi Built-in: TD-01 s/d TD-08
-- Nomor branch kustom terakhir: <LIHAT NOMOR BRANCH TERAKHIR DI master-rules.json, MISAL: TD-18>
+Berikut adalah Katalog Master Rule aktif yang diekspor dari sistem (master-rules.json):
+~/master-rules.json
+
+Catatan Arsitektur:
+- Branch TD-01 s/d TD-08 adalah built-in system rules yang bersifat immutable (jangan gunakan ID ini).
+- Periksa nomor branch kustom terakhir pada berkas master-rules.json di atas untuk menentukan ID branch lanjutan.
 
 --- BUKTI LOG ERROR INSIDEN ---
 <TEMPELKAN CUPLIKAN LOG ERROR ATAU STACK TRACE DI SINI>
@@ -225,6 +227,7 @@ Referensi Katalog Master Aturan (master-rules.json):
 4. Pastikan pola "pattern" unik, spesifik untuk mencocokkan error tersebut, dan belum pernah ada di master-rules.json.
 5. Sertakan 4 langkah mitigasi SOP Bahasa Indonesia terstruktur.
 6. Keluarkan HANYA satu blok JSON tunggal {...} sesuai kontrak skema.
+Lalu simpan output jsonnya kedalam file ~/rule-td19.json
 ````
 
 !!! success "Expected Result"
