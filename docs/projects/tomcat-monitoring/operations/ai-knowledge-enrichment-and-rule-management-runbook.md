@@ -171,25 +171,30 @@ sequenceDiagram
 
 ### Formulate AI Prompting Context
 
-**Action:** Menyusun prompt terstandarisasi yang memuat ringkasan branch yang ada, target domain kegagalan atau data log insiden riil, serta batasan kontrak skema JSON yang wajib dipatuhi AI Engine.
+**Action:** Menyusun prompt terstandarisasi dengan menyertakan isi berkas `master-rules.json` (hasil ekspor dari Langkah 1) sebagai basis data pembanding katalog master, menentukan target domain kegagalan atau menempelkan cuplikan log insiden riil, serta memberikan batasan kontrak skema JSON yang wajib dipatuhi AI Engine.
 
 #### A. Template Prompt Proaktif (Per Domain)
 ````markdown
 Kamu adalah Principal JVM & Tomcat SRE Architect.
 Saya sedang melakukan PROACTIVE KNOWLEDGE ENRICHMENT untuk Tomcat Diagnostic Service.
 
-Berikut adalah ringkasan branch aturan yang telah aktif di sistem:
-- TD-01 s/d TD-08: Built-in Scrape, OOM Kill, JVM Crash, Port Bind, Orderly Stop, Undetermined.
-- TD-09 s/d TD-18: Database Pool Exhausted, Thread Pool Exhausted, Heap OOM, Metaspace OOM, SSL Handshake, HikariCP Timeout, Context Init Failure, Thread Deadlock, Socket Read Timeout, SQL Timeout.
+Berikut adalah Katalog Master Rule aktif yang diekspor dari sistem (master-rules.json):
+```json
+<TEMPELKAN ISI BERKAS master-rules.json ATAU DAFTAR ATURAN HASIL EKSPOR DI SINI>
+```
+
+Catatan Arsitektur:
+- Branch TD-01 s/d TD-08 adalah built-in system rules yang bersifat immutable (jangan gunakan ID ini).
+- Periksa nomor branch kustom terakhir pada berkas master-rules.json di atas untuk menentukan ID branch lanjutan.
 
 --- TUGAS PROAKTIF ---
-Rancang kumpulan Declarative Rulepack baru untuk domain: [PILIH DOMAIN: Misal OS Limits / Spring Framework / Network].
-Rumuskan 3-5 failure patterns yang paling sering terjadi di level production.
+Rancang kumpulan Declarative Rulepack baru untuk domain: [PILIH DOMAIN: Misal storage_os_limits / application_lifecycle / network_integration].
+Rumuskan 3-5 failure patterns baru yang paling sering terjadi di level production dan belum ada pada katalog master di atas.
 
 --- KONTRAK SCHEMA (WAJIB DIPATUHI) ---
-1. "branch": ID branch baru kelanjutan (misal: "TD-19", "TD-20", dst).
+1. "branch": ID branch baru kelanjutan setelah branch tertinggi di master-rules.json (misal: "TD-19", "TD-20", dst).
 2. "ruleName": Nama unik PascalCase/camelCase deskriptif.
-3. "category": Wajib salah satu dari: "jvm_memory", "concurrency_threading", "database_persistence", "network_integration", "application_lifecycle", "storage_os_limits", "security_session", "general".
+3. "category": Wajib salah satu dari 8 kategori: "jvm_memory", "concurrency_threading", "database_persistence", "network_integration", "application_lifecycle", "storage_os_limits", "security_session", "general".
 4. "targetSource": "local_file"
 5. "pattern": Substring unik atau regex aman (tidak boleh mengandung nested quantifier).
 6. "assessment": Ringkasan akar masalah dalam 1 kalimat padat.
@@ -206,14 +211,18 @@ Keluarkan HANYA satu blok Array JSON valid: [ {...}, {...} ] tanpa teks penganta
 Kamu adalah Enterprise SRE Expert untuk platform Tomcat Diagnostic.
 Terdapat insiden kegagalan baru yang saat ini berstatus UNDETERMINED.
 
+Referensi Katalog Master Aturan (master-rules.json):
+- Branch Terproteksi Built-in: TD-01 s/d TD-08
+- Nomor branch kustom terakhir: <LIHAT NOMOR BRANCH TERAKHIR DI master-rules.json, MISAL: TD-18>
+
 --- BUKTI LOG ERROR INSIDEN ---
 <TEMPELKAN CUPLIKAN LOG ERROR ATAU STACK TRACE DI SINI>
 
 --- TUGAS REAKTIF ---
 1. Analisis bukti log error di atas dan tentukan akar masalah utamanya.
-2. Buatkan 1 Declarative Rulepack JSON valid dengan nomor branch lanjutan (misal: "TD-19").
-3. Pilih "category" domain yang tepat ("jvm_memory", "database_persistence", "network_integration", dll).
-4. Pastikan pola "pattern" unik dan spesifik untuk mencocokkan error tersebut.
+2. Buatkan 1 Declarative Rulepack JSON valid dengan nomor branch lanjutan baru setelah master-rules.json (misal: "TD-19").
+3. Pilih "category" domain yang tepat ("jvm_memory", "concurrency_threading", "database_persistence", "network_integration", "application_lifecycle", "storage_os_limits", "security_session", "general").
+4. Pastikan pola "pattern" unik, spesifik untuk mencocokkan error tersebut, dan belum pernah ada di master-rules.json.
 5. Sertakan 4 langkah mitigasi SOP Bahasa Indonesia terstruktur.
 6. Keluarkan HANYA satu blok JSON tunggal {...} sesuai kontrak skema.
 ````
