@@ -72,7 +72,7 @@ Pengayaan proaktif bertujuan melengkapi pustaka aturan diagnosis **sebelum insid
 
 ```mermaid
 mindmap
-  root((Domain Kegagalan<br/>Tomcat & JVM))
+  root((Tomcat & JVM<br/>Failure Domains))
     Concurrency & Threading
       Thread Starvation
       Java Thread Deadlock
