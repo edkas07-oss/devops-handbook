@@ -119,20 +119,23 @@ sequenceDiagram
 
 ### Export & Backup Master Catalog
 
-**Action:** Mengambil salinan seluruh aturan diagnosis aktif dari Diagnostic Service dan menyimpannya ke direktori kerja PC lokal operator.
+**Action:** Mengambil salinan seluruh aturan diagnosis aktif atau memeriksa daftar kategori dari Diagnostic Service dan menyimpannya ke direktori kerja PC lokal operator.
 
 ```bash
-# 1. Ekspor seluruh katalog aturan aktif
+# 1. Menampilkan daftar ringkasan seluruh kategori aktif beserta jumlah aturan
+/home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh --categories
+
+# 2. Ekspor seluruh katalog aturan aktif ke berkas lokal
 /home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh > ~/master-rules.json
 
-# 2. Atau ekspor per kategori failure domain spesifik
+# 3. Atau ekspor per kategori failure domain spesifik
 /home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh --category database_persistence
 /home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh --category jvm_memory
 ```
 
 !!! success "Expected Result"
 
-    Berkas `master-rules.json` tersimpan di PC lokal operator dalam format JSON terstruktur yang memuat seluruh deklarasi aturan aktif (`TD-09` s/d `TD-18`) beserta kategori domainnya.
+    Operator dapat melihat daftar ringkasan kategori aktif di terminal, dan berkas `master-rules.json` tersimpan di PC lokal operator dalam format JSON terstruktur yang memuat seluruh deklarasi aturan aktif (`TD-09` s/d `TD-18`) beserta kategori domainnya.
 
 </div>
 
@@ -253,13 +256,16 @@ cat ~/new-rule.json | BEARER_TOKEN="test-token-12345" /home/eddywiyatno/git/tomc
 # 2. Verifikasi aturan terdaftar pada kategori domain terkait
 /home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh --category database_persistence
 
-# 3. Sinkronkan seluruh katalog master ke PC lokal operator
+# 3. Periksa daftar ringkasan kategori aktif terbaru
+/home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh --categories
+
+# 4. Sinkronkan seluruh katalog master ke PC lokal operator
 /home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh > ~/master-rules.json
 ```
 
 !!! success "Expected Result"
 
-    Diagnostic Service menyajikan metadata aturan `TD-19` secara presisi termasuk kategori domainnya, dan berkas `~/master-rules.json` di PC lokal operator berada dalam status mutakhir (*up-to-date*).
+    Diagnostic Service menyajikan metadata aturan `TD-19` secara presisi termasuk kategori domainnya, daftar ringkasan kategori terbarui, dan berkas `~/master-rules.json` di PC lokal operator berada dalam status mutakhir (*up-to-date*).
 
 </div>
 
