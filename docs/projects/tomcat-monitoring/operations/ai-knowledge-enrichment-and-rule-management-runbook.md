@@ -132,36 +132,45 @@ sequenceDiagram
 
 ---
 
-## 📋 Prosedur Standar Operasional (SOP 5 Langkah)
+## 🧭 Implementation & Operating Plan
 
-Alur kerja operasional pengelolaan basis aturan terbagi ke dalam 5 langkah sekuensial:
+| Tahap | Rencana Operasional |
+| --- | --- |
+| **Export Master Catalog** | Mengambil salinan berkas katalog master aktif dari Diagnostic Service ke PC lokal operator. |
+| **Formulate AI Prompting Context** | Menyusun konteks prompt terstruktur (proaktif per domain atau reaktif per insiden) ke AI Engine. |
+| **Conduct SRE QA Review** | Melakukan evaluasi kepatuhan (*gatekeeping review*) terhadap JSON Rulepack yang dihasilkan AI. |
+| **Ingest Rulepack via API** | Mengimpor berkas JSON (single rule / batch array) ke Diagnostic Service dengan Bearer Token. |
+| **Verify Hot-Reload & Sync** | Memverifikasi ketersediaan aturan di runtime dan menyinkronkan kembali katalog master lokal di PC. |
 
-```mermaid
-flowchart LR
-    S1["<b>Langkah 1</b><br/>Ekspor / Backup<br/>Master Catalog"] --> S2["<b>Langkah 2</b><br/>Formulasi Prompt<br/>ke AI Engine"]
-    S2 --> S3["<b>Langkah 3</b><br/>SRE Review &<br/>Quality Assurance"]
-    S3 --> S4["<b>Langkah 4</b><br/>Ingest ke API<br/>(ingest-rule.sh)"]
-    S4 --> S5["<b>Langkah 5</b><br/>Verifikasi &<br/>Sinkronisasi PC"]
-```
+---
 
-### Langkah 1: Ekspor / Backup Katalog Master dari Sistem
+## ⚙️ Prosedur Standar Operasional (Implementation Stages)
 
-Sebelum melakukan modifikasi atau penambahan aturan, ambil salinan katalog master aturan aktif dan simpan ke direktori kerja di PC lokal Anda:
+<div class="procedure-sequence" markdown>
+
+<div class="procedure-step" markdown>
+
+### Export & Backup Master Catalog
+
+**Action:** Mengambil salinan seluruh aturan diagnosis aktif dari Diagnostic Service dan menyimpannya ke direktori kerja PC lokal operator.
 
 ```bash
 /home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh > ~/master-rules.json
 ```
 
-!!! note "Isi Berkas Master Rules"
-    Berkas `master-rules.json` memuat seluruh deklarasi aturan aktif di database SQLite sistem, mencakup nomor branch, pola pencocokan, klasifikasi, tingkat keyakinan, dan daftar instruksi SOP rekomendasi tindakan operator.
+!!! success "Expected Result"
 
----
+    Berkas `master-rules.json` tersimpan di PC lokal operator dalam format JSON terstruktur yang memuat seluruh deklarasi aturan aktif (`TD-09` s/d `TD-18`).
 
-### Langkah 2: Formulasi Prompting ke AI Engine
+</div>
 
-Salin salah satu template prompt berikut ke antarmuka AI (Gemini, Claude, atau ChatGPT):
+<div class="procedure-step" markdown>
 
-#### Template A: Prompt Pengayaan Proaktif (Per Domain)
+### Formulate AI Prompting Context
+
+**Action:** Menyusun prompt terstandarisasi yang memuat ringkasan branch yang ada, target domain kegagalan atau data log insiden riil, serta batasan kontrak skema JSON yang wajib dipatuhi AI Engine.
+
+#### A. Template Prompt Proaktif (Per Domain)
 ````markdown
 Kamu adalah Principal JVM & Tomcat SRE Architect.
 Saya sedang melakukan PROACTIVE KNOWLEDGE ENRICHMENT untuk Tomcat Diagnostic Service.
@@ -188,7 +197,7 @@ Rumuskan 3-5 failure patterns yang paling sering terjadi di level production.
 Keluarkan HANYA satu blok Array JSON valid: [ {...}, {...} ] tanpa teks pengantar di luar blok.
 ````
 
-#### Template B: Prompt Pengayaan Reaktif (Berdasarkan Insiden Riil)
+#### B. Template Prompt Reaktif (Berdasarkan Insiden Riil)
 ````markdown
 Kamu adalah Enterprise SRE Expert untuk platform Tomcat Diagnostic.
 Terdapat insiden kegagalan baru yang saat ini berstatus UNDETERMINED.
@@ -204,55 +213,79 @@ Terdapat insiden kegagalan baru yang saat ini berstatus UNDETERMINED.
 5. Keluarkan HANYA satu blok JSON tunggal {...} sesuai kontrak skema.
 ````
 
----
+!!! success "Expected Result"
 
-### Langkah 3: SRE Review & Quality Assurance (Gatekeeping)
+    AI Engine menghasilkan output berupa blok JSON mentah (*single object* atau *batch array*) yang mematuhi 9 properti wajib tanpa teks naratif di luar blok JSON.
 
-Sebelum melakukan impor ke sistem produksi/lab, lakukan evaluasi kepatuhan terhadap daftar periksa (*checklist*) berikut:
+</div>
 
-* [x] **Branch Safety:** Nomor `branch` tidak menggunakan rentang `TD-01` s/d `TD-08` (terproteksi oleh sistem *built-in*).
-* [x] **Pattern Uniqueness:** Pola `pattern` cukup spesifik sehingga tidak memicu salah klasifikasi (*false positive*) pada insiden lain.
-* [x] **Regex Safety:** Pola bebas dari konstruksi rawan *Regular Expression Denial of Service* (*ReDoS*), seperti `(a+)+` atau `([a-z]+)*`.
-* [x] **Classification Consistency:** Nilai `classification` dan `confidence` selaras (`confirmed_cause` wajib berpasangan dengan `high`).
-* [x] **Actionable SOP:** Rekomendasi tindakan pada `recommendedActions` jelas, aman, terurut, dan dapat segera dieksekusi oleh operator.
+<div class="procedure-step" markdown>
 
----
+### Conduct SRE QA & Gatekeeping Review
 
-### Langkah 4: Ingest Rulepack ke Diagnostic Service
+**Action:** Melakukan tinjauan kualitas dan keamanan (*quality assurance & gatekeeping*) terhadap output JSON yang dihasilkan AI sebelum dieksekusi ke runtime Diagnostic Service.
 
-Gunakan helper CLI [`scripts/ingest-rule.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/ingest-rule.sh) dengan menyertakan token autentikasi Anda:
+**Daftar Periksa Kepatuhan (*Verification Checklist*):**
+* [x] **Branch Safety:** Nilai `branch` tidak menggunakan rentang terproteksi `TD-01` s/d `TD-08`.
+* [x] **Pattern Precision:** Pola `pattern` spesifik dan tidak menimbulkan potensi salah deteksi (*false positive*).
+* [x] **ReDoS Prevention:** Pola regex bebas dari konstruksi rawan ledakan komputasi (*nested quantifier* seperti `(a+)+` atau `([a-z]+)*`).
+* [x] **Classification & Confidence Mapping:** Nilai klasifikasi selaras dengan tingkat keyakinan (`confirmed_cause` wajib berpasangan dengan `high`).
+* [x] **Operational Actionability:** Rekomendasi mitigasi pada `recommendedActions` jelas, aman, terurut secara logis, dan dapat dieksekusi operator.
 
-#### Opsi 1: Ingest Berkas Batch Array (Proaktif)
+!!! success "Expected Result"
+
+    Seluruh butir daftar periksa terpenuhi (*100% compliant*) dan berkas JSON siap untuk proses *ingestion*.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Ingest Rulepack via Diagnostic API
+
+**Action:** Mengirimkan payload JSON yang telah divalidasi ke endpoint `POST /api/v1/rules` pada Diagnostic Service menggunakan helper CLI [`scripts/ingest-rule.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/ingest-rule.sh) dengan kredensial Bearer Token resmi operator.
+
+#### Ingest Berkas Batch Array (Mode Proaktif)
 ```bash
 BEARER_TOKEN="test-token-12345" /home/eddywiyatno/git/tomcat-monitoring/scripts/ingest-rule.sh ~/proactive-rules.json
 ```
 
-#### Opsi 2: Ingest Berkas Tunggal (Reaktif)
+#### Ingest Berkas Tunggal (Mode Reaktif)
 ```bash
 BEARER_TOKEN="test-token-12345" /home/eddywiyatno/git/tomcat-monitoring/scripts/ingest-rule.sh ~/rule-td19.json
 ```
 
-#### Opsi 3: Ingest via Pipe Stdin
+#### Ingest Langsung via Stdin Pipe
 ```bash
 cat ~/new-rule.json | BEARER_TOKEN="test-token-12345" /home/eddywiyatno/git/tomcat-monitoring/scripts/ingest-rule.sh -
 ```
 
-!!! tip "Penanganan Batch Cerdas"
-    Helper CLI secara otomatis mendeteksi apakah input berupa objek tunggal `{...}` atau array `[{...}, {...}]`. Pada mode batch, skrip akan mengimpor seluruh aturan baru (`201 Created`) dan melewati aturan yang sudah terdaftar sebelumnya (`409 Conflict`) tanpa menghentikan proses.
+!!! success "Expected Result"
 
----
+    Endpoint mengembalikan HTTP status `201 Created`. Aturan baru langsung ter-rehidrasi di memori `DynamicRuleEvaluator` secara *hot-reload* dan tercatat permanen di tabel SQLite `custom_rules`. Pada mode batch, aturan yang sudah terdaftar akan dilewati (`409 Conflict`) tanpa memutus alur aturan lainnya.
 
-### Langkah 5: Verifikasi Hasil Ingestion & Sinkronisasi Master
+</div>
 
-1. **Verifikasi status aturan spesifik di Diagnostic Service:**
-   ```bash
-   /home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh TD-19
-   ```
+<div class="procedure-step" markdown>
 
-2. **Perbarui berkas Master Rules Catalog lokal di PC Anda:**
-   ```bash
-   /home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh > ~/master-rules.json
-   ```
+### Verify Hot-Reload & Synchronize Master Catalog
+
+**Action:** Memverifikasi ketersediaan aturan baru di lingkungan runtime dan memperbarui berkas master catalog di PC lokal operator.
+
+```bash
+# 1. Verifikasi aturan spesifik yang baru di-ingest
+/home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh TD-19
+
+# 2. Sinkronkan seluruh katalog master ke PC lokal operator
+/home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh > ~/master-rules.json
+```
+
+!!! success "Expected Result"
+
+    Diagnostic Service menyajikan metadata aturan `TD-19` secara presisi, dan berkas `~/master-rules.json` di PC lokal operator berada dalam status mutakhir (*up-to-date*).
+
+</div>
+
+</div>
 
 ---
 
