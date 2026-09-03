@@ -23,3 +23,4 @@ arrange:
 - TN-016-implement-restricted-collector-and-tomcat-runtime.md
 - TN-017-verify-end-to-end-incident-diagnostic-flow.md
 - TN-018-implement-strict-declarative-rulepack-engine.md
+- TN-019-verify-ai-enrichment-and-incident-remapping.md

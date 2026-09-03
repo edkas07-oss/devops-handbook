@@ -126,13 +126,20 @@ Prometheus -> Alertmanager -> Diagnostic Service
     persistence (`custom_rules`), in-memory hot-reloading tanpa restart container,
     dan penolakan mutasi (405 Method Not Allowed).
 
+19. **[TN-019 — Verify AI Enrichment Workflow and Incident Remapping](TN-019-verify-ai-enrichment-and-incident-remapping.md)**
+
+    Melakukan pengujian dan verifikasi end-to-end skenario insiden belum terpetakan,
+    analisis forensik, formulasi AI rulepack TD-09, hot-ingestion via API, dan
+    pemetaan ulang diagnosis serta pengiriman email SOP mitigasi Bahasa Indonesia.
+
 ## 📌 Phase Status
 
 **Completed.** Durable ingestion, target isolation, deterministic engine,
 worker/result lifecycle, HTTPS/SMTP delivery boundaries, restricted collector
 atomic spooling, persistent runtime deployment, end-to-end incident verification,
-serta strict declarative rulepack engine & append-only rules API telah selesai dan
-terverifikasi secara live pada environment `devops-lab`.
+strict declarative rulepack engine, serta end-to-end AI enrichment & incident
+remapping workflow telah selesai dan terverifikasi secara live pada environment
+`devops-lab`.
 
 ## 🧭 Reproducibility Status
 
@@ -156,6 +163,7 @@ terverifikasi secara live pada environment `devops-lab`.
 | TN-016 | Collector baseline, component tests, and Tomcat deployment script implemented and verified; final commit pending |
 | TN-017 | End-to-end incident & recovery verification passed; image digest `sha256:0dcb912511da5e9fa8c8b75b202cece765dc9096bd55882c86764cd985226f3a`; final commit pending |
 | TN-018 | Declarative Rulepack Engine and Append-Only Rules API implemented and live verified; image digest `sha256:e781b9fb1cdad484763ab17ec5c0c0004da3fd4775ba5d88eba651382099aae8`; final commit pending |
+| TN-019 | End-to-end AI enrichment, hot-ingestion, and incident remapping flow live verified in `devops-lab`; final commit pending |
 
 TN-005 dan TN-006 berbagi satu source commit karena keduanya membentuk satu
 verified diagnostic-engine foundation dan telah dipush. TN-007 berada pada
