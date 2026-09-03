@@ -11,12 +11,12 @@ tanpa external delivery. TrueSight berada di luar deployment boundary project
 sebagai future event-management integration dan tidak tersedia pada lab saat
 ini.
 
-Diagnostic MVP menambahkan target arsitektur untuk diagnosis deterministik
-`TomcatDown`. Diagnostic Service source dan local image tersedia serta lulus
-disposable verification; integration-owned runtime contract juga diterima.
-Restricted event collector, routing, persistent SQLite, rebuilt application
-image, dan alur diagnostic belum diimplementasikan atau diverifikasi end to
-end. SMTP orchestration telah lulus source/socket tests.
+Diagnostic MVP menyediakan kapabilitas diagnosis deterministik otomatis untuk
+alur `TomcatDown`. Seluruh komponen Diagnostic Service, Restricted Event Collector,
+volume persisten SQLite (`diagnostic_data`), bind-mount spool/log hanya-baca, pohon
+keputusan `TD-01` s/d `TD-08`, Declarative Rulepack Engine (`TD-09`), alur pengayaan AI,
+dan pengiriman laporan diagnosis terstruktur ke Mailpit telah diimplementasikan
+100% dan terverifikasi secara live pada lingkungan persisten `devops-lab`.
 
 ## Deployment Topology
 
@@ -48,19 +48,18 @@ flowchart TB
     TC -->|"Menyediakan health aplikasi"| APP
 
     PM -->|"5. Mengirim alert firing dan resolved"| AM
-    AM -->|"6a. Mengirim alert monitoring"| NC
-    AM -.->|"6b. TomcatDown firing/resolved<br/>HTTPS internal — direncanakan"| DS
-    DS -.->|"7a. Email hasil diagnostic"| NC
+    AM -->|"6a. Mengirim alert monitoring standard"| NC
+    AM -->|"6b. TomcatDown firing/resolved<br/>HTTPS internal — terverifikasi"| DS
+    DS -->|"7a. Email hasil diagnostic 7-seksi"| NC
     DS -.->|"7b. Proyeksi dinonaktifkan"| BR
     BR -.->|"8. Transport dinonaktifkan"| TS
 ```
 
 Nomor pada diagram menunjukkan hubungan komunikasi, bukan urutan startup
 container. Garis penuh menunjukkan alur persistent lab yang sudah diverifikasi;
-garis putus-putus menunjukkan target Diagnostic MVP dan external integration
-yang belum diimplementasikan. Topology utama hanya menambahkan Diagnostic
-Service setelah Alertmanager; component internal dan evidence flow dijelaskan
-pada topology detail berikutnya.
+garis putus-putus menunjukkan target external integration (Integration Bridge dan
+TrueSight) yang saat ini dinonaktifkan. Topology utama menempatkan Diagnostic
+Service setelah Alertmanager untuk memproses alert `TomcatDown`.
 
 ### B. Detail Alur Diagnostic
 
@@ -93,12 +92,11 @@ flowchart LR
     BR -.->|"Dinonaktifkan"| TS
 ```
 
-Seluruh alur pada topology detail telah diterima sebagai desain. Service
-component dan temporary SQLite behavior telah diverifikasi secara disposable,
-tetapi hubungan lintas component belum dijalankan. Satu Diagnostic Service dan
-satu local state volume direncanakan per host Tomcat. Hanya `TomcatDown` yang
-masuk ke diagnostic routing; application-health dan high-heap diagnostic rules
-tetap disabled.
+Seluruh alur pada topology detail telah diimplementasikan dan terverifikasi secara
+live pada lingkungan persisten `devops-lab`. Satu Diagnostic Service dan satu local
+state volume (`diagnostic_data`) beroperasi per host Tomcat. Target `TomcatDown`
+masuk ke diagnostic routing, sedangkan application-health dan high-heap alert tetap
+berada pada monitoring routing Alertmanager standard.
 
 ## Monitoring Flow
 
@@ -134,7 +132,7 @@ sequenceDiagram
     PM->>AM: Mengirim state firing atau resolved
     alt Alert monitoring existing — saat ini dan terverifikasi
         AM->>NC: Mengirim email untuk capture lokal
-    else TomcatDown — target direncanakan
+    else TomcatDown — alur diagnosis terverifikasi
         AM->>DS: Webhook firing/resolved melalui HTTPS internal
         DS->>SQ: Menyimpan event tervalidasi
         SQ-->>DS: Commit durable
@@ -142,18 +140,20 @@ sequenceDiagram
         par Pengumpulan evidence terbatas
             DS->>PM: Query metrics
         and Evidence host-local
-            DS->>EV: Membaca log, artifact, dan spool
+            DS->>EV: Membaca log, artifact, dan spool collector
         end
         DS->>SQ: Menyimpan canonical result dan delivery state
-        DS->>NC: Mengirim email diagnostic atau resolved
+        DS->>NC: Mengirim email diagnostic 7-seksi atau resolved
     end
 ```
 
 Sequence diagram menegaskan bahwa Prometheus dan Telegraf menggunakan model
 pull. Telegraf memulai HTTP health check terhadap aplikasi, sedangkan Prometheus
-melakukan scrape terhadap JMX Exporter dan Telegraf. Cabang Diagnostic MVP
-menunjukkan target yang belum diimplementasikan; webhook tidak mengembalikan
-`202` sebelum event tersimpan secara durable di SQLite.
+melakukan scrape terhadap JMX Exporter dan Telegraf. Cabang Diagnostic Service
+menunjukkan alur asinkron di mana webhook mengembalikan HTTP `202 Accepted`
+hanya setelah event berhasil di-commit secara durable ke SQLite, dilanjutkan
+dengan pemrosesan worker, evaluasi rule engine, persistensi canonical result,
+dan pengiriman laporan ke Mailpit.
 
 ## Architecture Components
 
@@ -165,11 +165,11 @@ menunjukkan target yang belum diimplementasikan; webhook tidak mengembalikan
 | Telegraf | Memeriksa HTTP status, response time, timeout, dan response body aplikasi |
 | Dashboard and Alert | Melakukan query ke Prometheus serta menampilkan metrics dan status alert |
 | Alertmanager | Mengelompokkan, melakukan deduplication, dan meneruskan alert |
-| Mailpit | Menangkap email firing dan resolved pada persistent lab-only topology tanpa external delivery |
-| Diagnostic Service | Menerima `TomcatDown`, menyimpan event, mengumpulkan evidence terbatas, menghasilkan canonical result, dan membentuk lifecycle notification; source, secure interfaces, configuration, `0.1.1` image, SQLite reopen, dan Mailpit aktual telah diuji secara disposable; persistent runtime belum tersedia |
-| SQLite | Menyimpan event, incident, deduplication, canonical result, dan delivery state lokal; source migration/adapter serta ephemeral lifecycle verification tersedia, persistent restart belum diverifikasi |
-| Restricted Event Collector | Menulis event host dan container yang telah dinormalisasi ke spool terbatas tanpa memberi Diagnostic Service akses kontrol host; belum diimplementasikan |
-| Integration Bridge | Mengubah webhook menjadi event yang diterima TrueSight |
+| Mailpit | Menangkap email firing, diagnostic report, dan resolved pada topology persistent lab |
+| Diagnostic Service | Menerima alert `TomcatDown`, menyimpan event, mengumpulkan evidence terbatas, mengevaluasi rule engine (TD-01..TD-09), menghasilkan canonical result, dan mengirimkan notifikasi; image `0.1.3` terverifikasi live di `devops-lab` |
+| SQLite | Menyimpan event, incident, deduplication, canonical result, custom rules, dan delivery state lokal pada volume persisten `diagnostic_data` |
+| Restricted Event Collector | Mengumpulkan event host dan status container yang telah dinormalisasi ke spool terbatas (`/tmp/diagnostic-spool`) dengan penulisan atomik `.tmp` -> `.json` |
+| Integration Bridge | Mengubah webhook menjadi event yang diterima TrueSight (dinonaktifkan pada lab) |
 
 ## Security Controls
 
@@ -192,8 +192,9 @@ menunjukkan target yang belum diimplementasikan; webhook tidak mengembalikan
 - Diagnostic Service tidak memiliki akses ke broad Podman socket, host
   namespace, arbitrary command, runtime control, atau arbitrary path.
 - Tomcat evidence mounts dan normalized collector spool hanya dapat dibaca oleh
-  Diagnostic Service. Secret serta TLS material tetap berada di non-Git storage
+  Diagnostic Service (`:ro,z`). Secret serta TLS material tetap berada di non-Git storage
   dan dipasang read-only.
+- Penambahan aturan deklaratif (`POST /api/v1/rules`) dilindungi oleh **5-Layer Ingestion Guard** (Auth, Schema, Collision, Size Limit 64 KiB, Safety Guard) dan immutabilitas *append-only* (penolakan mutasi `PUT`/`DELETE` dengan HTTP 405).
 
 ## Related Architecture Decisions
 
@@ -214,53 +215,25 @@ menunjukkan target yang belum diimplementasikan; webhook tidak mengembalikan
 
 ## Current Status
 
-Deployment topology belum diverifikasi melalui implementasi end-to-end.
-Persistent lab Prometheus telah memverifikasi strict HTTPS scrape terhadap JMX
-Exporter dan mempertahankan named data volume selama controlled replacement.
-Persistent Telegraf memeriksa lab-only Tomcat JSP health endpoint melalui
-container network; Prometheus menerima application-health metrics melalui
-internal target `telegraf:9273`. Application dan metrics ports tidak
-dipublikasikan pada host, sedangkan dashboard Prometheus lab tersedia melalui
-host port `9090`.
+Deployment topology dan alur monitoring end-to-end telah diimplementasikan dan
+terverifikasi secara penuh pada lingkungan persisten `devops-lab`. Prometheus
+mengambil metrics via strict HTTPS scrape terhadap JMX Exporter dan mempertahankan
+volume TSDB `prometheus_data`. Telegraf memeriksa HTTP health endpoint aplikasi
+dan Prometheus membaca series `telegraf-health`.
 
-Tiga application-health alert rules telah diimplementasikan, dimuat pada
-persistent Prometheus, dan lulus `promtool`, synthetic rule-unit test, serta
-isolated firing/resolved verification. Application failed, missing metric, dan
-Telegraf scrape unavailable terbukti menjadi state yang terpisah. Production
-application semantics, actual Integration Bridge, TrueSight integration, serta
-external end-to-end notification flow belum diverifikasi.
+Alertmanager mengelola deduplikasi dan routing alert secara persisten. Rule
+`TomcatDown` diteruskan melalui HTTPS internal ke Diagnostic Service (`0.1.3`).
+Diagnostic Service memproses webhook secara asinkron, membaca metrik Prometheus,
+spool `/tmp/diagnostic-spool`, dan log Tomcat `/tmp/tomcat-logs` secara read-only,
+mengevaluasi pohon keputusan `TD-01` s/d `TD-09`, menyimpan riwayat audit ke
+SQLite `diagnostic_data`, dan mengirimkan laporan diagnosis 7-seksi ke Mailpit.
+Siklus pemulihan (*resolved*) memicu korelasi insiden otomatis dan mengirimkan
+notifikasi pemulihan.
 
-Alertmanager runtime dimiliki repository generik terpisah, sedangkan
-configuration, routing, validation, Prometheus delivery, dan orchestration
-tetap dimiliki `tomcat-monitoring`. Lab contract menggunakan internal
-`alertmanager:9093`, stable alert labels, grouping baseline, dan active
-`send_resolved: true` email receiver menuju Mailpit lokal. Generic runtime
-source telah dibentuk dengan upstream pin
-`v0.34.0`; local image build, Alertmanager dan `amtool` version, serta official
-non-root contract telah diverifikasi. Non-secret routing configuration dan
-Prometheus API v2 reference telah diimplementasikan dan lulus `amtool` serta
-`promtool`. Historical webhook receiver menangkap payload firing dan resolved
-dengan lima stable group labels. Active Mailpit receiver kemudian menangkap
-email firing dan resolved dengan sender serta recipient synthetic pada
-2026-08-27. Pada 2026-08-28, persistent Prometheus mengirim real
-`TelegrafHealthScrapeUnavailable` firing/resolved state ke persistent
-Alertmanager dan Mailpit menangkap kedua matching email. Prometheus serta
-Alertmanager kembali ready setelah controlled replacement dan restart;
-Telegraf, JMX scrape, rules, dan health metric juga pulih ke baseline. Actual
-Integration Bridge dan external flow belum diimplementasikan atau
-diverifikasi.
-
-Desain Diagnostic MVP telah diterima. `TomcatDown` engine, durable SQLite
-ingestion, bounded worker, secure service boundary, versioned configuration,
-dan digest-pinned Diagnostic Service image telah diimplementasikan dan lulus
-source atau disposable verification. TN-011 juga menetapkan integration-owned
-runtime paths, permissions, ownership, dan multi-component verification
-contract. SMTP worker orchestration kemudian lulus source/socket tests pada
-TN-012. Alertmanager routing, rebuilt image, persistent SQLite, restricted
-collector, environment target allowlist, evidence integration, dan end-to-end
-diagnostic flow belum diimplementasikan atau diverifikasi. Alur
-Alertmanager langsung ke Mailpit tetap menjadi current verified runtime sampai
-target Diagnostic MVP benar-benar diterapkan dan diuji.
+Kapabilitas *Declarative Rulepack Engine* dan *AI Enrichment Workflow* telah
+terbukti live (TN-018 & TN-019), memungkinkan penambahan aturan diagnosis baru
+secara hot-loaded tanpa restart container. Integration Bridge dan TrueSight
+tetap dinonaktifkan sebagai future enterprise target.
 
 ## Alert Notification Presentation Contract
 

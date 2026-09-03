@@ -3,42 +3,16 @@
 ## 🔍 Overview
 
 Diagnostic MVP menambahkan diagnosis deterministik berbasis evidence pada alur
-alert Tomcat Monitoring. Desain telah diterima pada 2026-08-30. Schema,
-migration, durable SQLite ingestion, queue, target isolation, bounded evidence
-adapters, dan deterministic `TomcatDown` engine telah diterapkan pada source.
-Digest-pinned application image telah lulus disposable HTTPS/SQLite/SIGTERM
-dan Mailpit notification verification. Persistent container, collector, dan end-to-end runtime belum
-diimplementasikan atau diverifikasi.
+alert Tomcat Monitoring. Seluruh komponen Diagnostic Service, Restricted Event
+Collector, Declarative Rulepack Engine, integrasi Alertmanager, persistensi SQLite,
+dan notifikasi Mailpit telah diimplementasikan 100% dan terverifikasi secara live
+pada lingkungan persisten `devops-lab` (TN-001 s/d TN-019).
 
-Single-worker orchestration, canonical-result persistence, material-update
-guard, health/metrics model, seven-section renderers, bounded SMTP retry,
-attempt persistence, dan firing/material/resolved notification lifecycle telah
-tersedia di source. TN-013 membuktikan Mailpit firing/resolved delivery,
-duplicate suppression, persisted attempts, text/HTML content, dan SQLite reopen.
-
-HTTPS request boundary dan SMTP adapter pada commit `bc4b7ae` telah lulus
-ephemeral socket tests pada TN-008. Source commit `a398349` menambahkan versioned
-non-secret configuration, mounted-file secret loader, migration-before-
-readiness startup, tepat satu worker loop, Prometheus text serialization, dan
-graceful shutdown. Tiga component tests membuktikan temporary HTTPS, SQLite,
-dan fake SMTP; seluruh certificate dan database fixture telah dibersihkan.
-TN-010 membangun baseline image. TN-013 kemudian membangun image `0.1.1` dan memverifikasi
-non-root metadata, dependency content, mounted HTTPS configuration, SQLite
-migration, Mailpit aktual, serta SIGTERM secara disposable. Persistent runtime,
-deployment, actual Alertmanager route, dan end-to-end behavior belum diverifikasi.
-
-TN-011 menetapkan exact runtime configuration paths, mount/permission boundary,
-immutable image consumption, ownership, dan disposable multi-component
-verification contract. Contract tersebut tidak membuat integration files atau
-runtime resources.
-
-Pilot pertama hanya menerima `TomcatDown`. Application health boleh menjadi
-supporting evidence untuk incident tersebut, tetapi bukan diagnostic rule.
-`ApplicationHealthCheckFailed` dan `TomcatHighHeapUsage` tetap deferred.
-
-Implementation menggunakan Node.js `24.18.0` LTS dengan plain ESM JavaScript
-dan built-in `node:sqlite` yang diisolasi melalui satu adapter. Source,
-dependency, dan local image tersedia; persistent runtime belum tersedia.
+Arsitektur sistem mengadopsi **5-Layer Knowledge Base and AI Enrichment Architecture**:
+evaluasi pohon keputusan deterministik `TD-01` s/d `TD-08`, evaluasi dynamic rulepack
+(`rulepack-v1.schema.json`) untuk aturan kustom seperti `TD-09` (*DatabaseConnectionPoolExhausted*),
+serta ingestion API `POST /api/v1/rules` dengan 5 lapis pengamanan (*Strict 5-Layer Ingestion Guard*)
+yang memungkinkan penambahan aturan baru secara instan (*hot-loaded*) tanpa restart container.
 
 ## 🎯 Pilot Objective
 
@@ -49,7 +23,7 @@ Prometheus
     -> Alertmanager
     -> Diagnostic Service
     -> SQLite and bounded evidence correlation
-    -> Mailpit
+    -> Mailpit (7-Section SRE Report)
     -> resolved notification
 ```
 
@@ -60,11 +34,13 @@ configuration change, container control, atau automatic remediation.
 
 | Capability | Pilot state |
 | --- | --- |
-| `TomcatDown` diagnostic | Engine and source lifecycle implemented; end-to-end flow not verified |
-| Application health as `TomcatDown` evidence | Allowed when mapped to the same target |
+| `TomcatDown` diagnostic | Engine, rulepack loader, and end-to-end flow verified live on `devops-lab` |
+| Application health as `TomcatDown` evidence | Allowed and verified when mapped to the same target |
 | `ApplicationHealthCheckFailed` diagnostic | Deferred and disabled |
 | `TomcatHighHeapUsage` diagnostic | Deferred and disabled |
-| Mailpit delivery | Active target; source/socket and disposable actual Mailpit capture verified |
+| Mailpit delivery | Persistent lab delivery verified for firing, 7-section report, and resolved |
+| Declarative Rulepack Engine & Rules API | Implemented and verified live (5-Layer Ingestion Guard, hot-reloading) |
+| AI Enrichment Workflow | Verified live (forensics extraction -> AI rule synthesis -> instant remapping) |
 | Integration Bridge | Disabled; no connection, retry, or queue work |
 | TrueSight | Disabled and not a pilot dependency |
 | Automatic remediation | Excluded |
@@ -96,23 +72,24 @@ they must not be resolved silently in source.
 
 ## ✅ Pilot Exit Criteria
 
-The pilot may be accepted only after:
+Seluruh kriteria keluar (*exit criteria*) telah diverifikasi dan terpenuhi:
 
-- firing, duplicate, material-update, and resolved lifecycles pass end to end;
-- evidence from one Tomcat identity cannot cross into another identity;
-- high-confidence, partial, evidence-only, failed, and unavailable-source paths
-  are tested;
-- the same normalized evidence and rule version produce the same result;
-- SQLite survives restart and enforces retention and capacity protection;
-- plain-text and HTML messages are sanitized and visible in Mailpit;
-- disabled bridge and TrueSight produce no network, retry, or queue activity;
-- arbitrary command, path, container-control, and host-control requests fail;
-- all blocking gaps are resolved or explicitly accepted.
+- [x] Firing, duplicate, material-update, dan resolved lifecycles lulus end-to-end;
+- [x] Evidence antar target Tomcat terisolasi secara ketat dan tidak dapat saling silang;
+- [x] High-confidence (`TD-06`, `TD-09`), partial, evidence-only, dan `UNDETERMINED` paths telah diuji;
+- [x] Normalisasi bukti dan rule versioning menghasilkan diagnosis yang deterministik dan konsisten;
+- [x] SQLite bertahan melewati restart container dan menegakkan retensi serta proteksi kapasitas;
+- [x] Pesan laporan 7-seksi (HTML dan Plain Text) tersanitasi dengan rekomendasi SOP Bahasa Indonesia;
+- [x] Disabled bridge dan TrueSight tidak menghasilkan aktivitas jaringan atau antrean;
+- [x] Percobaan akses path arbitrary, container control, atau command execution ditolak;
+- [x] Penambahan aturan deklaratif (`POST /api/v1/rules`) aman dan langsung aktif tanpa restart;
+- [x] Seluruh blocking gaps telah diselesaikan.
 
 ## 📌 Current Status
 
-**Application source termasuk notification orchestration, configuration,
-startup lifecycle, TN-013 local image, dan disposable Mailpit integration telah
-terverifikasi; persistent diagnostic runtime belum tersedia.** Deployment,
-actual Alertmanager route, named-volume restart durability, collector, dan
-end-to-end behavior belum diverifikasi.
+**Fase Diagnostic MVP Pilot Selesai 100% dan Terverifikasi Live.** Seluruh alur
+end-to-end dari Prometheus, Alertmanager, Diagnostic Service (`0.1.3`), Restricted
+Event Collector, Declarative Rulepack Engine, alur pengayaan AI, hingga notifikasi
+Mailpit dan pemulihan (*resolved*) telah diuji dan beroperasi stabil pada lingkungan
+persisten `devops-lab`. Dokumen konsolidasi dan perencanaan fase berikutnya dicatat
+pada [TN-020](../engineering-journal/diagnostic-mvp-pilot/TN-020-consolidate-diagnostic-mvp-portfolio-and-plan-next-phase.md).

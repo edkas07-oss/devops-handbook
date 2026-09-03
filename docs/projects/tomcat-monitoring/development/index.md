@@ -34,9 +34,9 @@ Source project dibagi berdasarkan lifecycle dan tanggung jawab berikut:
 | `tomcat` | Menyediakan generic Tomcat container image | Available |
 | `tomcat-jmx-exporter` | Menyediakan derived Tomcat image dengan embedded JMX Exporter | Current source published and local component build verified |
 | `alertmanager` | Menyediakan generic Alertmanager container image dan lifecycle runtime | Local image `1.0.0` built; Alertmanager, `amtool`, and non-root smoke test passed |
-| `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | Persistent Prometheus–Alertmanager–Mailpit firing/resolved delivery verified; external delivery pending |
-| `tomcat-diagnostic-service` | Memiliki source Diagnostic Service, dependency lock, image lifecycle, migration, dan component test | TN-013 working tree verified as image `0.1.1`, digest `sha256:94bf8fbe4ce75e60f3481b9346cb0e79bdb397a36d32e7de4e2adfbe9f5fa20f`; final source commit pending |
-| `tomcat-diagnostic-event-collector` | Memiliki source, packaging, dan component test restricted rootless host collector | Ownership diterima; repository belum dibuat |
+| `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | Persistent Prometheus–Alertmanager–Mailpit–Diagnostic Service end-to-end delivery verified |
+| `tomcat-diagnostic-service` | Memiliki source Diagnostic Service, dependency lock, image lifecycle, declarative rulepack engine, migration, dan component test | Available; image `0.1.3` (digest `sha256:e781b9fb1cdad484763ab17ec5c0c0004da3fd4775ba5d88eba651382099aae8`), 46 tests passed |
+| `tomcat-diagnostic-event-collector` | Memiliki source, schema, packaging, dan component test restricted rootless host collector | Available; atomic `.tmp` -> `.json` spooling, 3 component tests passed |
 
 Target allowlist diagnostic, integrasi Prometheus dan Alertmanager,
 configuration deployment non-secret, serta end-to-end verification tetap
@@ -76,9 +76,9 @@ tomcat-jmx-exporter/
 | Upstream tracking | Not configured on local branch |
 | CI pipeline | Not implemented |
 | Container image publication | Local image only; registry not determined |
-| Diagnostic Service remote repository | Gitea `tomcat-diagnostic-service` tersedia |
-| Diagnostic Service local state | Baseline commit `84c42c1` plus TN-013 working-tree changes; 36 regression tests and disposable Mailpit runtime passed; `0.1.1`/`latest` point to image ID `1c8261a2` |
-| Restricted Event Collector repository | Belum dibuat |
+| Diagnostic Service repository | Gitea `tomcat-diagnostic-service` tersedia (`main` / clean) |
+| Diagnostic Service local state | Latest commit `9b2c98e`; 46 unit/integration tests passed; version `0.1.3` (digest `sha256:e781b9fb1cda`) |
+| Restricted Event Collector repository | Gitea `tomcat-diagnostic-event-collector` tersedia (`main` / clean); commit `94b8723`; 3 component tests passed |
 
 ## Development Workflow
 

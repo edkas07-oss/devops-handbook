@@ -74,33 +74,46 @@ diimplementasikan.
 
 | Capability | Status |
 | --- | --- |
-| Monitoring architecture | Topology defined; persistent lab JMX flow verified |
-| Rootless Podman runtime | Available and verified |
+| Monitoring architecture | Topology defined; persistent lab JMX and application health flow verified |
+| Rootless Podman runtime | Available and verified on `devops-lab` |
 | Tomcat container provisioning | Persistent JMX lab target runs the lab-only JSP health application; production application provisioning planned |
 | Tomcat JMX Exporter source | Current source `231cb91` published to Gitea; source validation and local image build passed on 2026-08-25 |
 | Tomcat monitoring instrumentation | Current-source image `localhost/tomcat-jmx-exporter:1.0.0` deployed with internal HTTPS metrics, lab health application, and no host-published application or metrics port |
 | Prometheus container | Persistent lab runtime uses existing named volumes; controlled replacement retained TSDB continuity and enabled healthy `alertmanager:9093` delivery on 2026-08-28 |
 | Telegraf container | Persistent lab runtime checks the Tomcat JSP health endpoint and is scraped by Prometheus through internal `telegraf:9273` |
 | Container status monitoring | Metrics source not determined |
-| Monitoring implementation | Persistent JMX and Telegraf targets `up=1`; persistent Prometheus, Alertmanager, and Mailpit captured real `TelegrafHealthScrapeUnavailable` firing/resolved email on 2026-08-28; external delivery and TrueSight deferred |
-| End-to-end verification | Not started |
-| Diagnostic MVP | Service source, TN-013 `0.1.1` image, and disposable HTTPS/SQLite/Mailpit flow verified; collector, actual routing, persistent runtime, and end-to-end verification pending |
+| Monitoring implementation | Persistent JMX and Telegraf targets `up=1`; persistent Prometheus, Alertmanager, and Mailpit captured real `TelegrafHealthScrapeUnavailable` firing/resolved email on 2026-08-28 |
+| End-to-end verification | Completed untuk alur monitoring alert, diagnosis deterministik `TomcatDown` (TD-01..TD-09), hot-reloading rulepack, dan resolved recovery |
+| Diagnostic MVP Pilot | Completed 100%. Diagnostic Service Node.js 24 ESM (`0.1.3`), SQLite persisten, Restricted Event Collector, Declarative Rulepack Engine, alur pengayaan AI, dan notifikasi Mailpit firing/resolved terverifikasi live di `devops-lab` |
 
-## Diagnostic MVP
+## Diagnostic MVP Pilot
 
-The accepted Diagnostic MVP design defines a deterministic flow from
-Prometheus through Alertmanager, Diagnostic Service, bounded evidence and
-SQLite correlation, then Mailpit and resolved notification. Only `TomcatDown`
-is in pilot scope. Application health may support that diagnosis but is not a
-Diagnostic MVP rule. `ApplicationHealthCheckFailed`, `TomcatHighHeapUsage`,
-Integration Bridge, TrueSight, and automatic remediation remain disabled or
-deferred.
+Fase Diagnostic MVP Pilot telah selesai dan terverifikasi secara penuh. Sistem
+membuktikan alur otomatisasi diagnosis insiden deterministik berbasis bukti
+terbatas tanpa tindakan remediasi otomatis:
 
-Diagnostic Service source and local image are implemented, and TN-011 defines
-the integration-owned runtime contract. See
-[Diagnostic MVP](diagnostic-mvp/index.md) for exact state and gaps. Existing
-direct Alertmanager–Mailpit delivery remains the verified runtime; the
-diagnostic path has not been deployed.
+```text
+Prometheus (TomcatDown) -> Alertmanager -> Diagnostic Service
+    -> SQLite diagnostic_data & evidence correlation
+    -> Mailpit (7-Section SRE Report) -> Resolved Notification
+```
+
+Arsitektur sistem diperkuat oleh **5-Layer Knowledge Base and AI Enrichment Architecture**:
+- **Layer 1 (Deterministic Core):** Evaluasi pohon keputusan built-in `TD-01` s/d `TD-08` dengan latensi nol dan kinerja deterministik tinggi.
+- **Layer 2 (Local Rulepack Knowledge Base):** Evaluator aturan dinamis berbasis schema JSON (`rulepack-v1.schema.json`) dan tabel `custom_rules` pada SQLite.
+- **Layer 3 (Ephemeral Spool & Audit Store):** Pengumpulan log/crash artifacts dan spool event host atomik melalui Restricted Event Collector (`/tmp/diagnostic-spool`).
+- **Layer 4 (AI Post-Mortem & Rule Formulation):** Analisis forensik offline oleh LLM eksternal / SRE untuk memformulasikan rule deklaratif baru (`TD-09` — *DatabaseConnectionPoolExhausted*) saat insiden tidak terpetakan (`UNDETERMINED`).
+- **Layer 5 (Safe Hot-Ingestion API Boundary):** Penambahan aturan baru secara instan melalui `POST /api/v1/rules` dengan 5-Layer Ingestion Guard (Auth, Schema, Collision, Size Limit, Safety) dan immutabilitas append-only (penolakan operasi mutasi 405 Method Not Allowed) tanpa memerlukan restart container.
+
+Lihat [Diagnostic MVP](diagnostic-mvp/index.md) dan [Engineering Journal Diagnostic MVP Pilot](engineering-journal/diagnostic-mvp-pilot/index.md) untuk detail arsitektur, kontrak, dan histori verifikasi lengkap.
+
+## Next Phase: Monitoring Platform Integration
+
+Setelah fase pondasi dan pilot diagnostik terbukti 100%, pengembangan dilanjutkan
+ke **Monitoring Platform Integration Phase** dengan fokus:
+1. **Dashboard Observabilitas:** Menyediakan visualisasi metrik JVM dan Tomcat Connector berbasis Grafana/Prometheus.
+2. **Standardisasi Log & Multi-Target:** Integrasi log terpusat dan perluasan target allowlist multi-instance.
+3. **Otomatisasi CI/CD & Ansible:** Pipeline pengujian otomatis dan provisioning zero-touch.
 
 ## Documentation Structure
 
