@@ -1,5 +1,6 @@
 /* Ordered procedures used by Technical Notes. */
-.md-typeset .procedure {
+.md-typeset .procedure,
+.md-typeset .procedure-sequence {
   counter-reset: procedure-step;
   margin: 1.5rem 0;
 }
