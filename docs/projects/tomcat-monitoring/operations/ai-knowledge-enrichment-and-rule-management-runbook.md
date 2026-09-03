@@ -66,18 +66,46 @@ flowchart LR
     end
 ```
 
-### 1. Mode Proaktif (*Domain-Driven Engineering*)
-Operator memperkaya basis aturan berdasarkan taksonomi **7 Domain Kegagalan Produksi** tanpa menunggu terjadinya insiden:
-* 💾 **`jvm_memory`:** Heap Space OOM, Metaspace OOM, GC Overhead Limit Exceeded, DirectBuffer OOM.
-* 🧵 **`concurrency_threading`:** Thread pool exhaustion, Java-level deadlock, Thread starvation, CPU spinning.
-* 🗄️ **`database_persistence`:** DBCP/HikariCP pool timeout, PostgreSQL/MySQL connection refused, SQL query timeout.
-* 🌐 **`network_integration`:** SSL/TLS handshake failure, Socket read timeout, DNS lookup failure, connection reset.
-* 📦 **`application_lifecycle`:** Spring context initialization failure, BeanCreationException, Missing DLL/SO native wrapper.
-* ⚙️ **`storage_os_limits`:** File descriptor / ulimit exhaustion, `No space left on device`, Read-only filesystem.
-* 🔒 **`security_session`:** LDAP authentication timeout, Session replication failure, CORS/Security filter crash.
+### 1. Mode A: Pengayaan Proaktif (*Pre-emptive Domain Engineering*)
 
-### 2. Mode Reaktif (*Incident-Driven Remediation*)
-Saat insiden baru memicu alert `TomcatDown` dan didiagnosis sebagai `TD-08 (Undetermined Evidence)`:
+Pengayaan proaktif bertujuan melengkapi pustaka aturan diagnosis **sebelum insiden nyata terjadi** di lingkungan produksi. Ketika insiden pertama kali muncul, sistem langsung memberikan diagnosis deterministik (`confirmed_cause`) dan SOP mitigasi seketika tanpa jatuh ke status `UNDETERMINED`.
+
+```mermaid
+mindmap
+  root((Domain Kegagalan<br/>Tomcat & JVM))
+    Concurrency & Threading
+      Thread Starvation
+      Java Thread Deadlock
+      Thread Pool Saturation
+    Database & Persistence
+      Backend Lock Contention
+      SQL Query Timeout
+      HikariCP Pool Timeout
+      DBCP Connection Leak
+    JVM & Memory
+      GC Overhead Limit
+      Metaspace Exhaustion
+      DirectBuffer OOM
+      Java Heap Space OOM
+    Network & Integration
+      Connection Reset by Peer
+      DNS Lookup Failure
+      SSL Handshake Failure
+      Socket Read Timeout
+    Application Lifecycle
+      BeanCreationException
+      Circular Dependency
+      Missing Required Properties
+      Spring Context Failure
+    Storage & OS Limits
+      Disk Space Exhaustion
+      Permission Denied
+      File Descriptor Limit
+```
+
+### 2. Mode B: Pengayaan Reaktif (*Incident-Driven Post-Mortem*)
+
+Pengayaan reaktif dilakukan saat Diagnostic Service menerima insiden baru yang belum terpetakan dalam basis aturan (*unmapped failure pattern*), sehingga diklasifikasikan sebagai `UNDETERMINED` (`Branch TD-08`):
 
 ```mermaid
 sequenceDiagram
