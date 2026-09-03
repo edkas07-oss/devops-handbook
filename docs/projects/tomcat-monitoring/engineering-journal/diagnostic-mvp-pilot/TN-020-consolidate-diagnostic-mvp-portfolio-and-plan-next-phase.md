@@ -71,31 +71,17 @@ Arsitektur yang dibangun menggabungkan kecepatan dan keandalan sistem determinis
 
 ```mermaid
 flowchart TD
-    subgraph L1 ["Layer 1: Deterministic Real-Time Decision Tree"]
-        TD_CORE["Hard-Coded Engine<br/>TD-01 s/d TD-08<br/>(High Performance / Zero Latency)"]
-    end
+    L1["<b>Layer 1: Decision Engine</b><br/>Built-in Rules TD-01..TD-08<br/>(Zero Latency / Fallback)"]
+    L2["<b>Layer 2: Rulepack Engine</b><br/>DynamicRuleEvaluator<br/>(In-Memory + SQLite Rules)"]
+    L3["<b>Layer 3: Audit & Spool Store</b><br/>SQLite canonical_results<br/>Spool Collector & Log Mount"]
+    L4["<b>Layer 4: AI Post-Mortem</b><br/>Forensic Analysis & Synthesis<br/>(Rulepack TD-09 Definition)"]
+    L5["<b>Layer 5: Ingestion API Boundary</b><br/>5-Layer Ingestion Guard<br/>POST /api/v1/rules (Hot-Reload)"]
 
-    subgraph L2 ["Layer 2: Local Rulepack Knowledge Base"]
-        RP_CORE["Declarative Rulepack Engine<br/>DynamicRuleEvaluator<br/>(In-Memory + SQLite custom_rules)"]
-    end
-
-    subgraph L3 ["Layer 3: Ephemeral Spool & Audit Store"]
-        AUDIT["SQLite canonical_results & evidence_summaries<br/>Restricted Collector Spool (/tmp/diagnostic-spool)"]
-    end
-
-    subgraph L4 ["Layer 4: AI Post-Mortem & Rule Formulation"]
-        AI_OPS["External AI / SRE Analyst<br/>Forensic Log & Metrics Analysis<br/>Synthesizes JSON Rulepack (TD-09...)"]
-    end
-
-    subgraph L5 ["Layer 5: Safe Hot-Ingestion API Boundary"]
-        API_SEC["Strict 5-Layer Ingestion Guard<br/>POST /api/v1/rules (Bearer Auth, Ajv Schema)<br/>Append-Only Immutability (405 on PUT/DELETE)"]
-    end
-
-    TD_CORE -->|Fallback if no custom match| RP_CORE
-    RP_CORE -->|Evaluate against evidence| AUDIT
-    AUDIT -->|Forensic context on UNDETERMINED| AI_OPS
-    AI_OPS -->|Formulates declarative rulepack| API_SEC
-    API_SEC -->|Hot-loads without restart| RP_CORE
+    L1 -->|"Evaluasi awal"| L2
+    L2 -->|"Pencocokan bukti"| L3
+    L3 -->|"Forensik UNDETERMINED"| L4
+    L4 -->|"Sintesis rulepack"| L5
+    L5 -->|"Hot-load instan"| L2
 ```
 
 ### B. Matriks Kapabilitas Teknis yang Dibangun
