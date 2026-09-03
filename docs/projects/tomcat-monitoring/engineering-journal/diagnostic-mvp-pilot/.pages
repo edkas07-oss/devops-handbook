@@ -18,3 +18,8 @@ arrange:
 - TN-011-define-diagnostic-service-runtime-configuration-contract.md
 - TN-012-implement-bounded-notification-delivery-orchestration.md
 - TN-013-rebuild-and-verify-diagnostic-service-mailpit-runtime.md
+- TN-014-configure-tomcatdown-rule-and-alertmanager-diagnostic-route.md
+- TN-015-deploy-persistent-monitoring-runtime.md
+- TN-016-implement-restricted-collector-and-tomcat-runtime.md
+- TN-017-verify-end-to-end-incident-diagnostic-flow.md
+- TN-018-implement-strict-declarative-rulepack-engine.md

@@ -104,38 +104,37 @@ sequenceDiagram
 
 ### 🛠️ Perbandingan Metode Pembaruan Knowledge Base
 
-| Kategori | Metode Saat Ini (Code-Level Implementation) | Roadmap Masa Depan (Declarative Rulepack) |
+| Kategori | Built-in Baseline (Code-Level Implementation) | Declarative Rulepack Engine (Append-Only Rules API — TN-018) |
 | :--- | :--- | :--- |
-| **Media Berkas** | [`src/domain/tomcat-down-engine.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/domain/tomcat-down-engine.js)<br/>[`src/application/result-renderer.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/application/result-renderer.js) | File konfigurasi terpisah:<br/>`/run/tomcat-diagnostic/config/diagnostic-rules.json` |
-| **Format Masukan** | Kode JavaScript (fungsi deterministik). | File JSON terstruktur hasil *export* langsung dari AI. |
-| **Workflow Update** | 1. Tambah branch logic (misal `TD-09`).<br/>2. Tambah SOP text di renderer.<br/>3. Jalankan unit test & rebuild image. | 1. Letakkan file JSON baru ke folder konfigurasi.<br/>2. Restart / reload container tanpa *rebuild image*. |
-| **Keunggulan** | Validasi tipe data ketat, performa tinggi, dan teruji penuh melalui *unit test suite*. | Memungkinkan integrasi pipeline otomatis (*auto-ingestion*) hasil analisis AI tanpa *code changes*. |
-| **Status** | **Aktif & Terverifikasi (Current Production Baseline).** | **Tahap Desain & Roadmap Integrasi.** |
+| **Media Berkas / Endpoint** | [`src/domain/tomcat-down-engine.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/domain/tomcat-down-engine.js)<br/>[`src/application/result-renderer.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/application/result-renderer.js) | HTTP Endpoint: `POST /api/v1/rules`<br/>Penyimpanan: Tabel SQLite `custom_rules`<br/>Schema: [`config/schemas/rulepack-v1.schema.json`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/config/schemas/rulepack-v1.schema.json) |
+| **Format Masukan** | Kode JavaScript (fungsi deterministik). | Payload JSON terstruktur hasil generasi AI/SRE dengan validasi ketat Ajv & Safety Guard. |
+| **Workflow Update** | 1. Tambah branch logic (misal `TD-01`..`TD-08`).<br/>2. Tambah SOP text di renderer.<br/>3. Jalankan unit test & rebuild image. | 1. Kirim HTTPS POST payload JSON ke `/api/v1/rules` dengan Bearer Token.<br/>2. Disimpan ke SQLite dan langsung di-hot-load ke memori engine secara instan tanpa *rebuild image* atau *restart container*. |
+| **Keunggulan** | Validasi tipe data ketat, performa tinggi, dan menjadi fondasi *fallback engine* sistem. | Memungkinkan integrasi otomatis AI/SRE, *zero-downtime hot-reloading*, proteksi *append-only* (405 pada PUT/DELETE), dan pencegahan tabrakan *branch* (409 pada duplikat/built-in). |
+| **Status** | **Aktif & Terverifikasi (Core Fallback Baseline).** | **Aktif & Terverifikasi (Production Ingestion Baseline — TN-018).** |
 
 ---
 
-### 📝 Contoh Format Impor Deklaratif (`diagnostic-rules.json`)
+### 📝 Contoh Format Impor Deklaratif (`POST /api/v1/rules`)
 
-Berikut adalah struktur baku yang disiapkan untuk menerima hasil generasi AI secara langsung:
+Berikut adalah struktur baku yang tervalidasi oleh schema `rulepack-v1.schema.json`:
 
 ```json
-[
-  {
-    "branch": "TD-09",
-    "ruleName": "DatabaseConnectionPoolExhausted",
-    "targetSource": "local_file",
-    "pattern": "CannotGetJdbcConnectionException",
-    "assessment": "Tomcat unresponsive: Database connection pool exhausted",
-    "classification": "confirmed_cause",
-    "confidence": "high",
-    "recommendedActions": [
-      "Periksa utilisasi koneksi dan beban aktif pada server Database PostgreSQL/MySQL backend.",
-      "Tinjau parameter maxTotal dan maxWaitMillis pada Resource DataSource (/conf/context.xml).",
-      "Periksa stack trace thread dump untuk mendeteksi potensi connection leak pada aplikasi.",
-      "Lakukan restart layanan Tomcat secara terkontrol setelah koneksi database stabil."
-    ]
-  }
-]
+{
+  "branch": "TD-09",
+  "ruleName": "DatabaseConnectionPoolExhausted",
+  "targetSource": "local_file",
+  "pattern": "CannotGetJdbcConnectionException",
+  "assessment": "Tomcat unresponsive: Database connection pool exhausted",
+  "classification": "confirmed_cause",
+  "confidence": "high",
+  "recommendedActions": [
+    "Periksa utilisasi koneksi dan beban aktif pada server Database PostgreSQL/MySQL backend.",
+    "Tinjau parameter maxTotal dan maxWaitMillis pada Resource DataSource (/conf/context.xml).",
+    "Periksa stack trace thread dump untuk mendeteksi potensi connection leak pada aplikasi.",
+    "Lakukan restart layanan Tomcat secara terkontrol setelah koneksi database stabil."
+  ],
+  "createdBy": "operator-sre"
+}
 ```
 
 ---
@@ -143,5 +142,7 @@ Berikut adalah struktur baku yang disiapkan untuk menerima hasil generasi AI sec
 ## 📌 Standar Tata Kelola dan Keamanan
 
 1. **Deterministic Execution:** Runtime Diagnostic Service murni mengeksekusi logika pencocokan berbasis aturan; tidak ada *prompting* atau inferensi LLM langsung di jalur penanganan insiden *real-time*.
-2. **Human-in-the-Loop Verification:** Setiap *rule* dan *action* yang dirumuskan oleh AI wajib ditinjau dan disetujui oleh insinyur DevOps/SRE sebelum diintegrasikan ke lingkungan produksi.
-3. **Auditability & Traceability:** Setiap keputusan insiden selalu memiliki referensi silang ke *rule version*, *evidence hash*, dan data historis di SQLite.
+2. **5-Layer Ingestion Guard:** Ingestion aturan deklaratif baru dilindungi oleh 5 lapis pengamanan ketat: (1) Auth Guard (timing-safe Bearer token), (2) Schema Guard (Ajv validasi schema), (3) Collision Guard (penolakan duplikasi branch atau konflik dengan branch built-in), (4) Size Guard (pembatasan payload maksimal 64 KiB), dan (5) Safety Guard (pemeriksaan keamanan regex dan sanitasi).
+3. **Append-Only Immutability:** Endpoint mutasi `PUT`, `DELETE`, dan `PATCH` ditolak secara eksplisit dengan status `405 Method Not Allowed` guna mencegah modifikasi atau penghapusan histori aturan secara sepihak.
+4. **Human-in-the-Loop Verification:** Setiap *rule* dan *action* yang dirumuskan oleh AI wajib diverifikasi atau diotorisasi sebelum di-POST ke API produksi.
+5. **Auditability & Traceability:** Setiap keputusan insiden selalu memiliki referensi silang ke *rule version*, *evidence hash*, dan data historis di SQLite (`canonical_results` dan `custom_rules`).

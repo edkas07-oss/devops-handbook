@@ -43,8 +43,9 @@ Backup and production disaster recovery are outside the pilot.
 
 The physical schema must represent schema migrations, requests, events,
 incidents, target identity, canonical results, evidence summaries,
-notification attempts, deduplication keys, and housekeeping state. Physical
-tables and indexes are finalized during implementation design.
+custom rules (`custom_rules` with unique branches), notification attempts,
+deduplication keys, and housekeeping state. Physical tables and indexes are
+finalized during implementation design.
 
 ## ✅ Acceptance
 

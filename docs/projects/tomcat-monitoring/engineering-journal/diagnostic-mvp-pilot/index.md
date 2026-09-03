@@ -119,13 +119,20 @@ Prometheus -> Alertmanager -> Diagnostic Service
     alert `TomcatDown`, evaluasi branch TD-06, persistensi SQLite, dan pengiriman
     email diagnosis firing serta notifikasi recovery resolved ke Mailpit.
 
+18. **[TN-018 — Implement Strict Declarative Rulepack Engine and Append-Only Rules API](TN-018-implement-strict-declarative-rulepack-engine.md)**
+
+    Mengimplementasikan declarative rulepack engine dan append-only rules API pada
+    Diagnostic Service (`POST /api/v1/rules`), 5 lapis ingestion guard, SQLite
+    persistence (`custom_rules`), in-memory hot-reloading tanpa restart container,
+    dan penolakan mutasi (405 Method Not Allowed).
+
 ## 📌 Phase Status
 
 **Completed.** Durable ingestion, target isolation, deterministic engine,
 worker/result lifecycle, HTTPS/SMTP delivery boundaries, restricted collector
-atomic spooling, persistent runtime deployment, dan end-to-end incident & recovery
-verification telah selesai dan terbukti beroperasi secara deterministik pada
-environment `devops-lab`.
+atomic spooling, persistent runtime deployment, end-to-end incident verification,
+serta strict declarative rulepack engine & append-only rules API telah selesai dan
+terverifikasi secara live pada environment `devops-lab`.
 
 ## 🧭 Reproducibility Status
 
@@ -148,6 +155,7 @@ environment `devops-lab`.
 | TN-015 | End-to-end verification passed persistently in `devops-lab`; final commit pending |
 | TN-016 | Collector baseline, component tests, and Tomcat deployment script implemented and verified; final commit pending |
 | TN-017 | End-to-end incident & recovery verification passed; image digest `sha256:0dcb912511da5e9fa8c8b75b202cece765dc9096bd55882c86764cd985226f3a`; final commit pending |
+| TN-018 | Declarative Rulepack Engine and Append-Only Rules API implemented and live verified; image digest `sha256:e781b9fb1cdad484763ab17ec5c0c0004da3fd4775ba5d88eba651382099aae8`; final commit pending |
 
 TN-005 dan TN-006 berbagi satu source commit karena keduanya membentuk satu
 verified diagnostic-engine foundation dan telah dipush. TN-007 berada pada

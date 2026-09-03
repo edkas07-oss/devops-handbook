@@ -18,6 +18,7 @@ unavailable.
 | Idle memory target | 64 MiB |
 | Idle CPU target | 10 millicores |
 | Webhook request | 256 KiB |
+| Rules ingestion request | 64 KiB |
 | Log lines/input | 500 lines / 512 KiB |
 | Persisted evidence summary | 256 KiB per incident |
 | SQLite target/hard size | 100 MiB / 250 MiB |
@@ -31,6 +32,12 @@ or hysteresis before optional work resumes.
 
 - Webhook uses strict TLS, bearer authentication, a dedicated internal network,
   no host port, a 256 KiB limit, and schema validation.
+- Rules API (`/api/v1/rules`) is strictly append-only, enforced by 5 ingestion
+  guards: timing-safe bearer auth, Ajv schema validation (`rulepack-v1`),
+  collision detection (built-in TD-01..TD-08 protection & unique branches),
+  64 KiB payload limit, and regex safety checks.
+- Mutation methods (`PUT`, `DELETE`, `PATCH`) on Rules API are prohibited and
+  explicitly return HTTP `405 Method Not Allowed`.
 - Secret and TLS material remain non-Git and read-only.
 - Diagnostic Service has no broad Podman socket, host namespace, arbitrary
   command, runtime-control, or arbitrary-path access.
