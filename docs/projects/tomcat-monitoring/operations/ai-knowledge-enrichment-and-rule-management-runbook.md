@@ -1,137 +1,226 @@
 # Runbook: AI Knowledge Enrichment & Declarative Rule Management
 
-Dokumen operasional ini merupakan panduan resmi bagi **Operator / Site Reliability Engineer (SRE)** untuk mengelola, memperkaya, dan mengimpor basis pengetahuan diagnosis (*Declarative Rulepacks*) ke dalam **Tomcat Diagnostic Service** menggunakan kolaborasi berbasis AI (*Human-in-the-Loop Governance*).
+## 🔍 Overview
+
+Dokumen operasional (*runbook*) ini menetapkan prosedur standar bagi **Operator / Site Reliability Engineer (SRE)** dalam mengelola, memperkaya, memvalidasi, dan mengimpor basis pengetahuan diagnosis (*Declarative Rulepacks*) ke dalam **Tomcat Diagnostic Service** menggunakan pendekatan **Human-in-the-Loop AI Governance**.
+
+Penerapan alur kerja ini memastikan bahwa pengembangan basis pengetahuan diagnosis dapat dilakukan secara mandiri, aman, dan teruji tanpa memerlukan restart layanan (*zero-downtime hot-reload*), serta terlindungi oleh sistem pengamanan berlapis (*5-Layer Ingestion Defense*).
 
 ---
 
-## 1. Filosofi & Arsitektur Human-in-the-Loop
+## 🏛️ Arsitektur Human-in-the-Loop Governance
 
-Sistem Tomcat Diagnostic memisahkan peran antara kecerdasan generatif AI, kendali verifikasi manusia, dan keandalan engine deterministik:
+Arsitektur tata kelola pengetahuan memisahkan peran antara akselerasi kecerdasan buatan (*AI synthesis*), kendali verifikasi manusia (*SRE gatekeeper*), dan determinisme mesin (*deterministic engine*):
 
+```mermaid
+flowchart TD
+    subgraph SRE_Env["Lingkungan Operator SRE (PC Lokal)"]
+        MC["<b>Master Rules Catalog</b><br/>(master-rules.json)"]
+        PROMPT["<b>AI Prompt Formulation</b><br/>(Domain / Log Evidence)"]
+        QA["<b>SRE QA Review</b><br/>(Pattern & SOP Check)"]
+    end
+
+    subgraph AI_Env["External AI Engine"]
+        LLM["<b>LLM Analyzer</b><br/>(Gemini / Claude / GPT)"]
+    end
+
+    subgraph Runtime_Env["DevOps Lab Container Network"]
+        API["<b>Diagnostic Service API</b><br/>POST /api/v1/rules<br/>(Port 8443 TLS)"]
+        GUARD["<b>5-Layer Ingestion Guard</b><br/>Auth • Schema • Collision<br/>Immutability • Payload Size"]
+        ENGINE["<b>Dynamic Rule Evaluator</b><br/>(In-Memory RAM Engine)"]
+        DB[("<b>SQLite Database</b><br/>(custom_rules table)")]
+    end
+
+    MC --> PROMPT
+    PROMPT -->|"Kirim Konteks"| LLM
+    LLM -->|"JSON Rulepack"| QA
+    QA -->|"Ingest via CLI"| API
+    API --> GUARD
+    GUARD -->|"Hot-Reload"| ENGINE
+    GUARD -->|"Persistensi"| DB
+    DB -.->|"Ekspor & Verifikasi"| MC
 ```
-┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│                               HUMAN-IN-THE-LOOP ARCHITECTURE                             │
-└──────────────────────────────────────────────────────────────────────────────────────────┘
 
-     [PC Operator SRE]                                          [DevOps Lab Runtime]
-  ┌───────────────────────┐                                   ┌──────────────────────┐
-  │  Master Rules Catalog │                                   │  Diagnostic Service  │
-  │  (master-rules.json)  │                                   │   (Port 8443 TLS)    │
-  └──────────┬────────────┘                                   └──────────▲───────────┘
-             │                                                           │
-             │ (1) Proactive Domain Gap /                                │ (4) Safe Ingest
-             │     Forensic Log Evidence                                 │     POST /api/v1/rules
-             ▼                                                           │     (Bearer Token)
-  ┌───────────────────────┐                                   ┌──────────┴───────────┐
-  │   AI Engine (LLM)     │ ──(2) JSON Rulepack──► ┌─────────┐│ 5-Layer Ingestion    │
-  │ (Gemini/Claude/GPT)   │                        │ SRE QA  ││ Defense Guard        │
-  └───────────────────────┘                        │ Review  ││ (Auth, Schema, Match)│
-                                                   └────┬────┘└──────────────────────┘
-                                                        │
-                                                        └─► (3) Validated Knowledge
-```
+### 📋 Empat Pilar Tata Kelola Operasional
 
-1. **AI sebagai Akselerator Analisis:** Bertugas merumuskan pola log (*regex/substring*) dan langkah mitigasi SOP berbasis data forensik atau skenario domain kegagalan.
+1. **AI sebagai Akselerator Analisis:** Bertugas merumuskan pola log (*regex/substring*) dan langkah mitigasi SOP berbasis data forensik insiden atau taksonomi domain kegagalan.
 2. **Operator SRE sebagai Otoritas Tertinggi (*Gatekeeper*):** Memverifikasi keabsahan logika diagnosis, memeriksa keunikan pola, dan mengeksekusi *ingestion* dengan kredensial resmi.
-3. **5-Layer Ingestion Defense-in-Depth:** Memastikan setiap aturan yang masuk melalui API tervalidasi secara ketat terhadap autentikasi, skema JSON, pencegahan tabrakan *branch* bawaan (`TD-01` s/d `TD-08`), batas ukuran memori, dan sifat *append-only*.
-4. **Zero-Downtime Hot-Reload:** Aturan yang berhasil di-ingest langsung aktif seketika di memori engine (*RAM*) dan tersimpan permanen di database SQLite `custom_rules` tanpa perlu me-restart layanan.
+3. **5-Layer Ingestion Defense-in-Depth:** Memastikan setiap aturan yang masuk melalui API tervalidasi secara ketat terhadap autentikasi token, kepatuhan skema JSON, pencegahan tabrakan *branch* bawaan (`TD-01` s/d `TD-08`), batas ukuran memori (maks. 64 KB), dan sifat *append-only*.
+4. **Zero-Downtime Hot-Reload:** Aturan yang berhasil di-ingest langsung aktif seketika di memori engine (*RAM*) dan tersimpan permanen di database SQLite `custom_rules` tanpa perlu me-restart container layanan.
 
 ---
 
-## 2. Dua Mode Pengayaan Pengetahuan (*Enrichment Modes*)
+## 🔄 Dua Mode Pengayaan Pengetahuan (*Enrichment Modes*)
 
 Operator dapat memperkaya basis pengetahuan diagnosis melalui dua pendekatan komplementer:
 
-### Mode A: Pengayaan Proaktif (*Pre-emptive Domain Engineering*)
-**Tujuan:** Melengkapi pustaka aturan diagnosis sebelum insiden terjadi di lingkungan produksi, sehingga ketika masalah pertama kali muncul, sistem langsung memberikan diagnosis deterministik (`confirmed_cause`) dan SOP yang tepat tanpa pernah jatuh ke status `UNDETERMINED`.
+```mermaid
+flowchart LR
+    subgraph Mode_A["Mode A: Pengayaan Proaktif"]
+        direction TB
+        MA1["Analisis Gap Domain"] --> MA2["Sintesis Batch Rule AI"]
+        MA2 --> MA3["Pre-emptive Ingestion"]
+    end
 
-**7 Taksonomi Domain Kegagalan Produksi Tomcat:**
-1. **JVM & Memory Management:** Heap exhaustion, Metaspace exhaustion, GC overhead limit, DirectBuffer OOM, Native memory leak.
-2. **Concurrency & Threading:** Thread pool saturation, Java thread deadlock, Thread starvation, Task rejection.
-3. **Database & Connection Pooling:** DBCP/HikariCP pool timeout, connection leak, backend max connection reached, SQL lock timeout.
-4. **Network, Socket & Upstream:** Socket read timeout, connect timeout, DNS lookup failure (`UnknownHostException`), Connection reset by peer, Broken pipe, TLS/SSL handshake failure.
-5. **Application Framework & Lifecycle:** Spring context initialization failure, `BeanCreationException`, Circular dependency, Missing environment variables, Servlet filter startup error.
-6. **File System, Storage & OS Limits:** File descriptor exhaustion (`Too many open files`), Disk space full (`No space left on device`), Permission denied.
-7. **Security, Session & Auth:** LDAP server timeout, Session replication failure, Token signature validation error.
+    subgraph Mode_B["Mode B: Pengayaan Reaktif"]
+        direction TB
+        MB1["Insiden UNDETERMINED"] --> MB2["Ekstraksi Bukti Log"]
+        MB2 --> MB3["Sintesis Root Cause AI"]
+        MB3 --> MB4["Hot-Fix Ingestion"]
+    end
+```
 
-### Mode B: Pengayaan Reaktif (*Incident-Driven Post-Mortem*)
-**Tujuan:** Merumuskan aturan baru secara cepat ketika sistem mendeteksi insiden baru yang tidak memiliki kecocokan pola pada aturan yang ada (status `UNDETERMINED` / `Branch TD-08`).
+### 1. Mode A: Pengayaan Proaktif (*Pre-emptive Domain Engineering*)
+
+Pengayaan proaktif bertujuan melengkapi pustaka aturan diagnosis **sebelum insiden nyata terjadi** di lingkungan produksi. Ketika insiden pertama kali muncul, sistem langsung memberikan diagnosis deterministik (`confirmed_cause`) dan SOP mitigasi seketika tanpa jatuh ke status `UNDETERMINED`.
+
+```mermaid
+mindmap
+  root((Domain Kegagalan<br/>Tomcat & JVM))
+    JVM & Memory
+      Java Heap Space OOM
+      Metaspace Exhaustion
+      GC Overhead Limit
+      DirectBuffer OOM
+    Concurrency & Threading
+      Thread Pool Saturation
+      Java Thread Deadlock
+      Thread Starvation
+    Database & Persistence
+      HikariCP Pool Timeout
+      DBCP Connection Leak
+      SQL Query Timeout
+      Backend Lock Contention
+    Network & Integration
+      SSL Handshake Failure
+      Socket Read Timeout
+      DNS Lookup Failure
+      Connection Reset by Peer
+    Application Lifecycle
+      Spring Context Failure
+      BeanCreationException
+      Circular Dependency
+      Missing Required Properties
+    Storage & OS Limits
+      File Descriptor Limit
+      Disk Space Exhaustion
+      Permission Denied
+```
+
+### 2. Mode B: Pengayaan Reaktif (*Incident-Driven Post-Mortem*)
+
+Pengayaan reaktif dilakukan saat Diagnostic Service menerima insiden baru yang belum terpetakan dalam basis aturan (*unmapped failure pattern*), sehingga diklasifikasikan sebagai `UNDETERMINED` (`Branch TD-08`).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor SRE as Operator SRE
+    participant DS as Diagnostic Service
+    participant AI as AI Engine (LLM)
+    participant API as Rules API (:8443)
+
+    Note over DS: Insiden UNDETERMINED terjadi & tersimpan
+    SRE->>DS: 1. Ekspor bukti log & snapshot forensik
+    DS-->>SRE: 2. Data log error & metadata JSON
+    SRE->>AI: 3. Kirim Prompt: Data log + Kontrak Skema
+    AI-->>SRE: 4. Sintesis JSON Rulepack baru
+    SRE->>SRE: 5. Review QA & verifikasi keamanan regex
+    SRE->>API: 6. POST /api/v1/rules (Bearer Token)
+    API-->>SRE: 7. Status 201 Created (Rule Hot-Loaded)
+    Note over DS: Insiden serupa berikutnya terpetakan secara otomatis
+```
 
 ---
 
-## 3. Standard Operating Procedures (SOP) Operasional
+## 📋 Prosedur Standar Operasional (SOP 5 Langkah)
 
-### Langkah 1: Cadangkan / Ekspor Katalog Master dari Sistem
+Alur kerja operasional pengelolaan basis aturan terbagi ke dalam 5 langkah sekuensial:
 
-Sebelum melakukan perubahan, ambil salinan katalog master aturan aktif dan simpan di PC lokal Anda:
+```mermaid
+flowchart LR
+    S1["<b>Langkah 1</b><br/>Ekspor / Backup<br/>Master Catalog"] --> S2["<b>Langkah 2</b><br/>Formulasi Prompt<br/>ke AI Engine"]
+    S2 --> S3["<b>Langkah 3</b><br/>SRE Review &<br/>Quality Assurance"]
+    S3 --> S4["<b>Langkah 4</b><br/>Ingest ke API<br/>(ingest-rule.sh)"]
+    S4 --> S5["<b>Langkah 5</b><br/>Verifikasi &<br/>Sinkronisasi PC"]
+```
+
+### Langkah 1: Ekspor / Backup Katalog Master dari Sistem
+
+Sebelum melakukan modifikasi atau penambahan aturan, ambil salinan katalog master aturan aktif dan simpan ke direktori kerja di PC lokal Anda:
 
 ```bash
 /home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh > ~/master-rules.json
 ```
 
+!!! note "Isi Berkas Master Rules"
+    Berkas `master-rules.json` memuat seluruh deklarasi aturan aktif di database SQLite sistem, mencakup nomor branch, pola pencocokan, klasifikasi, tingkat keyakinan, dan daftar instruksi SOP rekomendasi tindakan operator.
+
 ---
 
-### Langkah 2: Berikan Prompt ke AI untuk Merumuskan Aturan
+### Langkah 2: Formulasi Prompting ke AI Engine
 
-Salin prompt di bawah ini ke AI pilihan Anda (Gemini, Claude, atau ChatGPT).
+Salin salah satu template prompt berikut ke antarmuka AI (Gemini, Claude, atau ChatGPT):
 
-#### A. Template Prompt Proaktif (Per Domain)
+#### Template A: Prompt Pengayaan Proaktif (Per Domain)
 ````markdown
 Kamu adalah Principal JVM & Tomcat SRE Architect.
-Saya sedang melakukan PROACTIVE KNOWLEDGE ENRICHMENT untuk Diagnostic Service Tomcat.
+Saya sedang melakukan PROACTIVE KNOWLEDGE ENRICHMENT untuk Tomcat Diagnostic Service.
 
-Berikut adalah Katalog Master Rule yang ada saat ini:
-<PASTE ISI master-rules.json ATAU DAFTAR BRANCH TD-01 s/d TD-18>
+Berikut adalah ringkasan branch aturan yang telah aktif di sistem:
+- TD-01 s/d TD-08: Built-in Scrape, OOM Kill, JVM Crash, Port Bind, Orderly Stop, Undetermined.
+- TD-09 s/d TD-18: Database Pool Exhausted, Thread Pool Exhausted, Heap OOM, Metaspace OOM, SSL Handshake, HikariCP Timeout, Context Init Failure, Thread Deadlock, Socket Read Timeout, SQL Timeout.
 
 --- TUGAS PROAKTIF ---
-Rancang Declarative Rulepack baru untuk domain: [PILIH DOMAIN: Misal Database / Spring Framework / OS Limits].
+Rancang kumpulan Declarative Rulepack baru untuk domain: [PILIH DOMAIN: Misal OS Limits / Spring Framework / Network].
 Rumuskan 3-5 failure patterns yang paling sering terjadi di level production.
 
 --- KONTRAK SCHEMA (WAJIB DIPATUHI) ---
-1. "branch": ID branch baru lanjutan (misal: "TD-19", "TD-20", dst).
-2. "ruleName": Nama unik PascalCase/camelCase.
+1. "branch": ID branch baru kelanjutan (misal: "TD-19", "TD-20", dst).
+2. "ruleName": Nama unik PascalCase/camelCase deskriptif.
 3. "targetSource": "local_file"
-4. "pattern": String substring unik atau regex aman (bebas nested quantifier).
-5. "assessment": Ringkasan akar masalah dalam 1 kalimat padat Bahasa Inggris/Indonesia.
-6. "classification": "confirmed_cause" atau "probable_cause".
-7. "confidence": "high" (untuk confirmed_cause) atau "medium" (untuk probable_cause).
+4. "pattern": Substring unik atau regex aman (tidak boleh mengandung nested quantifier).
+5. "assessment": Ringkasan akar masalah dalam 1 kalimat padat.
+6. "classification": Wajib "confirmed_cause" atau "probable_cause".
+7. "confidence": "high" (jika confirmed_cause) atau "medium" (jika probable_cause).
 8. "recommendedActions": Array 4 langkah mitigasi SOP Bahasa Indonesia terstruktur.
 9. "createdBy": "sre-proactive-enrichment"
 
-Keluarkan HANYA blok Array JSON valid: [ {...}, {...} ] tanpa teks pengantar di luar blok.
+Keluarkan HANYA satu blok Array JSON valid: [ {...}, {...} ] tanpa teks pengantar di luar blok.
 ````
 
-#### B. Template Prompt Reaktif (Berdasarkan Log Insiden Riil)
+#### Template B: Prompt Pengayaan Reaktif (Berdasarkan Insiden Riil)
 ````markdown
 Kamu adalah Enterprise SRE Expert untuk platform Tomcat Diagnostic.
-Terdapat insiden kegagalan baru yang berstatus UNDETERMINED.
+Terdapat insiden kegagalan baru yang saat ini berstatus UNDETERMINED.
 
 --- BUKTI LOG ERROR INSIDEN ---
-<PASTE CUPLIKAN ERROR / STACK TRACE DI SINI>
+<TEMPELKAN CUPLIKAN LOG ERROR ATAU STACK TRACE DI SINI>
 
 --- TUGAS REAKTIF ---
-1. Analisis bukti log error di atas.
+1. Analisis bukti log error di atas dan tentukan akar masalah utamanya.
 2. Buatkan 1 Declarative Rulepack JSON valid dengan nomor branch lanjutan (misal: "TD-19").
-3. Pastikan pola "pattern" unik dan spesifik untuk error tersebut.
+3. Pastikan pola "pattern" unik dan spesifik untuk mencocokkan error tersebut.
 4. Sertakan 4 langkah mitigasi SOP Bahasa Indonesia terstruktur.
-5. Keluarkan HANYA blok JSON tunggal {...} sesuai kontrak skema.
+5. Keluarkan HANYA satu blok JSON tunggal {...} sesuai kontrak skema.
 ````
 
 ---
 
-### Langkah 3: Review & Quality Assurance (SRE Gatekeeping)
+### Langkah 3: SRE Review & Quality Assurance (Gatekeeping)
 
-Sebelum melakukan impor, pastikan:
-* [x] Nomor `branch` tidak menggunakan `TD-01` s/d `TD-08` (area terproteksi *built-in*).
-* [x] Pola `pattern` spesifik dan tidak menimbulkan *false positive*.
-* [x] `classification` dan `confidence` konsisten (`confirmed_cause` berpasangan dengan `high`).
-* [x] Rekomendasi tindakan pada `recommendedActions` jelas, aman, dan dapat ditindaklanjuti oleh tim operasional.
+Sebelum melakukan impor ke sistem produksi/lab, lakukan evaluasi kepatuhan terhadap daftar periksa (*checklist*) berikut:
+
+* [x] **Branch Safety:** Nomor `branch` tidak menggunakan rentang `TD-01` s/d `TD-08` (terproteksi oleh sistem *built-in*).
+* [x] **Pattern Uniqueness:** Pola `pattern` cukup spesifik sehingga tidak memicu salah klasifikasi (*false positive*) pada insiden lain.
+* [x] **Regex Safety:** Pola bebas dari konstruksi rawan *Regular Expression Denial of Service* (*ReDoS*), seperti `(a+)+` atau `([a-z]+)*`.
+* [x] **Classification Consistency:** Nilai `classification` dan `confidence` selaras (`confirmed_cause` wajib berpasangan dengan `high`).
+* [x] **Actionable SOP:** Rekomendasi tindakan pada `recommendedActions` jelas, aman, terurut, dan dapat segera dieksekusi oleh operator.
 
 ---
 
-### Langkah 4: Ingest Hasil AI ke Diagnostic Service
+### Langkah 4: Ingest Rulepack ke Diagnostic Service
 
-Gunakan script CLI [`scripts/ingest-rule.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/ingest-rule.sh):
+Gunakan helper CLI [`scripts/ingest-rule.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/ingest-rule.sh) dengan menyertakan token autentikasi Anda:
 
 #### Opsi 1: Ingest Berkas Batch Array (Proaktif)
 ```bash
@@ -143,61 +232,65 @@ BEARER_TOKEN="test-token-12345" /home/eddywiyatno/git/tomcat-monitoring/scripts/
 BEARER_TOKEN="test-token-12345" /home/eddywiyatno/git/tomcat-monitoring/scripts/ingest-rule.sh ~/rule-td19.json
 ```
 
-#### Opsi 3: Ingest Langsung via Pipe Stdin
+#### Opsi 3: Ingest via Pipe Stdin
 ```bash
 cat ~/new-rule.json | BEARER_TOKEN="test-token-12345" /home/eddywiyatno/git/tomcat-monitoring/scripts/ingest-rule.sh -
 ```
 
+!!! tip "Penanganan Batch Cerdas"
+    Helper CLI secara otomatis mendeteksi apakah input berupa objek tunggal `{...}` atau array `[{...}, {...}]`. Pada mode batch, skrip akan mengimpor seluruh aturan baru (`201 Created`) dan melewati aturan yang sudah terdaftar sebelumnya (`409 Conflict`) tanpa menghentikan proses.
+
 ---
 
-### Langkah 5: Verifikasi Hasil Ingestion & Pembaruan Master Catalog
+### Langkah 5: Verifikasi Hasil Ingestion & Sinkronisasi Master
 
-1. **Periksa status aturan aktif di sistem:**
+1. **Verifikasi status aturan spesifik di Diagnostic Service:**
    ```bash
    /home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh TD-19
    ```
-2. **Sinkronkan kembali Master Catalog lokal di PC Anda:**
+
+2. **Perbarui berkas Master Rules Catalog lokal di PC Anda:**
    ```bash
    /home/eddywiyatno/git/tomcat-monitoring/scripts/export-rules.sh > ~/master-rules.json
    ```
 
 ---
 
-## 4. Matriks Master Knowledge Base Terkurasi Saat Ini
+## 📊 Matriks Master Knowledge Base Terkurasi (18 Branches)
 
-Berikut adalah 18 cabang aturan diagnosis aktif yang telah terverifikasi dan siap di lingkungan *DevOps Lab*:
+Tabel berikut merangkum 18 cabang aturan diagnosis aktif yang saat ini telah terverifikasi di lingkungan *DevOps Lab*:
 
-| Branch | Nama Rule (*Rule Identifier*) | Pola Bukti Error (*Pattern*) | Klasifikasi & Confidence | SOP Rekomendasi Mitigasi Operator |
+| Branch | Nama Rule (*Rule Identifier*) | Pola Bukti Error (*Pattern*) | Klasifikasi & Keyakinan | SOP Rekomendasi Mitigasi Operator |
 | :---: | :--- | :--- | :---: | :--- |
-| **`TD-01`** | `ScrapeTlsUnavailable` *(Built-in)* | Port 9404 unreachable / TLS fail | `confirmed_cause` (high) | Periksa port binding, TLS cert, dan konektivitas scraper Prometheus. |
-| **`TD-02`** | `OOMKilled` *(Built-in)* | Exit 137 / cgroup OOM event | `confirmed_cause` (high) | Periksa limit memori container host, alokasi JVM, dan cgroup bounds. |
-| **`TD-03`** | `JvmCrash` *(Built-in)* | `hs_err_pid*.log` / SIGSEGV / exit 134 | `confirmed_cause` (high) | Analisis fatal crash dump JVM dan kompatibilitas native library APR. |
-| **`TD-04`** | `PortBindConflict` *(Built-in)* | `BindException: Address already in use` | `confirmed_cause` (high) | Periksa port collision pada host port 8080/9404 dan proses zombie. |
-| **`TD-05`** | `OrderlyShutdown` *(Built-in)* | Exit 143 / SIGTERM orderly stop | `confirmed_cause` (high) | Verifikasi proses deployment atau shutdown yang disengaja. |
-| **`TD-06`** | `ContainerExitedUnknown` *(Built-in)* | Container exited tanpa bukti spesifik | `undetermined` (none) | Periksa status cgroup, runtime container, dan log host. |
-| **`TD-07`** | `ContradictingState` *(Built-in)* | Telemetri bertentangan | `undetermined` (none) | Lakukan verifikasi manual langsung ke endpoint runtime target. |
-| **`TD-08`** | `UndeterminedEvidence` *(Built-in)* | Bukti tidak cukup / pola asing | `undetermined` (none) | Ekspor bukti forensik ke AI untuk perumusan rulepack baru. |
-| **`TD-09`** | `DatabasePoolExhausted` *(Enriched)* | `CannotGetJdbcConnectionException` | `confirmed_cause` (high) | Periksa utilisasi database backend, `maxTotal`, dan connection leak. |
-| **`TD-10`** | `ThreadPoolExhausted` *(Enriched)* | `RejectedExecutionException: Thread pool is exhausted` | `confirmed_cause` (high) | Ambil thread dump JVM, sesuaikan `maxThreads`, dan evaluasi traffic spike. |
-| **`TD-11`** | `JavaHeapSpaceOOM` *(Enriched)* | `OutOfMemoryError: Java heap space` | `confirmed_cause` (high) | Analisis heap dump (.hprof) via Eclipse MAT, tingkatkan alokasi `-Xmx`. |
-| **`TD-12`** | `MetaspaceOOM` *(Enriched)* | `OutOfMemoryError: Metaspace` | `confirmed_cause` (high) | Periksa ClassLoader leak, batasi bytecode generator, naikkan `-XX:MaxMetaspaceSize`. |
-| **`TD-13`** | `SSLHandshakeFailure` *(Enriched)* | `javax.net.ssl.SSLHandshakeException` | `confirmed_cause` (high) | Periksa validitas sertifikat backend, perbarui truststore `/conf/truststore.p12`. |
-| **`TD-14`** | `HikariPoolTimeout` *(Enriched)* | `Connection is not available, request timed out` | `confirmed_cause` (high) | Aktifkan `leakDetectionThreshold`, tingkatkan `maximumPoolSize`, periksa lock DB. |
-| **`TD-15`** | `ContextInitFailure` *(Enriched)* | `LifecycleException: Failed to start component` | `confirmed_cause` (high) | Periksa `web.xml`, Spring context, kelengkapan file `WEB-INF/lib`, dan permission. |
-| **`TD-16`** | `JavaThreadDeadlock` *(Enriched)* | `Found one Java-level deadlock` | `confirmed_cause` (high) | Ambil thread dump (`jstack`), analisis siklus lock graph, perbaiki urutan sinkronisasi. |
-| **`TD-17`** | `SocketReadTimeout` *(Enriched)* | `SocketTimeoutException: Read timed out` | `confirmed_cause` (high) | Periksa latency upstream API, sesuaikan `connectTimeout`/`readTimeout`, terapkan Circuit Breaker. |
-| **`TD-18`** | `SQLQueryTimeout` *(Enriched)* | `java.sql.SQLTimeoutException` | `confirmed_cause` (high) | Analisis slow query log, periksa missing index via `EXPLAIN ANALYZE`, periksa table lock. |
+| **`TD-01`** | `ScrapeTlsUnavailable` *(Built-in)* | Port 9404 unreachable / TLS fail | `confirmed_cause`<br/>*(high)* | Periksa port binding, sertifikat TLS, dan konektivitas scraper Prometheus. |
+| **`TD-02`** | `OOMKilled` *(Built-in)* | Exit 137 / cgroup OOM event | `confirmed_cause`<br/>*(high)* | Periksa limit memori container host, alokasi JVM, dan cgroup bounds. |
+| **`TD-03`** | `JvmCrash` *(Built-in)* | `hs_err_pid*.log` / SIGSEGV / exit 134 | `confirmed_cause`<br/>*(high)* | Analisis fatal crash dump JVM dan kompatibilitas native library APR. |
+| **`TD-04`** | `PortBindConflict` *(Built-in)* | `BindException: Address already in use` | `confirmed_cause`<br/>*(high)* | Periksa port collision pada host port 8080/9404 dan proses zombie. |
+| **`TD-05`** | `OrderlyShutdown` *(Built-in)* | Exit 143 / SIGTERM orderly stop | `confirmed_cause`<br/>*(high)* | Verifikasi proses deployment atau shutdown terjadwal yang disengaja. |
+| **`TD-06`** | `ContainerExitedUnknown` *(Built-in)* | Container exited tanpa bukti spesifik | `undetermined`<br/>*(none)* | Periksa status cgroup, runtime container engine, dan log host. |
+| **`TD-07`** | `ContradictingState` *(Built-in)* | Telemetri saling bertentangan | `undetermined`<br/>*(none)* | Lakukan verifikasi manual langsung ke target endpoint runtime aplikasi. |
+| **`TD-08`** | `UndeterminedEvidence` *(Built-in)* | Bukti tidak cukup / pola asing | `undetermined`<br/>*(none)* | Ekspor data forensik insiden ke AI untuk perumusan rulepack baru. |
+| **`TD-09`** | `DatabasePoolExhausted` *(Enriched)* | `CannotGetJdbcConnectionException` | `confirmed_cause`<br/>*(high)* | Periksa utilisasi database backend, kapasitas `maxTotal`, dan connection leak. |
+| **`TD-10`** | `ThreadPoolExhausted` *(Enriched)* | `RejectedExecutionException: Thread pool is exhausted` | `confirmed_cause`<br/>*(high)* | Ambil thread dump JVM, sesuaikan parameter `maxThreads`, dan evaluasi traffic spike. |
+| **`TD-11`** | `JavaHeapSpaceOOM` *(Enriched)* | `OutOfMemoryError: Java heap space` | `confirmed_cause`<br/>*(high)* | Analisis heap dump (.hprof) via Eclipse MAT, naikkan alokasi `-Xmx`. |
+| **`TD-12`** | `MetaspaceOOM` *(Enriched)* | `OutOfMemoryError: Metaspace` | `confirmed_cause`<br/>*(high)* | Periksa ClassLoader leak, batasi dynamic bytecode generator, naikkan `-XX:MaxMetaspaceSize`. |
+| **`TD-13`** | `SSLHandshakeFailure` *(Enriched)* | `javax.net.ssl.SSLHandshakeException` | `confirmed_cause`<br/>*(high)* | Periksa validitas sertifikat backend, perbarui truststore `/conf/truststore.p12`. |
+| **`TD-14`** | `HikariPoolTimeout` *(Enriched)* | `Connection is not available, request timed out` | `confirmed_cause`<br/>*(high)* | Aktifkan `leakDetectionThreshold`, tingkatkan `maximumPoolSize`, periksa database lock. |
+| **`TD-15`** | `ContextInitFailure` *(Enriched)* | `LifecycleException: Failed to start component` | `confirmed_cause`<br/>*(high)* | Periksa berkas `web.xml`, Spring context, kelengkapan `WEB-INF/lib`, dan file permission. |
+| **`TD-16`** | `JavaThreadDeadlock` *(Enriched)* | `Found one Java-level deadlock` | `confirmed_cause`<br/>*(high)* | Ambil thread dump (`jstack`), analisis siklus lock graph, perbaiki urutan sinkronisasi kode. |
+| **`TD-17`** | `SocketReadTimeout` *(Enriched)* | `SocketTimeoutException: Read timed out` | `confirmed_cause`<br/>*(high)* | Periksa latency upstream API, sesuaikan `connectTimeout`/`readTimeout`, pasang Circuit Breaker. |
+| **`TD-18`** | `SQLQueryTimeout` *(Enriched)* | `java.sql.SQLTimeoutException` | `confirmed_cause`<br/>*(high)* | Analisis slow query log, periksa missing index via `EXPLAIN ANALYZE`, periksa row lock. |
 
 ---
 
-## 5. Panduan Respon & Kode Error 5-Layer Guard
+## 🛡️ Panduan Respon & Penanganan Error 5-Layer Guard
 
-| HTTP Status | Kode Error (*Error Code*) | Penyebab Kemungkinan | Tindakan Perbaikan Operator |
+| HTTP Status | Kode Error (*Error Code*) | Akar Masalah | Tindakan Perbaikan Operator |
 | :---: | :--- | :--- | :--- |
-| **`201`** | `Created` | Payload valid, aturan berhasil di-ingest. | Tidak ada. Aturan langsung aktif secara *hot-reload*. |
-| **`401`** | `unauthorized` | Header `Authorization: Bearer <token>` salah atau tidak dikirim. | Pastikan `BEARER_TOKEN` yang digunakan cocok dengan konfigurasi secret. |
-| **`400`** | `invalid_rule_schema` | Struktur JSON tidak lengkap, tipe data salah, atau enum klasifikasi tidak valid. | Periksa apakah seluruh *required fields* (`branch`, `ruleName`, `targetSource`, `pattern`, `assessment`, `classification`, `confidence`, `recommendedActions`, `createdBy`) ada dan bertipe benar. |
-| **`400`** | `unsafe_regex_pattern` | Pola `pattern` mengandung konstruksi regex berbahaya (misal: *nested quantifier* seperti `(a+)+` yang rawan *ReDoS*). | Sederhanakan pola regex atau gunakan pencocokan substring biasa. |
-| **`409`** | `rule_branch_conflict` | ID `branch` bertabrakan dengan branch *built-in* (`TD-01` s/d `TD-08`) atau branch kustom yang sudah ada di database. | Gunakan nomor branch baru yang belum pernah digunakan (misal: `TD-19`). |
-| **`413`** | `payload_too_large` | Ukuran payload JSON melebihi batas keamanan 64 KB. | Ringkas rekomendasi teks atau batasi panjang pola regex. |
-| **`405`** | `Method Not Allowed` | Endpoint diakses menggunakan method `PUT`, `DELETE`, atau `PATCH`. | Aturan bersifat *append-only* (*immutable*). Gunakan method `POST` untuk menambah aturan baru. |
+| **`201`** | `Created` | Payload valid, aturan berhasil di-ingest. | Tidak ada tindakan lanjutan. Aturan langsung aktif secara *hot-reload*. |
+| **`401`** | `unauthorized` | Header `Authorization: Bearer <token>` salah, kedaluwarsa, atau tidak dikirim. | Pastikan variabel `BEARER_TOKEN` yang dikirim cocok dengan token rahasia yang terkonfigurasi. |
+| **`400`** | `invalid_rule_schema` | Struktur JSON tidak lengkap, tipe data salah, atau nilai enum tidak valid. | Periksa apakah seluruh properti wajib (`branch`, `ruleName`, `targetSource`, `pattern`, `assessment`, `classification`, `confidence`, `recommendedActions`, `createdBy`) telah lengkap dan sesuai tipe data. |
+| **`400`** | `unsafe_regex_pattern` | Pola `pattern` mengandung konstruksi regex berbahaya yang berisiko *ReDoS*. | Sederhanakan pola regex atau gunakan pencocokan substring teks langsung. |
+| **`409`** | `rule_branch_conflict` | ID `branch` bertabrakan dengan branch *built-in* (`TD-01` s/d `TD-08`) atau branch kustom yang telah tersimpan. | Gunakan nomor branch baru yang belum pernah terdaftar sebelumnya (misal: `TD-19`). |
+| **`413`** | `payload_too_large` | Ukuran payload JSON melebihi ambang batas keamanan 64 KB. | Ringkas instruksi teks rekomendasi mitigasi atau perpendek pola pencocokan. |
+| **`405`** | `Method Not Allowed` | Endpoint diakses menggunakan method HTTP yang tidak diizinkan (`PUT`, `DELETE`, `PATCH`). | Basis aturan bersifat *append-only* (*immutable*). Gunakan method `POST` untuk menambahkan aturan baru. |
