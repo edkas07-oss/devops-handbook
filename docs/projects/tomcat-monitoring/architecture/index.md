@@ -166,10 +166,25 @@ dan pengiriman laporan ke Mailpit.
 | Dashboard and Alert | Melakukan query ke Prometheus serta menampilkan metrics dan status alert |
 | Alertmanager | Mengelompokkan, melakukan deduplication, dan meneruskan alert |
 | Mailpit | Menangkap email firing, diagnostic report, dan resolved pada topology persistent lab |
-| Diagnostic Service | Menerima alert `TomcatDown`, menyimpan event, mengumpulkan evidence terbatas, mengevaluasi rule engine (TD-01..TD-09), menghasilkan canonical result, dan mengirimkan notifikasi; image `0.1.3` terverifikasi live di `devops-lab` |
-| SQLite | Menyimpan event, incident, deduplication, canonical result, custom rules, dan delivery state lokal pada volume persisten `diagnostic_data` |
+| Diagnostic Service | Menerima alert `TomcatDown`, menyimpan event, mengumpulkan evidence terbatas, mengevaluasi rule engine 18 cabang (TD-01..TD-18), mengelompokkan kategori domain, menghasilkan canonical result, dan mengirimkan notifikasi; image `0.1.4` terverifikasi live di `devops-lab` |
+| SQLite | Menyimpan event, incident, deduplication, canonical result, custom rules (dengan kolom category), dan delivery state lokal pada volume persisten `diagnostic_data` |
 | Restricted Event Collector | Mengumpulkan event host dan status container yang telah dinormalisasi ke spool terbatas (`/tmp/diagnostic-spool`) dengan penulisan atomik `.tmp` -> `.json` |
 | Integration Bridge | Mengubah webhook menjadi event yang diterima TrueSight (dinonaktifkan pada lab) |
+
+## Failure Domain & Rule Categorization Taxonomy
+
+Untuk mempermudah manajemen aturan deklaratif dan mempercepat eskalasi insiden ke tim spesialis terkait, platform menerapkan taksonomi **8 Kategori Domain Kegagalan (*Failure Domains*)**:
+
+| Kategori Domain (*Category Enum*) | Definisi & Cakupan Kegagalan | Pola & Gejala Tipikal (*Typical Patterns*) | Tim Eskalasi / Triage Target |
+| :--- | :--- | :--- | :--- |
+| **`jvm_memory`** | Kegagalan alokasi memori internal JVM, class metadata, atau batas garbage collector. | `OutOfMemoryError: Java heap space`, `Metaspace`, `GC overhead limit exceeded`, `Direct buffer memory`. | Tim Backend / Java Developer |
+| **`concurrency_threading`** | Kejenuhan worker thread pool Tomcat, thread starvation, atau kondisi saling kunci (*deadlock*). | `RejectedExecutionException: Thread pool is exhausted`, `Java-level deadlock`, thread saturation. | Tim Backend / Platform Engineer |
+| **`database_persistence`** | Kegagalan konektivitas, exhaustion connection pool database, timeout query, atau deadlock database. | `CannotGetJdbcConnectionException`, `HikariPool timeout`, `SQLTimeoutException`, connection leak. | Tim DBA / Database Administrator |
+| **`network_integration`** | Kegagalan jabat tangan TLS/SSL, timeout komunikasi microservice upstream, atau DNS/socket failure. | `SSLHandshakeException`, `SocketTimeoutException: Read timed out`, `ConnectException: Connection refused`. | Tim Network / Cloud Infrastructure |
+| **`application_lifecycle`** | Kegagalan startup container, deployment WAR, inisialisasi context aplikasi, atau runtime servlet error. | `LifecycleException: Failed to start component`, `BeanCreationException`, `ClassNotFoundException`. | Tim Application Developer |
+| **`storage_os_limits`** | Batasan resource OS host, exhaustion file descriptor / process limit (ulimit), atau kapasitas disk. | `Too many open files`, `No space left on device`, `Read-only file system`, exit code container tanpa dump. | Tim Sysadmin / Infrastructure |
+| **`security_session`** | Kegagalan autentikasi eksternal, otorisasi, validasi token, replikasi sesi cluster, atau filter crash. | `LDAPException`, `SessionReplicationException`, `InvalidTokenException`, CORS filter crash. | Tim Security / IAM & Middleware |
+| **`general`** | Kondisi cross-domain, telemetri anomali saling bertentangan, atau klasifikasi *fallback* yang belum terpetakan. | `Contradicting state`, `Undetermined evidence`, pola kegagalan baru yang memerlukan analisis AI. | SRE / Incident Commander |
 
 ## Security Controls
 
