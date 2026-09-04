@@ -10,25 +10,25 @@ Perlu ditekankan bahwa status alert ini menunjukkan hilangnya keterjangkauan met
 
 ## 📋 Alert Contract
 
-| Parameter | Nilai Pilot |
+| Parameter | Pilot Value |
 | :--- | :--- |
-| Nama Alert | `TomcatDown` |
-| Ekspresi PromQL | `up{job="tomcat-jmx-exporter"} == 0` |
-| Durasi (*For*) | `2m` |
-| Tingkat Keparahan (*Severity*) | `critical` |
-| Interval Scrape yang Digunakan | `30s` |
-| Label Service | `tomcat` |
-| Label Check | `runtime-availability` |
+| Alert Name | `TomcatDown` |
+| PromQL Expression | `up{job="tomcat-jmx-exporter"} == 0` |
+| Duration (*For*) | `2m` |
+| Severity | `critical` |
+| Applied Scrape Interval | `30s` |
+| Service Label | `tomcat` |
+| Check Label | `runtime-availability` |
 
 Klausul Durasi (`for: 2m`) mewajibkan kondisi evaluasi (`up == 0`) bernilai benar (*true*) secara terus-menerus tanpa putus selama minimal 2 menit sebelum status alert berubah dari `Pending` menjadi `Firing` (mengirimkan alert).
 
 Dengan interval *scrape* 30 detik, durasi 2 menit setara dengan 4 kali *scrape* berturut-turut:
 
-| Titik Waktu | Siklus Scrape | Status Tomcat | Evaluasi (`up == 0`) | Status Alert |
+| Timestamp | Scrape Cycle | Tomcat Status | Evaluation (`up == 0`) | Alert State |
 | :---: | :--- | :---: | :---: | :--- |
-| `00:00` | Interval 1 | `Down` | `True` | `Pending` (timer mulai berjalan) |
-| `00:30` | Interval 2 | `Down` | `True` | `Pending` (durasi berjalan: 30 detik) |
-| `01:00` | Interval 3 | `Up` | `False` | `Reset` (kembali normal, timer dibatalkan) |
+| `00:00` | Interval 1 | `Down` | `True` | `Pending` (timer started) |
+| `00:30` | Interval 2 | `Down` | `True` | `Pending` (elapsed: 30s) |
+| `01:00` | Interval 3 | `Up` | `False` | `Reset` (recovered, timer aborted) |
 | `01:30` | Interval 4 | `Up` | `False` | `Inactive` |
 
 Karena pada interval 3 (menit ke-1) Tomcat sudah kembali aktif (`up == 1`), kondisi alert langsung batal terpenuhi. Ambang batas durasi 2 menit tidak tercapai, sehingga tidak ada alert yang ditembakkan atau terkirim ke Alertmanager.
