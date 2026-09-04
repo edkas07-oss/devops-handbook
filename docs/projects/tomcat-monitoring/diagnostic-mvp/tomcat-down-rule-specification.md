@@ -41,19 +41,44 @@ Identitas unik sebuah instance Tomcat ditentukan secara kanonikal melalui gabung
 
 ## 🧩 Time Window and Evidence Sources
 
-Engine diagnostik mengevaluasi bukti telemetri dalam rentang waktu yang dibatasi secara ketat (*bounded time window*): mulai dari **15 menit sebelum insiden terjadi (`startsAt`)** hingga **2 menit setelah proses diagnosis dimulai**, dengan batas waktu eksekusi global (*global timeout*) maksimal 60 detik.
+Diagnostic Engine mengevaluasi bukti telemetri dalam rentang waktu terbatas (*bounded time window*) dengan batas eksekusi global (*global timeout*) maksimal **60 detik**.
 
-| Sumber Bukti | Tujuan Pengumpulan | Persyaratan |
+### Bounded Time Window
+
+Rentang waktu pengumpulan data dibatasi secara presisi di sekitar waktu insiden:
+
+```text
+startsAt - 15 Menit              startsAt (Waktu Insiden)          Diagnosis + 2 Menit
+        ├─── Konteks Historis ─────────────┼─── Bukti Pasca-Insiden ──────┤
+        ◄── Log aplikasi, scrape sampel ───►◄── Exit event, crash dump ───►
+        └─────────────── Total Jendela Evaluasi Bukti ────────────────────┘
+```
+
+1. **Batas Awal (*Lookback Window*):** Menarik log dan sampel metrik hingga **15 menit sebelum insiden terjadi (`startsAt`)** untuk menangkap anomali awal sebelum layanan down.
+2. **Batas Akhir (*Lookahead Window*):** Mengumpulkan bukti hingga **2 menit setelah proses diagnosis dimulai** untuk menangkap status akhir kontainer atau event terminasi.
+3. **Batas Eksekusi Global (*Global Timeout*):** Seluruh proses pengumpulan bukti oleh Diagnostic Engine wajib selesai dalam waktu maksimal **60 detik**.
+
+### Evidence Sources Matrix
+
+Diagnostic Engine mengorelasikan bukti dari lima sumber data independen:
+
+| Evidence Source | Data Collected & Purpose | Requirement Policy |
 | :--- | :--- | :--- |
-| **Prometheus** | Status scrape, sampel sukses terakhir, dan konteks error saat tersedia. | Percobaan wajib (*Required attempt*) |
-| **Application Health** | Membedakan aplikasi yang masih hidup dari kegagalan jalur scrape/TLS/JMX. | Pendukung; opsional |
-| **Tomcat Logs** | Bukti siklus hidup, kegagalan startup, shutdown normal, error binding port, dan anomali JVM. | Percobaan wajib jika terkonfigurasi |
-| **JVM Crash Artifacts** | Mengkorelasikan terminasi fatal JVM (misal `hs_err_pid*.log`). | Bukti terbatas opsional |
-| **Restricted Event Collector** | Bukti terminasi container, OOM kill, stop, restart, cgroup, dan event host yang disetujui. | Percobaan wajib jika terkonfigurasi |
+| **Prometheus** | Status scrape JMX, sampel metrik sukses terakhir, dan error koneksi TLS. | Required Attempt |
+| **Application Health** | Status HTTP `/health` untuk membedakan proses yang masih melayani traffic dari kegagalan jalur monitoring. | Supporting (Optional) |
+| **Tomcat Logs** | Riwayat siklus hidup, kegagalan startup, shutdown normal, error port binding (`BindException`), dan anomali JVM. | Required Attempt (if configured) |
+| **JVM Crash Artifacts** | Bukti fatal crash JVM pada host (misalnya berkas dump `hs_err_pid*.log` atau fatal SIGSEGV). | Bounded (Optional) |
+| **Restricted Event Collector** | Bukti status kontainer runtime, kernel cgroup OOM kill, exit code, dan event stop/restart host. | Required Attempt (if configured) |
 
-Sumber bukti yang tidak dapat diakses atau tidak ditemukan akan dicatat dengan status *unavailable*. Sesuai prinsip *no negative proof*, ketiadaan data telemetri tidak boleh dianggap sebagai bukti bahwa suatu kejadian (misalnya crash atau OOM) tidak terjadi.
+### Evidence Governance & Timeout Rules
 
-Adapter Prometheus memiliki batas waktu (*deadline*) maksimal **5 detik** per sesi diagnosis (mencakup pembentukan koneksi dan penerimaan respons) tanpa mekanisme coba-ulang dalam siklus berjalan (*in-run retry*). Jika batas waktu terlampaui, adapter akan mengembalikan status `timeout` tanpa membatalkan proses diagnostik secara keseluruhan. Worker akan tetap melanjutkan pengumpulan bukti dari sumber lain. Pada hasil kanonikal (*canonical result*) dan laporan notifikasi, data Prometheus akan secara transparan dilaporkan sebagai tidak tersedia.
+1. **Prinsip Tanpa Bukti Negatif (*No Negative Proof*):**
+   Sumber bukti yang tidak dapat diakses atau berkas yang tidak ditemukan dicatat dengan status `unavailable`. Ketiadaan data telemetri tidak boleh dianggap sebagai bukti bahwa suatu kejadian (misalnya fatal crash atau OOM kill) tidak terjadi.
+2. **Batas Waktu Per-Adapter (*Per-Adapter Timeout*):**
+   Adapter Prometheus memiliki batas waktu maksimal **5 detik** per sesi diagnosis (mencakup pembentukan koneksi TLS dan penerimaan respons). Jika batas waktu 5 detik terlampaui:
+   - Adapter Prometheus mengembalikan status `timeout`.
+   - Proses diagnostik **tidak dibatalkan**, dan Diagnostic Engine tetap melanjutkan analisis dengan bukti dari sumber lain.
+   - Pada hasil kanonikal (*canonical result*) dan laporan email, status Prometheus dilaporkan secara transparan sebagai `unavailable`.
 
 ---
 
