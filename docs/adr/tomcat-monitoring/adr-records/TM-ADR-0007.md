@@ -13,41 +13,34 @@
 
 ## 🔍 Overview
 
-`up{job="tomcat-jmx-exporter"} == 0` for two minutes triggers diagnosis; it does
-not prove that Tomcat is down.
+Kondisi `up{job="tomcat-jmx-exporter"} == 0` selama dua menit berfungsi sebagai pemicu (*trigger*) investigasi diagnostik; kondisi tersebut tidak membuktikan bahwa proses Apache Tomcat benar-benar mati (*down*).
 
 ## 🌍 Context
 
-Scrape failure can result from Tomcat termination, JMX Exporter, TLS,
-configuration, network, or Prometheus-path failure. Application health can
-remain available while JMX scraping fails.
+Kegagalan pengambilan metrik (*scrape failure*) oleh Prometheus dapat disebabkan oleh berbagai faktor: penghentian proses Tomcat, kegagalan internal pada JMX Exporter Java Agent, masalah sertifikat TLS, kesalahan konfigurasi, kendala jaringan, atau kegagalan pada alur internal Prometheus itu sendiri. Sering kali endpoint health aplikasi masih aktif dan melayani lalu lintas pengguna meskipun proses scrape JMX mengalami kegagalan.
 
 ## ⚖️ Decision
 
-The first pilot enables only `TomcatDown`. It correlates Prometheus, optional
-application health, logs, crash artifacts, runtime, and host evidence through a
-versioned decision table. Application-health and high-heap diagnostic rules
-remain disabled.
+Pilot tahap pertama hanya mengaktifkan aturan diagnostik untuk `TomcatDown`. Aturan ini mengorelasikan metrik Prometheus, status health aplikasi (opsional), file log, artefak crash dump, status runtime container, dan event host melalui tabel keputusan (*decision table*) berversi.
+
+Aturan diagnostik untuk kegagalan health aplikasi (`ApplicationDown`) dan penggunaan memori tinggi (`HighHeapUsage`) tetap dinonaktifkan pada tahap pilot ini.
 
 ## 🏛️ Architecture
 
-Prometheus detects the sustained condition, Alertmanager sends firing and
-resolved events, and Diagnostic Service determines whether Tomcat is proven
-unavailable or the failure belongs to another path.
+Prometheus mendeteksi kondisi tidak responsif yang bertahan selama batas evaluasi, Alertmanager mengirimkan webhook event *firing* dan *resolved*, dan Diagnostic Service menentukan apakah Tomcat terbukti tidak tersedia (*proven unavailable*) atau kegagalan tersebut sebenarnya berada pada alur monitoring lain (*monitoring-path failure*).
 
 ## 💡 Rationale
 
-This preserves fast metric-based detection without converting monitoring-path
-failure into a false root-cause claim.
+Pendekatan ini mempertahankan kecepatan deteksi berbasis metrik tanpa mengubah kegagalan pada alur monitoring menjadi klaim akar masalah palsu (*false root-cause claim*).
 
 ## ⚠️ Consequences
 
-The result may legitimately be partial or undetermined. More evidence adapters
-and isolation tests are required than for a direct alert email.
+- Hasil evaluasi diagnostik dapat berstatus sah sebagai tidak dapat dipastikan (*undetermined*) atau hanya terbukti sebagian (*partial*).
+- Memerlukan adapter pengumpul bukti (*evidence adapters*) dan pengujian isolasi kegagalan yang lebih banyak dibandingkan pengiriman email alert konvensional secara langsung.
 
 ## 📌 Status
 
-**Accepted — rule and diagnostic implementation pending.**
+**Accepted — implementasi rule dan diagnostik ditunda (rule and diagnostic implementation pending).**
 
 ## 📅 Date
 

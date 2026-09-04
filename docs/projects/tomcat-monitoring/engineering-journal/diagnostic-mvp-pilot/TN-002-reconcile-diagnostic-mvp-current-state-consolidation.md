@@ -189,7 +189,7 @@ reproduction instruction dan tidak diklaim sebagai command historis TN-002.
 | Acceptance criteria | Topology A mempertahankan tampilan lama dan hanya menambahkan Diagnostic Service setelah Alertmanager; topology B menjelaskan detail flow diagnostic tanpa membebani topology utama |
 | Closure record | `Accepted` oleh project owner pada 2026-08-31 setelah topology dan label panah direvisi |
 
-## 📌 Outcome
+## 🧾 Outcome
 
 Konsolidasi TN-001 telah dikoreksi. Architecture sekarang menggunakan topology
 utama yang hanya menambahkan Diagnostic Service setelah Alertmanager dan
@@ -219,7 +219,7 @@ git add docs/standards/documentation-standards.md docs/projects/tomcat-monitorin
 git commit -m "docs(tomcat-monitoring): reconcile diagnostic consolidation"
 ```
 
-## 🔗 References
+## 🔗 Related Documentation
 
 - [TN-001 — Define Diagnostic MVP Architecture and Contract](TN-001-define-diagnostic-mvp-architecture-and-contract.md)
 - [Architecture](../../architecture/index.md)

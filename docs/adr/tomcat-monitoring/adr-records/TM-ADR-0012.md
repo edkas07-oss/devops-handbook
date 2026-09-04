@@ -13,44 +13,38 @@
 
 ## 🔍 Overview
 
-Mailpit is the only active Diagnostic MVP delivery target. Future TrueSight
-delivery is isolated behind an Integration Bridge that remains disabled.
+Mailpit merupakan satu-satunya target pengiriman notifikasi yang aktif pada Diagnostic MVP. Pengiriman masa depan ke TrueSight diisolasi di balik komponen Integration Bridge yang statusnya dinonaktifkan (*disabled*).
 
 ## 🌍 Context
 
-TrueSight contracts, credentials, security, event classes, slots, and closure
-semantics are unavailable. Adding `msend` or general SNMP dependencies to the
-Diagnostic Service would couple diagnosis to one external platform.
+Spesifikasi kontrak, kredensial, mekanisme keamanan, kelas event (*event classes*), slot atribut, dan semantik penutupan alert (*closure semantics*) untuk TrueSight belum tersedia. Menambahkan CLI `msend` atau dependensi SNMP generik ke dalam container Diagnostic Service akan mengikat erat sistem diagnostik ke satu platform vendor eksternal tertentu.
 
 ## ⚖️ Decision
 
-Diagnostic Service renders Mailpit email from the canonical result. When
-disabled, Integration Bridge and TrueSight have no endpoint, credential,
-connection, retry, queue, or worker activity. Future activation sends a bounded
-canonical JSON projection; only the bridge owns TrueSight mapping and transport.
+Diagnostic Service menyusun dan mengirimkan email ke Mailpit berdasarkan laporan *canonical result*.
 
-This decision clarifies the activation state described by TM-ADR-0001 without
-changing its embedded instrumentation architecture: TrueSight is a future
-target, not a current lab implementation.
+Selama dinonaktifkan, Integration Bridge dan TrueSight tidak memiliki endpoint aktif, kredensial, koneksi jaringan, mekanisme retry, antrean, maupun aktivitas background worker. Pengaktifan di masa depan akan mengirimkan proyeksi payload JSON kanonikal dengan batasan ukuran tertentu; hanya komponen bridge yang bertanggung jawab memetakan atribut dan menangani transport ke TrueSight.
+
+Keputusan ini memperjelas status aktivasi yang telah disebutkan pada TM-ADR-0001 tanpa mengubah arsitektur instrumentasi tertanamnya (*embedded instrumentation*): integrasi TrueSight adalah target masa depan, bukan implementasi lab saat ini.
 
 ## 🏛️ Architecture
 
-`Canonical result -> Mailpit` is active. `Canonical result -.-> Integration
-Bridge -.-> TrueSight` remains disabled.
+Alur aktif: `Canonical result -> Mailpit`.
+
+Alur nonaktif: `Canonical result -.-> Integration Bridge -.-> TrueSight` (tetap disabled).
 
 ## 💡 Rationale
 
-The boundary keeps diagnostic semantics platform-independent and prevents an
-unavailable external system from affecting classification or Mailpit delivery.
+Batasan isolasi ini menjaga agar semantik diagnostik tetap independen dari platform eksternal tertentu, serta mencegah kendala pada sistem eksternal yang belum siap memengaruhi proses klasifikasi atau pengiriman notifikasi ke Mailpit.
 
 ## ⚠️ Consequences
 
-The pilot does not prove TrueSight delivery. Activation requires a separate
-contract, secrets, mapping, lifecycle, failure, and resolved-state verification.
+- Fase pilot tidak membuktikan pengiriman event ke TrueSight secara nyata.
+- Pengaktifan integrasi di masa mendatang memerlukan kontrak terpisah, pengelolaan secret/kredensial, pemetaan skema, pengelolaan siklus hidup, serta verifikasi skenario kegagalan dan penutupan status (*resolved state*).
 
 ## 📌 Status
 
-**Accepted — bridge and TrueSight disabled.**
+**Accepted — bridge dan TrueSight dinonaktifkan (bridge and TrueSight disabled).**
 
 ## 📅 Date
 

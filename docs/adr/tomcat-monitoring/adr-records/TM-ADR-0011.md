@@ -13,39 +13,34 @@
 
 ## 🔍 Overview
 
-Diagnostic classification and confidence are assigned by explicit versioned
-rule branches rather than a generic additive score.
+Klasifikasi diagnostik dan tingkat keyakinan (*confidence level*) ditentukan melalui cabang aturan (*rule branches*) yang eksplisit dan berversi, bukan menggunakan sistem skor aditif/kumulatif yang generik.
 
 ## 🌍 Context
 
-Evidence sources differ in authority and can contradict one another. Numeric or
-generic scores would imply precision that the pilot has not validated.
+Berbagai sumber bukti memiliki tingkat otoritas yang berbeda dan dapat saling bertolak belakang (*contradictory*). Penilaian berbasis skor numerik atau persentase generik dapat memberikan kesan kepastian semu yang belum tervalidasi pada tahap pilot.
 
 ## ⚖️ Decision
 
-Each rule specifies ordered evidence conditions, contradictions,
-classification, allowed confidence, and required direct evidence. Confirmed
-cause requires high-confidence direct evidence with time correlation.
-`undetermined` and `not_supported` have no confidence value.
+Setiap aturan diagnostik mendefinisikan urutan kondisi bukti, kondisi kontradiksi, klasifikasi kategori, tingkat keyakinan yang diizinkan, serta bukti langsung yang wajib dipenuhi.
+
+Penyebab yang terkonfirmasi (*confirmed cause*) wajib didukung oleh bukti langsung berkeyakinan tinggi (*high-confidence direct evidence*) dengan korelasi waktu kejadian yang sesuai. Hasil klasifikasi `undetermined` (tidak dapat dipastikan) dan `not_supported` (tidak didukung) tidak diberikan nilai tingkat keyakinan (*no confidence value*).
 
 ## 🏛️ Architecture
 
-Normalized evidence enters the selected rule version; the first matching
-approved branch produces assessment fields in canonical result version `1`.
+Bukti yang telah dinormalisasi dievaluasi ke dalam versi aturan yang dipilih; cabang aturan pertama yang cocok dan disetujui (*first matching approved branch*) akan menghasilkan field asesmen pada laporan *canonical result* versi `1`.
 
 ## 💡 Rationale
 
-Decision tables are testable, explainable, and deterministic. Generic scores,
-percentages, and renderer-side interpretation were rejected.
+Tabel keputusan (*decision tables*) dapat diuji secara komprehensif, mudah dipahami dan dijelaskan kepada operator (*explainable*), serta bersifat deterministik. Penggunaan skor generik, nilai persentase, dan interpretasi bebas di sisi renderer notifikasi ditolak.
 
 ## ⚠️ Consequences
 
-Every promoted diagnostic rule requires its own reviewed table and fixtures.
-Rule changes require versioning and deterministic regression tests.
+- Setiap aturan diagnostik yang dipromosikan memerlukan peninjauan tabel keputusan dan dataset pengujian (*test fixtures*) tersendiri.
+- Setiap modifikasi aturan memerlukan penomoran versi baru dan pengujian regresi deterministik.
 
 ## 📌 Status
 
-**Accepted — engine and fixtures pending.**
+**Accepted — engine dan fixtures ditunda (engine and fixtures pending).**
 
 ## 📅 Date
 

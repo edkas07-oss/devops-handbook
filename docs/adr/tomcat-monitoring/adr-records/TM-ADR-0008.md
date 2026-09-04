@@ -13,41 +13,35 @@
 
 ## 🔍 Overview
 
-Host and container evidence is exposed through a rootless collector that writes
-a bounded normalized spool read-only to Diagnostic Service.
+Bukti dari host dan container diekspos melalui komponen kolektor non-root (*rootless collector*) yang menulis berkas spool ternormalisasi dengan ukuran terbatas, yang hanya dapat dibaca (*read-only*) oleh Diagnostic Service.
 
 ## 🌍 Context
 
-Mounting a broad Podman socket or adding host command access would turn an
-evidence consumer into a runtime-control surface. Some host evidence also has
-different privilege and lifecycle requirements from the service container.
+Melakukan mount socket Podman secara luas (`podman.sock`) atau memberikan izin eksekusi perintah host ke container diagnostik akan mengubah komponen pembaca bukti menjadi celah kontrol runtime (*runtime-control surface*) yang berbahaya. Sebagian bukti host juga memiliki kebutuhan hak akses (*privilege*) dan siklus hidup yang berbeda dari container Diagnostic Service.
 
 ## ⚖️ Decision
 
-A separately owned `tomcat-diagnostic-event-collector` host runtime reads only
-allowlisted identities and evidence types, then atomically writes versioned
-bounded records. Diagnostic Service cannot send arbitrary queries or actions.
-Evidence unavailable to approved rootless access remains unavailable.
+Runtime host `tomcat-diagnostic-event-collector` yang dikelola secara terpisah hanya membaca identitas proses/container dan tipe bukti yang telah terdaftar dalam allowlist, kemudian menulis record berversi dengan batas ukuran tertentu secara atomik.
+
+Diagnostic Service dilarang mengirimkan kueri acak maupun memicu perintah kontrol ke host. Bukti yang tidak dapat diakses melalui mode rootless yang disetujui dibiarkan tetap tidak tersedia (*remains unavailable*).
 
 ## 🏛️ Architecture
 
-`Host evidence -> restricted collector -> normalized spool -> read-only
-Diagnostic Service adapter` is a one-way boundary.
+`Bukti host -> Restricted collector -> Spool ternormalisasi -> Adapter read-only Diagnostic Service` merupakan batasan komunikasi satu arah (*one-way boundary*).
 
 ## 💡 Rationale
 
-The spool form removes a request/control API, permits strict schema and size
-validation, and isolates host permissions from the service container.
+Format berkas spool menghilangkan kebutuhan akan antarmuka API kueri/kontrol, memungkinkan validasi skema dan ukuran berkas secara ketat, serta mengisolasi hak akses level host dari container layanan diagnostik.
 
 ## ⚠️ Consequences
 
-A separate repository and lifecycle are required. Retention, atomicity,
-permissions, and freshness need explicit tests; some evidence may be absent in
-rootless mode.
+- Membutuhkan repositori dan siklus hidup terpisah untuk komponen collector.
+- Kebijakan retensi, penulisan atomik, hak akses berkas (*file permissions*), dan kebaruan data (*freshness*) memerlukan pengujian eksplisit.
+- Sebagian bukti level kernel atau root mungkin tidak tersedia dalam mode operasi rootless.
 
 ## 📌 Status
 
-**Accepted — collector repository and runtime pending.**
+**Accepted — repositori dan runtime collector ditunda (collector repository and runtime pending).**
 
 ## 📅 Date
 

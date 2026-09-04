@@ -13,41 +13,34 @@
 
 ## 🔍 Overview
 
-Each host-local Diagnostic Service uses SQLite for durable event, incident,
-canonical-result, deduplication, and delivery state.
+Setiap instans Diagnostic Service lokal pada host menggunakan database SQLite untuk menyimpan state event, insiden, hasil kanonikal (*canonical result*), deduplikasi, dan riwayat pengiriman notifikasi secara persisten (*durable*).
 
 ## 🌍 Context
 
-Webhook acceptance must survive restart, pair firing with resolved events, and
-avoid duplicate work. The pilot has one worker and does not need a separately
-administered database.
+Penerimaan webhook dari Alertmanager harus mampu bertahan saat container mengalami restart, dapat memasangkan event *firing* dengan *resolved*, serta mencegah pemrosesan ganda (*duplicate work*). Lingkup pilot hanya memiliki satu proses worker dan tidak memerlukan sistem database eksternal yang dikelola terpisah.
 
 ## ⚖️ Decision
 
-SQLite runs in WAL mode on named volume `diagnostic_data`. Initialization,
-migration, checkpoint, retention, and incremental vacuum are automatic. Data
-targets 100 MiB and cannot exceed a 250 MiB acceptance boundary. Active
-incident state is never automatically deleted for capacity recovery.
+SQLite berjalan dalam mode WAL (*Write-Ahead Logging*) pada named volume persisten `diagnostic_data`. Proses inisialisasi, migrasi skema, *checkpoint*, retensi data, dan *incremental vacuum* berjalan secara otomatis.
+
+Target kapasitas data adalah 100 MiB dan dibatasi tidak boleh melampaui batas toleransi 250 MiB. Data state insiden yang masih berstatus aktif dilarang dihapus secara otomatis hanya untuk tujuan pemulihan kapasitas disk.
 
 ## 🏛️ Architecture
 
-The service commits a unique normalized event transaction before returning
-`202`, then processes it asynchronously through one worker.
+Layanan melakukan commit transaksi event unik yang telah dinormalisasi ke SQLite sebelum merespons HTTP `202 Accepted`, kemudian memprosesnya secara asinkron melalui satu worker antrean.
 
 ## 💡 Rationale
 
-SQLite provides transactional restart-persistent local state with low resource
-and operational overhead. In-memory state cannot survive restart; an external
-database is disproportionate for the pilot.
+SQLite menyediakan penyimpanan state lokal transaksional yang tahan terhadap restart (*restart-persistent*) dengan kebutuhan sumber daya dan beban operasional yang sangat rendah. Penyimpanan berbasis memori (*in-memory*) tidak dapat bertahan saat restart, sementara database eksternal tidak proporsional untuk kebutuhan pilot.
 
 ## ⚠️ Consequences
 
-Active-active service deployment is excluded. Schema migration, corruption,
-capacity, and volume recovery behavior require explicit testing.
+- Model deployment *active-active* pada volume yang sama tidak didukung (*single-writer*).
+- Prosedur migrasi skema, penanganan kerusakan data (*corruption*), batas kapasitas, dan pemulihan volume memerlukan pengujian eksplisit.
 
 ## 📌 Status
 
-**Accepted — physical schema and implementation pending.**
+**Accepted — skema fisik dan implementasi ditunda (physical schema and implementation pending).**
 
 ## 📅 Date
 

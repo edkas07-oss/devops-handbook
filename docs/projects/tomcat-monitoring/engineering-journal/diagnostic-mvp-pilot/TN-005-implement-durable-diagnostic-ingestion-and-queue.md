@@ -200,20 +200,50 @@ dan temporary database tidak menjadi runtime persisten.
 
 ## 📁 Artifact Manifest
 
-Mulai dari baseline `03f1296`, TN-005 mengubah atau menambahkan:
+Bagian ini mencatat seluruh berkas (*artifacts*) pada repositori `tomcat-diagnostic-service` yang dibuat atau dimodifikasi selama aktivitas TN-005, terhitung dari commit baseline `03f1296`.
 
-| Path | Responsibility |
-| --- | --- |
-| `package.json`, `package-lock.json` | Exact Ajv dependency dan `npm test` interface |
-| `config/schemas/alertmanager-webhook-v4.schema.json` | Untrusted webhook shape and field validation |
-| `migrations/001-initial.sql` | Requests, events, incidents, dan durable queue schema |
-| `src/server/webhook-schema.js` | Compile schema dengan strict Ajv |
-| `src/application/ingest-alertmanager.js` | Validation, normalization, allowlist, dan event key |
-| `src/application/bounded-queue.js` | Capacity 50 serta claim/complete boundary |
-| `src/adapters/sqlite-repository.js` | Migration, WAL, transaction, deduplication, dan queue persistence |
-| `test/unit/normalize-webhook.test.js` | Schema, identity, dan deterministic-key tests |
-| `test/integration/sqlite-ingestion.test.js` | Migration, rollback, restart, duplicate, queue, dan lifecycle tests |
-| `README.md`, `scripts/validate.sh` | Public status dan static source contract |
+### Panduan Membaca Tabel
+
+Tabel di bawah mengelompokkan berkas berdasarkan peran teknis dan lapisan (*layer*) arsitekturalnya:
+
+- **Berkas (*Path*)**: Lokasi berkas relatif terhadap direktori utama (*root*) repositori `tomcat-diagnostic-service`.
+- **Layer / Kategori**: Lapisan sistem dari komponen terkait (Dependensi, Kontrak Skema, Database, Logika Aplikasi, Adapter, Pengujian, atau Tata Kelola).
+- **Status**: Status perubahan berkas dibandingkan kondisi baseline `03f1296` (`Baru` = berkas baru dibuat; `Modifikasi` = berkas template/existing diperbarui).
+- **Tanggung Jawab Teknis**: Peran fungsional berkas tersebut dalam alur penyerapan alert (*alert ingestion*) dan antrean (*queue*).
+
+### Tabel Manifest Berkas
+
+| Berkas (*Path*) | Layer / Kategori | Status | Tanggung Jawab Teknis |
+| --- | --- | :---: | --- |
+| `package.json`<br/>`package-lock.json` | Dependensi & Tooling | Modifikasi<br/>Baru | Mengunci dependensi parser JSON Schema (Ajv `8.20.0`) secara eksak dan menyediakan antarmuka eksekusi `npm test`. |
+| `config/schemas/alertmanager-webhook-v4.schema.json` | Kontrak Skema Data | Baru | Kontrak JSON Schema (draft-07) untuk memvalidasi struktur, tipe data, dan kelengkapan field payload webhook dari Alertmanager. |
+| `migrations/001-initial.sql` | Basis Data (SQLite) | Baru | Skrip DDL migrasi awal untuk mendefinisikan tabel penerimaan request (`requests`), histori alert (`events`), status insiden (`incidents`), dan antrean persisten (`queue`). |
+| `src/server/webhook-schema.js` | Server / Kompilasi Validasi | Baru | Mengompilasi skema validasi webhook v4 menggunakan compiler Ajv dengan mode strict agar siap dieksekusi cepat di runtime. |
+| `src/application/ingest-alertmanager.js` | Logika Aplikasi (Ingestion) | Baru | Memvalidasi payload webhook, memeriksa kecocokan target terhadap allowlist, menormalisasi data, dan membuat kunci unik event (*event key*) untuk deduplikasi. |
+| `src/application/bounded-queue.js` | Logika Aplikasi (Queue) | Baru | Mengelola antrean kerja di memori dengan kapasitas maksimum berbatas (50 item) serta membatasi operasi pengambilan (*claim*) dan penyelesaian (*complete*). |
+| `src/adapters/sqlite-repository.js` | Adapter Infrastruktur | Baru | Mengisolasi akses `node:sqlite`, menangani eksekusi migrasi, mode WAL, penulisan transaksi penerimaan event secara atomik, deduplikasi, dan persistensi antrean ke disk. |
+| `test/unit/normalize-webhook.test.js` | Pengujian Otomatis (Unit) | Baru | Menguji validitas skema JSON, ekstraksi identitas target, dan konsistensi pembentukan *deterministic event key*. |
+| `test/integration/sqlite-ingestion.test.js` | Pengujian Otomatis (Integrasi) | Baru | Menguji siklus hidup lengkap integrasi SQLite: eksekusi migrasi, rollback transaksi saat error, pemulihan antrean pasca-restart, dan penanganan duplikasi alert. |
+| `README.md`<br/>`scripts/validate.sh` | Tata Kelola Repositori | Modifikasi | Memperbarui dokumentasi status repositori dan skrip verifikasi statis (`validate.sh`) untuk memastikan kepatuhan standar kode sumber. |
+
+### Alur Keterkaitan Antar-Berkas
+
+Diagram berikut mengilustrasikan bagaimana berkas-berkas di atas saling berinteraksi saat sebuah webhook insiden diterima:
+
+```mermaid
+flowchart TD
+    AM["Alertmanager Webhook Payload"] --> V4["config/schemas/...webhook-v4.schema.json<br/>(Kontrak Skema)"]
+    V4 --> WS["src/server/webhook-schema.js<br/>(Kompilasi Ajv Strict)"]
+    WS --> INGEST["src/application/ingest-alertmanager.js<br/>(Validasi & Normalisasi Payload)"]
+    INGEST --> REPO["src/adapters/sqlite-repository.js<br/>(Transaksi SQLite & WAL Mode)"]
+    REPO --> SQL[("migrations/001-initial.sql<br/>(Tabel requests, events, queue)")]
+    REPO --> QUEUE["src/application/bounded-queue.js<br/>(Antrean Berbatas Kapasitas 50)"]
+
+    subgraph TESTS["Pengujian Terotomasi"]
+        UNIT["test/unit/normalize-webhook.test.js<br/>(Uji Validasi & Event Key)"] -. Memverifikasi .-> INGEST
+        INTG["test/integration/sqlite-ingestion.test.js<br/>(Uji Migrasi, Rollback, Restart)"] -. Memverifikasi .-> REPO
+    end
+```
 
 ## 🧪 Test Scenario Matrix
 
