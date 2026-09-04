@@ -12,7 +12,8 @@ Perlu ditekankan bahwa status alert ini menunjukkan hilangnya keterjangkauan met
 
 | Parameter | Pilot Value |
 | :--- | :--- |
-| Alert Name | `TomcatDown` |
+| Alert Name (`ruleId`) | `TomcatDown` |
+| Rule Version (`ruleVersion`) | `1` |
 | PromQL Expression | `up{job="tomcat-jmx-exporter"} == 0` |
 | Duration (*For*) | `2m` |
 | Severity | `critical` |
@@ -109,7 +110,7 @@ Evaluasi aturan dijalankan secara berurutan dari atas ke bawah. Cabang aturan pe
 !!! note "Ekstensibilitas Dynamic Rulepack (TD-09+)"
     Selain aturan inti TD-01 s/d TD-08, Diagnostic Service dilengkapi dengan **Declarative Rulepack Engine** (`rulepack-v1.schema.json`). Aturan deklaratif kustom (seperti `TD-09` *DatabaseConnectionPoolExhausted*) dievaluasi setelah pemeriksaan kontradiksi dan sebelum fallback TD-08 tanpa memerlukan modifikasi kode inti engine.
 
-Logika evaluasi menerapkan aturan ketat: bukti langsung yang saling bertentangan selalu diprioritaskan sebelum bukti pendukung dianalisis. Potongan teks log yang bersifat umum tidak dapat digunakan sebagai dasar konfirmasi tanpa dukungan korelasi runtime yang sah. Seluruh proses pengambilan keputusan bersifat deterministik mutlak untuk masukan bukti dan `rule_version` yang sama.
+Logika evaluasi menerapkan aturan ketat: bukti langsung yang saling bertentangan selalu diprioritaskan sebelum bukti pendukung dianalisis. Potongan teks log yang bersifat umum tidak dapat digunakan sebagai dasar konfirmasi tanpa dukungan korelasi runtime yang sah. Seluruh proses pengambilan keputusan bersifat deterministik mutlak untuk masukan bukti dan versi spesifikasi aturan (`ruleVersion: "1"`) yang sama.
 
 ---
 
