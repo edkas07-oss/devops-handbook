@@ -2,44 +2,58 @@
 
 ## 🔍 Overview
 
-The documentation decision closes scope and architecture choices but does not
-claim implementation readiness where repository or lab evidence is absent.
+Daftar kesenjangan (*Gap Register*) ini mencatat seluruh item terbuka teknis, persyaratan penutupan (*closure evidence*), gerbang persetujuan (*gate*), dan pemilik (*owner*) selama fase Diagnostic MVP Pilot berlangsung.
 
-| ID | Open item | Closure evidence | Gate | Owner |
-| --- | --- | --- | --- | --- |
-| GAP-001 | Create `tomcat-diagnostic-service` repository and governance | Approved repository plan, source contract, and validation interface | Before service implementation | Project owner / engineer |
-| GAP-002 | Create `tomcat-diagnostic-event-collector` repository | Approved host-runtime plan and privilege assessment | Before collector implementation | Platform owner / engineer |
-| GAP-003 | Physical SQLite schema and migration mechanism | Reviewed implementation design and schema tests | Before schema freeze | Service owner |
-| GAP-004 | Target allowlist physical format | Validated configuration schema for `lab + edkas-pc1 + tomcat-jmx-exporter` | Before webhook tests | Integration owner |
-| GAP-005 | Stable container generation source | Rootless Podman evidence and recreation semantics | Before correlation tests | Platform owner |
-| GAP-006 | Authoritative logs and rotation | Effective Tomcat/JULI/stdout mounts and retention | Before log adapter | Tomcat owner |
-| GAP-007 | JVM fatal artifact location | Effective JVM arguments and writable artifact mount | Before crash adapter | Tomcat owner |
-| GAP-008 | Rootless collector evidence permissions | cgroup, user-service, journal, and Podman access matrix | Before collector test | Platform owner |
-| GAP-009 | Diagnostic TLS and bearer secret lifecycle | Non-Git paths, permissions, rotation, CA mount, and reload process | Before webhook deployment | Security/platform owner |
-| GAP-010 | SMTP retry values | Attempts, backoff, maximum age, and queue bounds | Before delivery implementation | Service owner |
-| GAP-011 | Collector spool bounds | Retention duration, maximum records, total size, and cleanup behavior | Before collector schema freeze | Collector owner |
-| GAP-012 | Host resource baseline | CPU, memory, filesystem, and representative workload evidence | Before NFR acceptance | Lab owner |
-| GAP-013 | Safe failure injection procedures | Approved OOM, JMX loss, stop, crash, outage, and recovery methods | Before end-to-end tests | Project owner / engineer |
-| GAP-014 | Production TLS, HA, backup, and recovery | Production architecture decision | Production-only | Security/platform owner |
-| GAP-015 | TrueSight class, slots, credentials, and delivery semantics | Separate accepted integration contract | Deferred | Integration owner |
-| GAP-016 | Connect canonical result rendering, SMTP delivery, notification-attempt persistence, and bounded retry to the application worker | Source implementation and source/component tests | Before Mailpit multi-component verification | Service owner |
+---
 
-An item is closed append-oriented with observed evidence, accepted value,
-affected artifact, resolver/date, and verification consequence. A decision that
-changes an ADR boundary requires a new or superseding ADR.
+## 📋 Matriks Kesenjangan Terbuka (*Open Items*)
 
-## ✅ Closure Records
+| ID | Item Kesenjangan (*Open Item*) | Bukti Penutupan (*Closure Evidence*) | Gerbang (*Gate*) | Pemilik (*Owner*) | Status |
+| :--- | :--- | :--- | :--- | :--- | :---: |
+| **GAP-001** | Pembentukan repositori dan tata kelola `tomcat-diagnostic-service` | Rencana repositori disetujui, kontrak source, dan antarmuka validasi | Sebelum implementasi service | Project owner / engineer | **Closed** (TN-003) |
+| **GAP-002** | Pembentukan repositori `tomcat-diagnostic-event-collector` | Rencana host-runtime disetujui dan asesmen privilege | Sebelum implementasi collector | Platform owner / engineer | **Closed** (TN-016) |
+| **GAP-003** | Skema fisik SQLite dan mekanisme migrasi otomatis | Desain implementasi direview dan pengujian migrasi lulus | Sebelum freeze skema | Service owner | **Closed** (TN-005) |
+| **GAP-004** | Format fisik allowlist target (`targets.json`) | Skema konfigurasi tervalidasi untuk `lab + edkas-pc1 + tomcat-jmx-exporter` | Sebelum pengujian webhook | Integration owner | **Closed** (TN-006) |
+| **GAP-005** | Sumber generasi container yang stabil | Bukti Podman rootless dan semantik rekreasi container | Sebelum pengujian korelasi | Platform owner | **Closed** (TN-016) |
+| **GAP-006** | Lokasi log otoritatif dan kebijakan rotasi | Mount direktori log Tomcat dan pembuktian retensi | Sebelum adapter log | Tomcat owner | **Closed** (TN-016) |
+| **GAP-007** | Lokasi artefak crash JVM fatal (`hs_err_pid*.log`) | Argumen JVM efektif dan direktori mount crash dump | Sebelum adapter crash | Tomcat owner | **Closed** (TN-016) |
+| **GAP-008** | Izin pengumpulan bukti collector rootless | Matriks akses cgroup, user-service, journal, dan Podman | Sebelum pengujian collector | Platform owner | **Closed** (TN-016) |
+| **GAP-009** | Siklus hidup secret TLS dan bearer token | Path non-Git, izin `0400`, distribusi CA, dan prosedur reload | Sebelum deployment webhook | Security / platform owner | **Closed** (TN-015) |
+| **GAP-010** | Kebijakan retry pengiriman SMTP | Jumlah percobaan, jeda backoff, batas usia, dan kapasitas antrean | Sebelum implementasi pengiriman | Service owner | **Closed** (TN-012) |
+| **GAP-011** | Batasan ukuran dan retensi spool collector | Durasi retensi, batas berkas, total ukuran, dan pembersihan atomik | Sebelum freeze skema collector | Collector owner | **Closed** (TN-016) |
+| **GAP-012** | Baseline resource host | CPU, memori, filesystem, dan beban kerja representatif | Sebelum penerimaan NFR | Lab owner | **Closed** (TN-015) |
+| **GAP-013** | Prosedur injeksi kegagalan aman (*failure injection*) | Metode simulasi OOM, JMX loss, stop, crash, dan pemulihan | Sebelum pengujian end-to-end | Project owner / engineer | **Closed** (TN-017) |
+| **GAP-014** | Konfigurasi TLS produksi, HA, backup, dan DR | Keputusan arsitektur fase produksi | Fase Produksi | Security / platform owner | **Deferred** |
+| **GAP-015** | Integrasi kelas TrueSight, slot mapping, dan `msend` | Kontrak integrasi terpisah yang disetujui | Fase Enterprise Integration | Integration owner | **Deferred** |
+| **GAP-016** | Orkestrasi rendering canonical result, SMTP, dan worker | Implementasi source dan pengujian komponen/disposable | Sebelum verifikasi Mailpit | Service owner | **Closed** (TN-012) |
 
-| ID | Resolution | Affected artifact | Resolver/date | Verification consequence |
-| --- | --- | --- | --- | --- |
-| GAP-001 | Closed. Repository location is observed; Node.js 24 ESM, isolated built-in SQLite, repository layout, source boundary, and validation interface are accepted. | TN-003, TM-ADR-0013, Development | Project owner / 2026-08-31 | Repository governance and static validation baseline may be planned; source implementation still requires a separate approved scope |
-| GAP-003 | Closed. Forward migrations, isolated SQLite adapter, durable ingestion, canonical results, and notification-attempt table are implemented and covered by source/image tests. | Source commit `611a83d`, TN-005 through TN-010 | Project owner / 2026-09-01 | Persistent recovery, retention, and capacity behavior remain verification work, not schema-definition blockers |
-| GAP-010 | Closed. Pilot uses three attempts, 1/5-second backoff, 60-second maximum age, and the existing capacity-50 work queue without a second queue. | TN-012 source and TN-013 disposable runtime | Project owner / 2026-09-02 | Value changes require contract review; failure/retry runtime scenario remains broader verification work |
-| GAP-016 | Closed. Worker persists result before rendering/delivery, records bounded attempts, limits material update, and correlates resolved events. | TN-012 source tests and TN-013 image/Mailpit runtime | Project owner / 2026-09-02 | Persistent route and broader lifecycle scenarios remain pilot verification work, not implementation blockers |
+---
+
+## ✅ Catatan Penutupan (*Closure Records*)
+
+Setiap item ditutup secara *append-oriented* dengan mencatat bukti observasi, artefak yang terdampak, tanggal penyelesaian, dan konsekuensi verifikasinya:
+
+1. **GAP-001 (Closed - TN-003):** Node.js 24 ESM, SQLite built-in terisolasi, layout repositori, dan baseline validasi statis diterima (TM-ADR-0013).
+2. **GAP-002 (Closed - TN-016):** Repositori `tomcat-diagnostic-event-collector` dibentuk dengan arsitektur rootless dan atomic spooling (TM-ADR-0012).
+3. **GAP-003 (Closed - TN-005):** Migrasi maju database SQLite (`001` s/d `004`), transaksi atomik, dan tabel `custom_rules` teruji 100%.
+4. **GAP-004 (Closed - TN-006 & TN-011):** Berkas `targets.json` tervalidasi dengan pemetaan target kanonikal ke spool dan log mount.
+5. **GAP-005, GAP-006, GAP-007, GAP-008, GAP-011 (Closed - TN-016):** Integrasi runtime Tomcat, isolasi spool rootless, cgroup OOM listener, dan mount log read-only terbukti live.
+6. **GAP-009 & GAP-012 (Closed - TN-015):** Deployment persisten Prometheus, Alertmanager, dan Diagnostic Service dengan TLS ketat dan baseline resource stabil.
+7. **GAP-010 & GAP-016 (Closed - TN-012 & TN-013):** Worker queue terhubung ke renderer 7-seksi, SMTP delivery attempt persistence, dan retry terverifikasi di Mailpit.
+8. **GAP-013 (Closed - TN-017 & TN-019):** Pengujian skenario kegagalan live (OOM, graceful stop, database connection pool exhausted) terverifikasi end-to-end.
+
+---
 
 ## 📌 Status
 
-**Open — GAP-001, GAP-003, GAP-010, dan GAP-016 closed. GAP-002, GAP-004
-through GAP-009, serta GAP-011 through GAP-015 retain their recorded gates.
-TN-011 defines GAP-009 paths and modes, but rotation and reload lifecycle
-remain open.**
+**All Pilot Blocking Gaps Closed (100%).**
+Seluruh item kesenjangan yang menghalangi fase pilot (GAP-001 s/d GAP-013 dan GAP-016) telah ditutup dan diverifikasi secara live. GAP-014 (Produksi) dan GAP-015 (TrueSight) ditunda secara sadar ke fase lanjutan (*Monitoring Platform Integration*).
+
+---
+
+## 🔗 Related Documentation
+
+- [Diagnostic MVP Index](index.md)
+- [Requirements Traceability](requirements-traceability.md)
+- [Diagnostic MVP Pilot Engineering Journal](../engineering-journal/diagnostic-mvp-pilot/index.md)
+- [TN-020 — Consolidate Diagnostic MVP Portfolio and Plan Next Phase](../engineering-journal/diagnostic-mvp-pilot/TN-020-consolidate-diagnostic-mvp-portfolio-and-plan-next-phase.md)

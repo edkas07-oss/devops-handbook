@@ -2,9 +2,9 @@
 
 ## 🔍 Overview
 
-Alertmanager pushes standard webhook schema version `4` events to the
-Diagnostic Service. Each alert item is validated, normalized, persisted, and
-processed independently.
+Alertmanager mengirimkan event webhook standar berskema versi `4` ke Diagnostic Service. Setiap item alert divalidasi, dinormalisasi, disimpan secara persisten, dan diproses secara independen.
+
+---
 
 ## 🔗 Endpoint
 
@@ -14,86 +14,97 @@ Content-Type: application/json
 Authorization: Bearer <token>
 ```
 
-The accepted lab service URL is:
+URL service yang disetujui pada environment lab adalah:
 
 ```text
 https://diagnostic-service:8443/api/v1/alerts/alertmanager
 ```
 
-The endpoint is available only on a dedicated internal container network and
-has no host-published port. Alertmanager validates the service CA. The bearer
-token and CA material are mounted read-only from non-Git storage.
+Endpoint ini hanya tersedia pada container network internal khusus dan tidak memiliki port yang diekspos ke host (*no host-published port*). Alertmanager memvalidasi sertifikat CA service. Token bearer dan sertifikat CA di-mount secara hanya-baca (*read-only*) dari penyimpanan non-Git.
 
-## 📥 Required Data
+---
 
-Required top-level fields are `version`, `groupKey`, `status`, `receiver`, and a
-non-empty `alerts` array. Required per-alert fields are:
+## 📥 Data yang Diperlukan
 
-- `status`, with `firing` or `resolved`;
-- `labels` and `annotations`;
-- `startsAt` and `endsAt`;
+Field tingkat atas (*top-level fields*) yang wajib ada meliputi `version`, `groupKey`, `status`, `receiver`, dan array `alerts` yang tidak kosong. Field wajib per-alert meliputi:
+
+- `status`, bernilai `firing` atau `resolved`;
+- `labels` dan `annotations`;
+- `startsAt` dan `endsAt`;
 - Alertmanager `fingerprint`.
 
-Required labels for `TomcatDown` are `alertname`, `severity`, `environment`,
-`host`, `tomcat_instance`, `job`, `instance`, `service`, and `check`.
-`application` is optional supporting context.
+Label wajib untuk alert `TomcatDown` adalah `alertname`, `severity`, `environment`, `host`, `tomcat_instance`, `job`, `instance`, `service`, dan `check`. Label `application` bersifat sebagai konteks pendukung opsional.
 
-The service rejects an identity that does not match its local target allowlist.
-Annotations are untrusted presentation data and cannot select paths, commands,
-containers, evidence sources, or configuration.
+Service akan menolak identitas yang tidak terdaftar dalam allowlist target lokal (`targets.json`). Anotasi dianggap sebagai data presentasi yang tidak tepercaya (*untrusted data*) dan tidak dapat digunakan untuk memilih path, mengeksekusi command, memilih container, menentukan sumber bukti, maupun mengubah konfigurasi.
 
-## 🆔 Event Identity
+---
 
-The alert fingerprint pairs firing and resolved states. Idempotency uses:
+## 🆔 Identitas Event
+
+Fingerprint alert memasangkan status firing dan resolved. Idempotensi menggunakan formula:
 
 ```text
 event_key = fingerprint + status + event_time
 ```
 
-`event_time` is `startsAt` for firing and `endsAt` for resolved. `groupKey` is
-stored for observability but is not an incident identity.
+`event_time` adalah `startsAt` untuk event firing dan `endsAt` untuk event resolved. `groupKey` disimpan untuk observabilitas tetapi bukan identitas unik insiden.
 
-## 🔄 Processing
+---
 
-1. Authenticate the request and enforce `application/json` plus the 256 KiB
-   request limit.
-2. Validate schema version, fields, timestamps, labels, and allowlisted target.
-3. Normalize each alert independently and calculate its event key.
-4. Persist the accepted event in SQLite with a uniqueness constraint.
-5. Return `202 Accepted` only after the transaction commits.
-6. Queue diagnostic work for the single worker.
+## 🔄 Pemrosesan
 
-Metrics queries, evidence collection, and notification delivery do not hold the
-webhook connection open.
+1. Otentikasi request dan tegakkan header `application/json` serta batas ukuran request maksimum 256 KiB.
+2. Validasi versi skema, field wajib, format timestamp, label, dan allowlist target.
+3. Normalisasi setiap alert secara independen dan hitung `event_key`.
+4. Simpan event yang diterima ke SQLite dengan *uniqueness constraint* (idempotent).
+5. Kembalikan respons `202 Accepted` hanya setelah transaksi database berhasil di-commit.
+6. Masukkan pekerjaan diagnostik ke dalam antrean (*queue*) untuk dieksekusi oleh worker tunggal.
 
-## 🌐 Response Contract
+Kueri metrik, pengumpulan bukti, dan pengiriman notifikasi berjalan secara asinkron di latar belakang (*background worker*) dan tidak menahan koneksi webhook tetap terbuka.
 
-| Status | Meaning |
+---
+
+## 🌐 Kontrak Respons
+
+| Status | Makna |
 | ---: | --- |
-| `202` | Authenticated events were durably accepted |
-| `400` | Invalid JSON, schema, timestamp, or required identity |
-| `401` | Missing or invalid bearer token |
-| `413` | Request exceeds 256 KiB |
-| `415` | Content type is not `application/json` |
-| `429` | Queue capacity prevents safe acceptance |
-| `503` | Service or SQLite cannot durably accept work |
+| `202` | Event terotentikasi dan berhasil disimpan secara tahan-uji (*durably accepted*) |
+| `400` | Format JSON tidak valid, skema salah, timestamp salah, atau identitas wajib tidak lengkap |
+| `401` | Token bearer tidak ada atau tidak valid |
+| `413` | Ukuran payload request melebihi batas 256 KiB |
+| `415` | Format Content-Type bukan `application/json` |
+| `429` | Kapasitas antrean penuh sehingga penambahan pekerjaan baru ditolak demi keamanan |
+| `503` | Service atau database SQLite tidak dapat menerima pekerjaan secara tahan-uji |
 
-Duplicate delivery returns a controlled accepted/duplicate response and does
-not repeat diagnostic or notification work.
+Pengiriman duplikat (*duplicate delivery*) menghasilkan respons terkontrol (202 Accepted / duplicate acknowledged) dan tidak mengulang pekerjaan diagnosis maupun pengiriman notifikasi.
 
-## 🔐 Security
+---
 
-- TLS certificate verification and bearer authentication are both required.
-- Secrets, token values, and raw authorization headers are never logged or
-  stored in SQLite.
-- Request data cannot select a filesystem path or executable action.
-- Request, parsing, SQLite, queue, and downstream operations use bounded
-  timeouts.
-- Unsupported alert names are recorded as unsupported and do not activate a
-  deferred diagnostic rule.
+## 🔐 Keamanan
+
+- Verifikasi sertifikat TLS dan otentikasi bearer token wajib ditegakkan.
+- Nilai secret, token, dan raw authorization header tidak pernah dicatat dalam log maupun database SQLite.
+- Data request tidak dapat digunakan untuk memanipulasi filesystem path atau tindakan eksekusi command.
+- Seluruh operasi request, parsing, SQLite, antrean, dan downstream menggunakan batas waktu terbatas (*bounded timeouts*).
+- Nama alert yang tidak didukung dicatat sebagai *unsupported* dan tidak memicu eksekusi aturan diagnostik yang ditunda.
+
+---
 
 ## 📌 Status
 
-**Accepted and implemented in source.** TLS, authentication, request limits,
-schema validation, durable acceptance, and disposable image behavior have test
-evidence; actual Alertmanager routing and persistent runtime remain unverified.
+**Implemented & Verified in Runtime (`tomcat-diagnostic-service` v0.1.4 / `devops-lab`).**
+Penanganan webhook Alertmanager, autentikasi bearer TLS ketat, deduplikasi event, penerimaan antrean SQLite, serta routing otomatis dari Alertmanager telah diimplementasikan 100% dan terverifikasi secara live pada lingkungan `devops-lab` ([TN-005](../engineering-journal/diagnostic-mvp-pilot/TN-005-implement-durable-diagnostic-ingestion-and-queue.md), [TN-008](../engineering-journal/diagnostic-mvp-pilot/TN-008-implement-secure-service-and-smtp-delivery-boundaries.md), [TN-014](../engineering-journal/diagnostic-mvp-pilot/TN-014-configure-tomcatdown-rule-and-alertmanager-diagnostic-route.md), dan [TN-017](../engineering-journal/diagnostic-mvp-pilot/TN-017-verify-end-to-end-incident-diagnostic-flow.md)).
+
+---
+
+## 🔗 Related Documentation
+
+- [Diagnostic MVP Index](index.md)
+- [TomcatDown Rule Specification](tomcat-down-rule-specification.md)
+- [Target and Evidence Contract](target-and-evidence-contract.md)
+- [Diagnostic Result and Confidence Contract](diagnostic-result-and-confidence-contract.md)
+- [SQLite Lifecycle Contract](sqlite-lifecycle-contract.md)
+- [Notification and Integration Contract](notification-and-integration-contract.md)
+- [TN-005 — Implement Durable Diagnostic Ingestion and Queue](../engineering-journal/diagnostic-mvp-pilot/TN-005-implement-durable-diagnostic-ingestion-and-queue.md)
+- [TN-014 — Configure TomcatDown Rule and Alertmanager Diagnostic Route](../engineering-journal/diagnostic-mvp-pilot/TN-014-configure-tomcatdown-rule-and-alertmanager-diagnostic-route.md)
+- [TM-ADR-0006 — Alertmanager Webhook Ingestion Boundary](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0006.md)

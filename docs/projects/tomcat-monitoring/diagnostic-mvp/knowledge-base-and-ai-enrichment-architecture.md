@@ -22,7 +22,7 @@ flowchart TD
     L5 -.->|"Tata Kelola"| L1
     L5 -.->|"Tata Kelola"| L2
     L5 -.->|"Tata Kelola"| L4
-    
+
     L3 -->|"Metadata Target"| L1
     L1 -->|"Evaluasi Diagnosis"| L2
     L1 -->|"Simpan Hasil"| L4
@@ -47,23 +47,23 @@ Ketika terjadi insiden kegagalan yang **belum terpetakan dalam basis aturan (*un
 ```mermaid
 flowchart TD
     A["<b>Insiden Baru Masuk</b><br/>(TomcatDown Firing)"] --> B{"Pola Cocok dengan<br/>Rule TD-01 s/d TD-05?"}
-    
+
     B -->|"Ya (Cocok)"| C["<b>Eksekusi Branch Terkait</b><br/>• TD-01: Scrape/TLS Fail<br/>• TD-02: OOM Kill<br/>• TD-03: JVM Crash<br/>• TD-04: BindException<br/>• TD-05: Orderly Stop"]
-    
+
     B -->|"Tidak (Pola Asing)"| D{"Status Container<br/>saat Diamati?"}
-    
+
     D -->|"Container Exited"| E["<b>Branch TD-06</b><br/>Container exited;<br/>cause undetermined"]
     D -->|"Container Running"| F["<b>Branch TD-08</b><br/>Cause undetermined<br/>from available evidence"]
     D -->|"Bukti Kontradiksi"| G["<b>Branch TD-08</b><br/>Cause undetermined<br/>from contradicting evidence"]
-    
+
     E & F & G --> H["<b>Klasifikasi: UNDETERMINED</b><br/>Tingkat Keyakinan: NONE (null)"]
-    
+
     H --> I["<b>Kumpulkan Fakta Forensik</b><br/>• Metrik Scrape Terakhir<br/>• Exit Code & Telemetri Spool<br/>• Potongan Baris Log Terakhir"]
-    
+
     I --> J["<b>Terbitkan Panduan SOP</b><br/>(Seksi 6: Operator Actions)"]
-    
+
     J --> K[("<b>Arsipkan ke SQLite</b><br/>canonical_results & summaries")]
-    
+
     K --> L["<b>Bahan Analisis Post-Mortem</b><br/>& Pengayaan Rule via AI"]
 ```
 

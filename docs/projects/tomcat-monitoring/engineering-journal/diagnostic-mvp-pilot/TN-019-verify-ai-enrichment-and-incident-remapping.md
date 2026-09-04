@@ -73,23 +73,23 @@ sequenceDiagram
     Note over DS,DB: 1. Insiden Baru (Pola Log Asing: CannotGetJdbcConnectionException)
     DS->>DB: Evaluasi: Pola belum terdaftar -> Branch TD-08 (UNDETERMINED)
     DS->>MP: Kirim Email Diagnosis: Status UNDETERMINED
-    
+
     Note over SRE,DB: 2. Ekstraksi Data Forensik Post-Mortem
     SRE->>DB: Query canonical_results & evidence_summaries
     DB-->>SRE: Snapshot log catalina.out (CannotGetJdbcConnectionException)
-    
+
     Note over SRE: 3. AI Menganalisis Akar Masalah & Memformulasikan Rulepack TD-09
-    
+
     Note over SRE,DS: 4. Hot-Ingestion Aturan Baru via Append-Only API
     SRE->>DS: POST /api/v1/rules (Rulepack TD-09 JSON + Bearer Auth)
     DS->>DB: Simpan ke tabel custom_rules
     DS->>DS: Hot-Load ke memori DynamicRuleEvaluator (Tanpa Restart)
     DS-->>SRE: 201 Created (Rule TD-09 Aktif)
-    
+
     Note over DS,DB: 5. Insiden Serupa Terjadi Kembali (Remapping)
     DS->>DB: Evaluasi: Cocok dengan Rule TD-09 -> CONFIRMED_CAUSE (High Confidence)
     DS->>MP: Kirim Email Laporan Diagnosis TD-09 + SOP Mitigasi Bahasa Indonesia
-    
+
     Note over DS,MP: 6. Layanan Pulih (Resolved Webhook)
     DS->>MP: Kirim Notifikasi Pemulihan Layanan (Resolved)
 ```

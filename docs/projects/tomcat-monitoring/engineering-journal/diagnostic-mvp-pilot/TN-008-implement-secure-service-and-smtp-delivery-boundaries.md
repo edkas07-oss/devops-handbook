@@ -17,15 +17,17 @@
 
 ## 🎯 Objective
 
-Implement and component-test HTTPS webhook/health/metrics interfaces and
-bounded SMTP delivery before image work begins.
+Mengimplementasikan dan menguji antarmuka HTTPS webhook/health/metrics serta batasan pengiriman SMTP terbatas (*bounded SMTP delivery*) melalui *component tests* sebelum pekerjaan image dimulai.
 
 ## 📚 Scope
 
-Exact Nodemailer dependency, delivery migration, HTTPS handler/server, bearer
-authentication, 256 KiB request limit, response mapping, SMTP adapter, tests,
-validator, README, dan documentation. Image, Mailpit actual, deployment,
-monitoring configuration, commit, dan push excluded.
+Pekerjaan yang disetujui mencakup:
+- Dependensi presisi Nodemailer dan migrasi *delivery attempts*;
+- Handler dan server HTTPS, autentikasi bearer, batasan ukuran request 256 KiB, pemetaan respons;
+- Adapter SMTP terbatas;
+- Unit tests, component tests, validator, README, dan dokumentasi.
+
+Pekerjaan yang dikecualikan mencakup build image, runtime Mailpit aktual, deployment, konfigurasi pemantauan Prometheus/Alertmanager, commit, dan push.
 
 ## 🧭 Implementation Plan
 
@@ -50,26 +52,22 @@ podman run --rm --name tomcat-diagnostic-tn008-dependency --userns=keep-id \
 
 !!! success "Expected Result"
 
-    Exact dependency and lockfile are available without transitive packages.
+    Dependensi presisi dan lockfile tersedia tanpa paket transitif (*zero transitive dependencies*).
 
-**Actual Result:** Nodemailer `9.0.6` added with zero transitive dependencies.
+**Actual Result:** Nodemailer `9.0.6` ditambahkan dengan nol dependensi transitif.
 
 </div>
 <div class="procedure-step" markdown>
 
 ### Implement Request and Delivery Boundaries
 
-Migration `003` adds notification attempts. HTTPS handler implements webhook,
-liveness, readiness, metrics, constant-time bearer comparison, JSON media
-type, 256 KiB limit, and contract response codes. SMTP adapter disables file
-and URL access and applies connection/greeting/socket timeouts.
+Skrip migrasi `003` menambahkan pencatatan riwayat pengiriman notifikasi (*notification attempts*). Handler HTTPS mengimplementasikan endpoint webhook, liveness, readiness, metrics, komparasi token bearer *constant-time*, validasi media type JSON, batas 256 KiB, dan kode respons kontrak. Adapter SMTP menonaktifkan akses berkas lokal dan URL serta menerapkan timeout pada level koneksi, greeting, dan socket.
 
 !!! success "Expected Result"
 
-    Source boundaries exist without secret values or environment endpoints.
+    Batasan source terbentuk tanpa memuat nilai rahasia (*secrets*) atau endpoint environment hardcoded.
 
-**Actual Result:** Source and unit fixtures available; socket verification was
-completed in the following component-test step.
+**Actual Result:** Berkas source dan unit fixtures tersedia; verifikasi level socket diselesaikan pada langkah pengujian komponen berikutnya.
 
 </div>
 <div class="procedure-step" markdown>
@@ -83,23 +81,20 @@ podman run --rm --name tomcat-diagnostic-tn008-node --userns=keep-id \
   localhost/nodejs:24.18.0 npm test
 ```
 
-First validation failed because root lock expectation still listed only Ajv.
-The validator was corrected to require exact Ajv and Nodemailer. Re-run passed
-25 tests.
+Validasi awal sempat gagal karena konfigurasi lock validator hanya mendaftarkan Ajv. Validator dikoreksi untuk mewajibkan Ajv dan Nodemailer secara presisi. Pengujian ulang meluluskan 25 pengujian.
 
 !!! success "Expected Result"
 
-    Existing tests and new handler/MIME boundary tests pass.
+    Pengujian existing dan pengujian baru batasan handler/MIME seluruhnya lulus.
 
-**Actual Result:** 25 passed, 0 failed. Handler was invoked directly and SMTP
-used stream transport; socket-level component verification remains open.
+**Actual Result:** 25 pengujian lulus, 0 gagal. Handler dipanggil secara langsung dan SMTP menggunakan stream transport; verifikasi komponen pada level socket dilakukan pada langkah berikutnya.
 
 </div>
 <div class="procedure-step" markdown>
 
 ### Verify Ephemeral HTTPS and SMTP Sockets
 
-Temporary certificate material was created only under the approved directory:
+Sertifikat sementara dibuat hanya di bawah direktori yang disetujui:
 
 ```bash
 test ! -e /tmp/tomcat-diagnostic-tn008-component
@@ -118,17 +113,15 @@ podman run --rm --name tomcat-diagnostic-tn008-component --userns=keep-id \
 
 !!! success "Expected Result"
 
-    Trusted CA succeeds, untrusted CA fails, HTTPS endpoints respond, and the
-    fake SMTP listener receives one multipart message.
+    Trusted CA berhasil terhubung, untrusted CA ditolak, endpoint HTTPS merespons dengan benar, dan listener SMTP tiruan menerima satu pesan multipart.
 
-**Actual Result:** 2 component tests passed. Exact cleanup then ran:
+**Actual Result:** 2 pengujian komponen lulus. Pembersihan dilakukan secara presisi:
 
 ```bash
 rm -r /tmp/tomcat-diagnostic-tn008-component
 ```
 
-Final checks confirmed the directory was absent and no `.key`, `.crt`, or
-`.pem` artifact existed in the repository.
+Pemeriksaan akhir memastikan direktori sementara telah dihapus dan tidak ada artefak `.key`, `.crt`, atau `.pem` yang tertinggal di repositori.
 
 </div>
 </div>
@@ -137,15 +130,15 @@ Final checks confirmed the directory was absent and no `.key`, `.crt`, or
 
 | Path | Responsibility |
 | --- | --- |
-| `migrations/003-delivery-attempts.sql` | Delivery attempt persistence |
-| `src/server/http-service.js` | HTTPS and request boundary |
-| `src/adapters/smtp-adapter.js` | Bounded SMTP transport |
-| `test/unit/http-service.test.js` | Auth/media/size/health/metrics tests |
-| `test/unit/smtp-adapter.test.js` | Multipart message generation |
+| `migrations/003-delivery-attempts.sql` | Persistensi riwayat pengiriman notifikasi |
+| `src/server/http-service.js` | Server HTTPS dan batasan keamanan request |
+| `src/adapters/smtp-adapter.js` | Transport pengiriman SMTP terbatas |
+| `test/unit/http-service.test.js` | Pengujian auth, media type, limit ukuran, health, metrics |
+| `test/unit/smtp-adapter.test.js` | Pengujian pembuatan pesan multipart |
 
 ## 🖥️ Source-Control Handoff
 
-Source-control handoff was authorized after technical closure:
+Source-control handoff diotorisasi setelah penutupan teknis:
 
 ```bash
 git add README.md package.json package-lock.json scripts/validate.sh \
@@ -157,7 +150,7 @@ git diff --cached --check
 git commit -m "feat(diagnostic-service): add secure service delivery boundaries"
 ```
 
-Actual result: commit `bc4b7ae`; push was not performed in this activity.
+Hasil aktual adalah commit `bc4b7ae`; push tidak dilakukan pada aktivitas ini.
 
 ## 🧭 Reproduction Guide
 
@@ -169,9 +162,7 @@ podman run --rm --name tomcat-diagnostic-tn008-regression --userns=keep-id \
   localhost/nodejs:24.18.0 npm test
 ```
 
-Regression expected result is 25 passed. Socket reproduction additionally
-requires the temporary-certificate procedure above and must remove the exact
-directory afterward.
+Hasil regresi yang diharapkan adalah 25 pengujian lulus. Reproduksi socket membutuhkan prosedur pembuatan sertifikat sementara di atas dan penghapusan direktori secara presisi setelahnya.
 
 ## ✅ Verification
 
@@ -181,18 +172,15 @@ directory afterward.
 | Unit/source integration | 25 passed |
 | Actual HTTPS socket | Passed: trusted/untrusted CA and endpoints |
 | Fake SMTP socket | Passed: multipart message received |
-| Cleanup | Passed: exact directory removed; sensitive artifacts 0 |
+| Cleanup | Passed: direktori sementara dihapus; artefak sensitif 0 |
 
 ## 🧾 Outcome
 
-HTTPS and SMTP source boundaries are implemented. Twenty-five regression tests
-and two ephemeral socket component tests passed without persistent state or
-certificate material in Git.
+Batasan source HTTPS dan SMTP telah diimplementasikan. 25 pengujian regresi dan 2 pengujian komponen socket sementara telah lulus tanpa menyimpan state persisten atau sertifikat di dalam repositori Git.
 
 ## ⏭️ Next Steps
 
-Define the application startup/configuration contract, then prepare image build
-and disposable component verification after immutable base identity approval.
+Mendefinisikan kontrak konfigurasi dan startup aplikasi, kemudian menyiapkan pembuatan image dan verifikasi komponen sekali-pakai (*disposable component verification*) setelah identitas base image yang tidak dapat diubah disetujui.
 
 ## 🔗 Related Documentation
 

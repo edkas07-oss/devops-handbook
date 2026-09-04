@@ -25,6 +25,10 @@ konsekuensi keputusan arsitektur yang memengaruhi implementasi project.
 | [**TM-ADR-0011**](adr-records/TM-ADR-0011.md){: target="_blank" } | Use Per-Rule Decision Tables for Diagnostic Confidence | Tomcat Monitoring | Diagnostic Rule Architecture | Accepted | 2026-08-30 |
 | [**TM-ADR-0012**](adr-records/TM-ADR-0012.md){: target="_blank" } | Decouple TrueSight Through a Disabled Integration Bridge | Tomcat Monitoring | External Integration Architecture | Accepted | 2026-08-30 |
 | [**TM-ADR-0013**](adr-records/TM-ADR-0013.md){: target="_blank" } | Use Node.js 24 ESM and Isolated Built-In SQLite for Diagnostic Service | Tomcat Monitoring | Diagnostic Service Implementation Architecture | Accepted | 2026-08-31 |
+| [**TM-ADR-0014**](adr-records/TM-ADR-0014.md){: target="_blank" } | Enforce Zero Automatic Remediation for Diagnostic Service | Tomcat Monitoring | Diagnostic Safety and Operational Governance Architecture | Accepted | 2026-08-31 |
+| [**TM-ADR-0015**](adr-records/TM-ADR-0015.md){: target="_blank" } | Adopt Asynchronous Webhook Ingestion with Durable SQLite Acceptance Pattern | Tomcat Monitoring | Diagnostic Ingestion Architecture | Accepted | 2026-08-31 |
+| [**TM-ADR-0016**](adr-records/TM-ADR-0016.md){: target="_blank" } | Designate Diagnostic Service as the Canonical Incident Notification Authority | Tomcat Monitoring | Incident Notification and Alerting Architecture | Accepted | 2026-08-31 |
+| [**TM-ADR-0017**](adr-records/TM-ADR-0017.md){: target="_blank" } | Adopt Vertical Slice Minimum Viable Product (MVP) Scoping for Diagnostic Pilot | Tomcat Monitoring | Diagnostic Architecture Strategy | Accepted | 2026-08-31 |
 
 ## 🗺️ ADR Mapping
 
@@ -43,6 +47,10 @@ konsekuensi keputusan arsitektur yang memengaruhi implementasi project.
 | TM-ADR-0011 | Use Per-Rule Decision Tables for Diagnostic Confidence | Diagnostic MVP Pilot TN-001 and result contract |
 | TM-ADR-0012 | Decouple TrueSight Through a Disabled Integration Bridge | Diagnostic MVP Pilot TN-001 and integration contract |
 | TM-ADR-0013 | Use Node.js 24 ESM and Isolated Built-In SQLite for Diagnostic Service | Diagnostic MVP Pilot TN-003 and Development |
+| TM-ADR-0014 | Enforce Zero Automatic Remediation for Diagnostic Service | Diagnostic MVP Pilot TN-001 and non-functional contract |
+| TM-ADR-0015 | Adopt Asynchronous Webhook Ingestion with Durable SQLite Acceptance Pattern | Diagnostic MVP Pilot TN-001 and alertmanager webhook contract |
+| TM-ADR-0016 | Designate Diagnostic Service as the Canonical Incident Notification Authority | Diagnostic MVP Pilot TN-001 and notification contract |
+| TM-ADR-0017 | Adopt Vertical Slice Minimum Viable Product (MVP) Scoping for Diagnostic Pilot | Diagnostic MVP Pilot TN-001 and architecture index |
 
 ## 📝 Summary
 

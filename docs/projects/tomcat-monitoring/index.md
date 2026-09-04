@@ -115,6 +115,8 @@ ke **Monitoring Platform Integration Phase** dengan fokus:
 2. **Standardisasi Log & Multi-Target:** Integrasi log terpusat dan perluasan target allowlist multi-instance.
 3. **Otomatisasi CI/CD & Ansible:** Pipeline pengujian otomatis dan provisioning zero-touch.
 
+Seluruh daftar tugas kelanjutan, termasuk mitigasi pemantauan mandiri (*health scrape*) Diagnostic Service (TM-ADR-0016), ketahanan mesin status SQLite (TM-ADR-0015), pencatatan audit tindakan operator (TM-ADR-0014), dan perluasan aturan diagnosis (TM-ADR-0017), didokumentasikan pada halaman [Follow-up Tasks](follow-up-tasks.md).
+
 ## Documentation Structure
 
 | Section | Purpose |
@@ -125,6 +127,7 @@ ke **Monitoring Platform Integration Phase** dengan fokus:
 | [Infrastructure](infrastructure/index.md) | Mendefinisikan container, network, storage, dan certificate prerequisites |
 | [CI/CD](ci-cd/index.md) | Menjelaskan pipeline build, test, dan deployment |
 | [Operations](operations/index.md) | Menjelaskan coverage monitoring dan aktivitas operasional |
+| [Follow-up Tasks](follow-up-tasks.md) | Memuat daftar tugas kelanjutan, backlog teknis, dan mitigasi arsitektur |
 | [Troubleshooting](troubleshooting/index.md) | Menyediakan panduan diagnosis dan penyelesaian masalah |
 | [FAQ](faq.md) | Menyajikan tanya jawab teknis, logika diagnosis multi-error, dan tata kelola AI |
 | [Engineering Journal](engineering-journal/index.md) | Menyimpan histori perencanaan dan implementasi |

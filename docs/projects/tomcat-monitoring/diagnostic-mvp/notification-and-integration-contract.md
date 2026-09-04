@@ -2,74 +2,69 @@
 
 ## 🔍 Overview
 
-Mailpit is the only active Diagnostic MVP delivery target. Integration Bridge
-and TrueSight remain represented as future boundaries but are disabled.
+Mailpit merupakan satu-satunya target pengiriman notifikasi aktif pada fase Diagnostic MVP. Integration Bridge dan TrueSight tetap direpresentasikan sebagai batas integrasi masa depan tetapi dalam status nonaktif (*disabled*).
 
-## ✉️ Mailpit Delivery
+---
 
-Alertmanager routes `TomcatDown` exclusively to Diagnostic Service with
-resolved delivery enabled. It does not also send the raw `TomcatDown` alert to
-Mailpit. Diagnostic Service sends sanitized plain-text and HTML mail through
-internal `mailpit:1025` using `.invalid` sender and recipient identities.
+## ✉️ Pengiriman Notifikasi Mailpit
 
-Existing application-health alerts may continue using their current direct
-Mailpit route. They are monitoring notifications, not Diagnostic MVP results or
-acceptance evidence.
+Alertmanager mengarahkan alert `TomcatDown` secara eksklusif ke Diagnostic Service dengan pengiriman status resolved aktif. Alertmanager tidak lagi mengirimkan alert `TomcatDown` mentah secara langsung ke Mailpit. Diagnostic Service mengirimkan email Plain Text dan HTML yang telah disanitasi melalui koneksi internal `mailpit:1025` menggunakan identitas pengirim dan penerima domain `.invalid`.
 
-## 📋 Message Contract
+Alert pemantauan *application health* yang telah ada tetap menggunakan rute langsung ke Mailpit. Alert tersebut merupakan notifikasi monitoring standar, bukan hasil analisis Diagnostic MVP.
 
-Each message preserves canonical meaning and includes lifecycle, environment,
-target, incident time, processing status, assessment, confidence when allowed,
-supporting and unavailable evidence summary, recommended operator actions,
-rule identity, and diagnostic identifier.
+---
 
-Plain-text and HTML renderers use the same semantic order:
+## 📋 Kontrak Format Pesan Laporan (7-Section Report)
 
-| Order | Section | Required content |
-| ---: | --- | --- |
-| 1 | Alert Summary | Alert title, lifecycle, severity, environment, target, and incident time |
-| 2 | Diagnostic Assessment | Processing status, classification, primary assessment, and confidence only when the classification allows it |
-| 3 | Key Metrics Snapshot | Bounded primary metrics with observation time and query status, or an explicit unavailable/timeout marker |
-| 4 | Correlated Log Evidence | Bounded sanitized excerpts selected by target, runtime generation, evidence window, and accepted diagnostic rule |
-| 5 | Unavailable or Contradicting Evidence | Sources that timed out, were unavailable, were not configured, or contradicted the primary assessment |
-| 6 | Recommended Operator Actions | Safe actions for an operator; never executable remediation |
-| 7 | Rule and Diagnostic Traceability | Rule ID/version, diagnostic ID, result hash, and evidence timestamps needed for correlation |
+Setiap pesan mempertahankan makna kanonikal dan memuat siklus hidup, environment, target, waktu insiden, status pemrosesan, asesmen, tingkat keyakinan (*confidence* bila diizinkan), ringkasan bukti pendukung/tidak tersedia, rekomendasi SOP operator, identitas aturan, dan identifier diagnosis.
 
-The fourth section is not an arbitrary tail of the latest log. It contains only
-correlated excerpts that passed identity, time-window, size, and redaction
-controls. The renderer uses root-cause wording only for a classification that
-permits that claim. Partial, possible, symptom-only, or undetermined results
-state their limitation explicitly. A missing metrics or log section is rendered
-with its collection status and is never silently removed.
+Format Plain Text dan HTML menggunakan urutan 7 seksi semantik yang sama:
 
-Required lifecycle behavior:
+| Nomor | Seksi Laporan | Isi Konten Wajib |
+| ---: | :--- | :--- |
+| **1** | **Alert Summary** | Judul alert, status siklus hidup (*firing/resolved*), keparahan (*severity*), environment, target, dan waktu insiden. |
+| **2** | **Diagnostic Assessment** | Status pemrosesan, klasifikasi taksonomi, asesmen primer, dan tingkat keyakinan (*confidence*) jika klasifikasi mengizinkannya. |
+| **3** | **Key Metrics Snapshot** | Snapshot metrik primer terbatas dengan waktu observasi dan status kueri, atau penanda eksplisit *unavailable/timeout*. |
+| **4** | **Correlated Log Evidence** | Kutipan log terbatas dan tersanitasi yang dipilih berdasarkan target, generasi runtime, jendela waktu bukti, dan aturan diagnostik. |
+| **5** | **Unavailable or Contradicting Evidence** | Sumber bukti yang mengalami timeout, tidak tersedia, belum dikonfigurasi, atau bertentangan dengan asesmen primer. |
+| **6** | **Recommended Operator Actions** | Langkah investigasi dan SOP mitigasi yang aman bagi operator; tidak pernah berupa eksekusi remediasi otomatis. |
+| **7** | **Rule and Diagnostic Traceability** | ID dan versi aturan, ID diagnostik, hash hasil SHA-256, dan timestamp bukti yang diperlukan untuk korelasi. |
 
-- exactly one initial firing diagnostic per incident;
-- no message for an identical duplicate;
-- at most one message for a material canonical-result update in the pilot;
-- a partial, evidence-only, or failed message must state its limitation;
-- exactly one resolved message, reusing the firing summary without claiming
-  permanent remediation.
+Seksi keempat bukan sekadar ekor (*tail*) log acak. Seksi tersebut hanya memuat kutipan log berkorelasi yang telah lolos verifikasi identitas target, jendela waktu, batas ukuran, dan sanitasi rahasia. Kata-kata "akar masalah" (*root cause*) hanya digunakan untuk klasifikasi yang mengizinkan klaim tersebut (`confirmed_cause` / `probable_cause`). Hasil *partial*, *possible*, *symptom-only*, atau *undetermined* menyatakan batasannya secara eksplisit. Ketiadaan metrik atau log ditampilkan beserta status pengumpulannya dan tidak pernah dihilangkan secara diam-diam.
 
-Delivery status is independent of classification and confidence. SMTP failure
-is stored and retried with bounded policy; it cannot change the diagnostic.
+Perilaku siklus hidup pengiriman:
+- Tepat satu laporan diagnostik firing awal per insiden;
+- Tidak ada pesan baru untuk pengiriman firing duplikat yang identik;
+- Maksimum satu pesan pembaruan untuk perubahan material (*material update*) pada hasil kanonikal;
+- Pesan status partial, evidence-only, atau failed wajib menyatakan batasannya secara jelas;
+- Tepat satu pesan pemulihan (*resolved message*), yang menggunakan kembali ringkasan firing tanpa mengklaim remediasi permanen.
 
-## 🚫 Disabled Integration
+Status pengiriman bersifat independen dari status klasifikasi dan confidence. Kegagalan SMTP dicatat di database dan diulang (*retry*) dengan kebijakan terbatas; kegagalan SMTP tidak dapat mengubah hasil diagnostik yang telah diputuskan.
 
-When disabled, Integration Bridge and TrueSight have no configured endpoint,
-credential, connection attempt, retry, queue item, or delivery worker. Future
-activation receives only a bounded canonical JSON projection. The bridge alone
-would own TrueSight slot mapping and `msend` or SNMP execution.
+---
 
-Diagnostic Service contains no `msend`, general SNMP runtime dependency, or
-automatic remediation path.
+## 🚫 Integrasi Nonaktif (*Disabled Integration*)
+
+Selama dinonaktifkan, Integration Bridge dan TrueSight tidak memiliki endpoint aktif, kredensial, upaya koneksi, retry, item antrean, maupun worker pengiriman. Rencana aktivasi di masa depan hanya akan menerima proyeksi canonical result JSON terbatas. Integration Bridge secara mandiri yang akan mengelola pemetaan slot TrueSight dan eksekusi `msend` atau SNMP trap.
+
+Diagnostic Service tidak memiliki dependensi runtime `msend`, pustaka SNMP umum, maupun alur remediasi otomatis.
+
+---
 
 ## 📌 Status
 
-**Accepted, implemented, and disposable-runtime verified.** Renderer, worker
-orchestration, persisted attempts, bounded retry, initial/resolved lifecycle,
-duplicate suppression, and actual Mailpit plain-text/HTML capture have evidence
-on the TN-013 image digest. Persistent runtime, actual Alertmanager diagnostic
-route, material/failed runtime scenarios, and end-to-end correlation remain
-unverified. Existing direct Alertmanager–Mailpit delivery remains the verified
-persistent monitoring runtime.
+**Implemented & Verified in Runtime (`tomcat-diagnostic-service` v0.1.4 / `devops-lab`).**
+Perenderan laporan 7-seksi (HTML dan Plain Text) dengan rekomendasi SOP Bahasa Indonesia, penanganan siklus hidup firing/resolved, deduplikasi pesan, serta pengiriman email terstruktur ke Mailpit telah diimplementasikan 100% dan terverifikasi secara live pada lingkungan `devops-lab` ([TN-007](../engineering-journal/diagnostic-mvp-pilot/TN-007-implement-worker-canonical-result-and-renderers.md), [TN-008](../engineering-journal/diagnostic-mvp-pilot/TN-008-implement-secure-service-and-smtp-delivery-boundaries.md), [TN-012](../engineering-journal/diagnostic-mvp-pilot/TN-012-implement-bounded-notification-delivery-orchestration.md), [TN-013](../engineering-journal/diagnostic-mvp-pilot/TN-013-rebuild-and-verify-diagnostic-service-mailpit-runtime.md), [TN-015](../engineering-journal/diagnostic-mvp-pilot/TN-015-deploy-persistent-monitoring-runtime.md), dan [TN-017](../engineering-journal/diagnostic-mvp-pilot/TN-017-verify-end-to-end-incident-diagnostic-flow.md)).
+
+---
+
+## 🔗 Related Documentation
+
+- [Diagnostic MVP Index](index.md)
+- [TomcatDown Rule Specification](tomcat-down-rule-specification.md)
+- [Diagnostic Result and Confidence Contract](diagnostic-result-and-confidence-contract.md)
+- [SQLite Lifecycle Contract](sqlite-lifecycle-contract.md)
+- [TN-007 — Implement Worker, Canonical Result, and Renderers](../engineering-journal/diagnostic-mvp-pilot/TN-007-implement-worker-canonical-result-and-renderers.md)
+- [TN-012 — Implement Bounded Notification Delivery Orchestration](../engineering-journal/diagnostic-mvp-pilot/TN-012-implement-bounded-notification-delivery-orchestration.md)
+- [TN-017 — Verify End-to-End Incident Diagnostic Flow](../engineering-journal/diagnostic-mvp-pilot/TN-017-verify-end-to-end-incident-diagnostic-flow.md)
+- [TM-ADR-0009 — Seven-Section Structured Notification Delivery](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0009.md)

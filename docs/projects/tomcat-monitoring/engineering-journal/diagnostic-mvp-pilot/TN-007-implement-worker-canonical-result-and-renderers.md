@@ -17,24 +17,26 @@
 
 ## 🎯 Objective
 
-Mengubah durable queue item menjadi persisted canonical result melalui satu
-worker, lalu membentuk plain-text/HTML content dan operational state tanpa HTTP
-atau SMTP runtime.
+Mengubah durable queue item menjadi persisted canonical result melalui satu worker, lalu membentuk plain-text/HTML content dan operational state tanpa HTTP atau SMTP runtime.
 
 ## 📚 Scope
 
-Migration `002`, single worker, 60-second deadline, canonical result v1,
-deterministic hash, material-change guard, persistence, health/metrics model,
-seven-section renderers, tests, validator, README, dan current-state docs.
-HTTP/TLS, SMTP, Mailpit runtime, image, deployment, commit, dan push excluded.
+Pekerjaan yang disetujui mencakup:
+- Migration `002`, *single worker*, *global deadline* 60 detik;
+- Semantik *canonical result* v1, hash deterministik, proteksi *material-change*, dan persistensi SQLite;
+- Model status operasional *health/metrics*;
+- *Renderer* laporan 7-seksi (Plain Text dan HTML);
+- Unit tests, integration tests, validator, README, dan dokumentasi *current-state*.
+
+Pekerjaan yang dikecualikan mencakup HTTP/TLS, SMTP, runtime Mailpit, build image, deployment, commit, dan push.
 
 ## 📋 Prerequisites
 
 | Item | State |
 | --- | --- |
-| TN-005/TN-006 source | Commit `aa55170`, synchronized with `origin/main` |
+| TN-005/TN-006 source | Commit `aa55170`, tersinkronisasi dengan `origin/main` |
 | Node runtime | Local image `localhost/nodejs:24.18.0` |
-| Tests | Temporary container and SQLite only |
+| Tests | Container sementara (*temporary container*) dan SQLite saja |
 
 ## 🧭 Implementation Plan
 
@@ -50,55 +52,39 @@ durable queue -> single worker -> bounded evidence -> TD rule
 
 ### Add Result Persistence
 
-`002-canonical-results.sql` adds `canonical_results`, bounded
-`evidence_summaries`, and one material-update counter per incident. Repository
-methods load the queued event, persist result/evidence, and atomically reserve
-the only allowed material update.
+Skrip `002-canonical-results.sql` menambahkan tabel `canonical_results`, `evidence_summaries` terbatas, dan satu counter *material-update* per insiden. Method repositori memuat event dari antrean, menyimpan hasil diagnosis dan bukti, serta mereservasi satu kali izin pembaruan material secara atomik.
 
 !!! success "Expected Result"
 
-    Result and evidence commit before queue state becomes completed.
+    Canonical result dan bukti tersimpan di database sebelum status antrean berubah menjadi *completed*.
 
-**Actual Result:** Temporary-SQLite integration test proves one result,
-completed queue state, and first-true/second-false update reservation.
+**Actual Result:** Pengujian integrasi temporary-SQLite membuktikan penyimpanan hasil, perubahan status antrean menjadi *completed*, dan reservasi pembaruan material berhasil (panggilan pertama `true`, panggilan kedua `false`).
 
 </div>
 <div class="procedure-step" markdown>
 
 ### Build and Render the Canonical Result
 
-Canonical result validates processing status and classification/confidence,
-sorts evidence, records unavailable sources, and hashes stable content while
-excluding volatile timing. Text and HTML share seven ordered sections; HTML
-escapes untrusted values.
+Modul canonical result memvalidasi status pemrosesan serta klasifikasi/confidence, mengurutkan bukti, mencatat sumber bukti yang tidak tersedia, dan melakukan hashing terhadap konten stabil dengan mengecualikan timestamp dinamis. Format Plain Text dan HTML menggunakan 7 seksi terurut yang sama; HTML melakukan escaping terhadap nilai yang tidak tepercaya.
 
 !!! success "Expected Result"
 
-    Same semantic input produces the same hash and both renderers preserve the
-    accepted message order without strengthening the assessment.
+    Input semantik yang sama menghasilkan hash yang identik, dan kedua renderer menjaga urutan pesan yang disetujui tanpa memperkuat asesmen secara sepihak.
 
-**Actual Result:** Hash, material-change, confidence rejection, order, and HTML
-escaping tests pass.
+**Actual Result:** Seluruh pengujian hash, material-change, penolakan confidence tidak valid, urutan seksi, dan HTML escaping lulus 100%.
 
 </div>
 <div class="procedure-step" markdown>
 
 ### Run the Single Worker
 
-Worker claims one queue item, applies a 60-second global deadline, evaluates
-TD-01–TD-08, persists the canonical result, then completes the queue item.
-Failure marks the item failed. Health/metrics state contains only bounded
-operational labels.
+Worker mengambil satu item antrean, menerapkan batas waktu global 60 detik, mengevaluasi aturan TD-01 s/d TD-08, menyimpan canonical result ke SQLite, lalu menyelesaikan item antrean. Jika terjadi kegagalan, item ditandai sebagai *failed*. Status health/metrics hanya memuat label operasional terbatas.
 
 !!! success "Expected Result"
 
-    Exactly one item is processed and no deadline timer remains active after
-    evidence completes.
+    Tepat satu item diproses dan tidak ada timer deadline yang tetap aktif setelah pengumpulan bukti selesai.
 
-**Actual Result:** First run hung because the losing `Promise.race` timer was
-not cleared. The process was terminated, leaving the temporary container.
-Worker was changed to clear the timer in `finally`; the exact stale container
-was removed after approval and tests were repeated.
+**Actual Result:** Eksekusi pertama sempat menggantung (*hung*) karena timer `Promise.race` yang kalah tidak dibersihkan. Proses dihentikan paksa, menyisakan container sementara. Worker diperbaiki dengan menambahkan pembersihan timer pada blok `finally`; container yang tertinggal dihapus setelah persetujuan dan pengujian diulang.
 
 </div>
 <div class="procedure-step" markdown>
@@ -115,11 +101,9 @@ podman run --rm --name tomcat-diagnostic-tn007-node --userns=keep-id \
 
 !!! success "Expected Result"
 
-    Existing ingestion/isolation tests and new worker/result/renderer tests all
-    pass using only temporary state.
+    Pengujian ingest/isolasi yang ada dan pengujian baru worker/result/renderer seluruhnya lulus hanya menggunakan state sementara.
 
-**Actual Result:** Final run passed 22 tests, 0 failed. Container was removed
-automatically.
+**Actual Result:** Eksekusi akhir meluluskan 22 pengujian, 0 gagal. Container dihapus secara otomatis.
 
 </div>
 </div>
@@ -128,39 +112,36 @@ automatically.
 
 | Path | Responsibility |
 | --- | --- |
-| `migrations/002-canonical-results.sql` | Result/evidence persistence and update guard |
-| `src/application/diagnostic-worker.js` | Single-worker lifecycle and deadline |
-| `src/domain/canonical-result.js` | Schema semantics, hash, material change |
-| `src/application/result-renderer.js` | Seven-section text/HTML output |
-| `src/application/health-metrics.js` | Liveness, readiness, counters, gauges |
-| `src/adapters/sqlite-repository.js` | Queue-event load and result persistence |
-| `test/unit/canonical-result.test.js` | Hash, validation, render order, escaping |
-| `test/unit/health-metrics.test.js` | Operational state without sensitive labels |
-| `test/integration/diagnostic-worker.test.js` | Queue-to-result transaction lifecycle |
+| `migrations/002-canonical-results.sql` | Persistensi result/evidence dan proteksi material update |
+| `src/application/diagnostic-worker.js` | Siklus hidup single-worker dan timeout deadline |
+| `src/domain/canonical-result.js` | Semantik skema, hash SHA-256, dan deteksi material change |
+| `src/application/result-renderer.js` | Perenderan output laporan 7-seksi Text/HTML |
+| `src/application/health-metrics.js` | Status liveness, readiness, counter, dan gauge |
+| `src/adapters/sqlite-repository.js` | Pembacaan antrean dan persistensi hasil ke SQLite |
+| `test/unit/canonical-result.test.js` | Pengujian hash, validasi, urutan render, dan escaping |
+| `test/unit/health-metrics.test.js` | Pengujian status operasional tanpa label sensitif |
+| `test/integration/diagnostic-worker.test.js` | Siklus transaksi queue-to-result |
 
 ## 🧪 Test Scenario Matrix
 
 | Boundary | Scenarios |
 | --- | --- |
-| Worker | Single claim, persistence before completion, timer cleanup |
-| Canonical result | Stable hash, valid confidence, material change |
-| SQLite | Migration 002, evidence rows, one update reservation |
-| Renderer | Seven-section order and HTML escaping |
-| Health/metrics | Live/ready state, counter/gauge, no target label |
-| Regression | All TN-005/TN-006 tests remain passing |
+| Worker | Single claim, persistensi sebelum penyelesaian antrean, pembersihan timer |
+| Canonical result | Hash stabil, confidence valid, deteksi material change |
+| SQLite | Migration 002, baris evidence, reservasi satu kali material update |
+| Renderer | Urutan 7-seksi dan proteksi HTML escaping |
+| Health/metrics | Status live/ready, counter/gauge, tanpa label target |
+| Regression | Seluruh pengujian TN-005 dan TN-006 tetap lulus |
 
 ## 🖥️ Commands Executed
 
-Chronological commands are shown in procedure. Failed-run cleanup was:
+Perintah kronologis ditampilkan pada prosedur implementasi. Perintah pembersihan container yang gagal:
 
 ```bash
 podman rm -f tomcat-diagnostic-tn007-node
 ```
 
-The test command ran three times: the first was terminated due to the timer
-bug, the second passed 21 tests, and the final run passed 22 after adding
-material-update and health/metrics coverage. Source files were created through
-workspace patches, not shell mutation.
+Perintah pengujian dijalankan tiga kali: eksekusi pertama dihentikan akibat bug timer, eksekusi kedua meluluskan 21 pengujian, dan eksekusi akhir meluluskan 22 pengujian setelah penambahan cakupan *material-update* dan *health/metrics*. Berkas source dibuat melalui patch workspace, bukan mutasi shell.
 
 Source-control handoff kemudian diotorisasi dan dijalankan:
 
@@ -174,7 +155,7 @@ git diff --cached --check
 git commit -m "feat(diagnostic-service): persist and render canonical results"
 ```
 
-Actual result adalah commit `1ea79fa`. Commit belum dipush pada closure TN-007.
+Hasil aktual adalah commit `1ea79fa`. Commit belum dipush pada penutupan TN-007.
 
 ## 🧭 Reproduction Guide
 
@@ -186,28 +167,23 @@ podman run --rm --name tomcat-diagnostic-tn007-node --userns=keep-id \
   localhost/nodejs:24.18.0 npm test
 ```
 
-Expected result adalah static validation passed dan 22 tests passed. Gunakan
-clean clone/worktree sebelum checkout agar perubahan lokal tidak tertimpa.
+Hasil yang diharapkan adalah validasi statis lulus dan 22 pengujian lulus. Gunakan clone/worktree bersih sebelum checkout agar perubahan lokal tidak tertimpa.
 
 ## ✅ Verification
 
 | Method | Expected | Actual |
 | --- | --- | --- |
-| Static validator and Bash syntax | Source contract valid | Passed |
-| `npm test` in Node.js 24.18.0 | New and regression scenarios pass | 22 passed |
-| Runtime integration | HTTP, SMTP, Mailpit behavior | Not verified; excluded |
+| Static validator and Bash syntax | Kontrak source valid | Passed |
+| `npm test` in Node.js 24.18.0 | Skenario baru dan regresi lulus | 22 passed |
+| Runtime integration | Perilaku HTTP, SMTP, Mailpit | Not verified; excluded |
 
 ## 🧾 Outcome
 
-Queue-to-canonical-result processing, persistence, material-update guard,
-operational state, and notification rendering are implemented and locally
-tested. Network delivery and service endpoints remain unimplemented.
+Pemrosesan antrean menjadi canonical result, persistensi database SQLite, proteksi pembaruan material, status operasional, dan perenderan notifikasi telah diimplementasikan dan diuji secara lokal. Pengiriman jaringan dan endpoint service belum diimplementasikan pada tahap ini.
 
 ## ⏭️ Next Steps
 
-Implement HTTP/TLS service interfaces, bearer authentication, request limits,
-health/metrics endpoints, and SMTP delivery; then build and run disposable
-component verification under separate authorization.
+Mengimplementasikan antarmuka service HTTP/TLS, autentikasi bearer, batasan ukuran request, endpoint health/metrics, dan adapter pengiriman SMTP; kemudian membangun dan menjalankan verifikasi komponen sementara (*disposable component verification*) di bawah otorisasi terpisah.
 
 ## 🔗 Related Documentation
 

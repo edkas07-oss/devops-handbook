@@ -71,7 +71,7 @@ flowchart TD
         G2 --> G3["[3] Collision Guard<br/>(Cek Unik Branch & Non-Builtin)"]
         G3 --> G4["[4] Size Guard<br/>(Payload Maksimal 64 KiB)"]
         G4 --> G5["[5] Safety Guard<br/>(Regex Safety & Sanitasi)"]
-        
+
         A -.->|"PUT / DELETE / PATCH"| R405["405 Method Not Allowed<br/>(Append-Only Immutability)"]
     end
 

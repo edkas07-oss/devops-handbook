@@ -2,61 +2,73 @@
 
 ## 🔍 Overview
 
-SQLite menjadi local durable state store satu Diagnostic Service per Tomcat
-host. Ia menyimpan event identity, incident lifecycle, bounded canonical
-result, dan delivery state; bukan raw log archive atau monitoring database.
+SQLite berfungsi sebagai penyimpanan status lokal yang tahan-uji (*local durable state store*) untuk satu instans Diagnostic Service per host Tomcat. Database ini menyimpan identitas event, siklus hidup insiden, canonical result terbatas, aturan kustom deklaratif, dan status pengiriman notifikasi; bukan sebagai arsip log mentah atau database metrik monitoring.
 
-## 💾 Storage Contract
+---
 
-| Item | Pilot value |
-| --- | --- |
-| Named volume | `diagnostic_data` |
-| Database path | `/var/lib/tomcat-diagnostic/diagnostic.db` |
-| Journal mode | WAL |
-| Writer model | One service, one worker, single logical writer |
-| Target size | 100 MiB |
-| Hard limit | 250 MiB |
+## 💾 Kontrak Penyimpanan
 
-Schema initialization and forward migration run automatically before readiness.
-A failed migration prevents webhook acceptance. An accepted event transaction
-commits before HTTP `202` is returned, and event keys have a uniqueness
-constraint that survives restart.
+| Parameter | Nilai Pilot |
+| :--- | :--- |
+| Named Volume | `diagnostic_data` |
+| Path Database | `/var/lib/tomcat-diagnostic/diagnostic.db` |
+| Mode Journal | `WAL` (*Write-Ahead Logging*) |
+| Model Writer | Satu service, satu worker, single logical writer |
+| Target Kapasitas | 100 MiB |
+| Batas Keras (*Hard Limit*) | 250 MiB |
 
-## 🔄 Retention and Housekeeping
+Inisialisasi skema dan migrasi maju (*forward migration*) berjalan otomatis saat startup sebelum status service menjadi *ready*. Kegagalan migrasi mencegah penerimaan webhook. Transaksi event yang diterima wajib di-commit sebelum HTTP `202 Accepted` dikembalikan, dan kunci event (*event keys*) memiliki *uniqueness constraint* yang bertahan melewati restart container.
 
-- Active incidents remain until a resolved event is recorded.
-- Resolved normalized events, canonical results, evidence summaries, and
-  delivery state remain for 30 days.
-- Raw webhook bodies are discarded after validated normalization.
-- Hourly and startup housekeeping perform retention deletion, WAL checkpoint,
-  integrity/capacity checks, and incremental vacuum where needed.
-- At the 100 MiB target, oldest eligible resolved records are removed first.
-- Active incident state is never deleted automatically for capacity recovery.
-- At 250 MiB, if safe housekeeping cannot recover capacity, readiness fails and
-  new webhooks receive `503` until capacity is restored safely.
+---
 
-Named-volume removal, database deletion, manual repair, export, or recovery is
-an exact-target destructive/operational action requiring separate approval.
-Backup and production disaster recovery are outside the pilot.
+## 🔄 Retensi dan Pemeliharaan (*Housekeeping*)
 
-## 📋 Minimum Logical Data
+- Insiden aktif dipertahankan sampai event pemulihan (*resolved event*) tercatat.
+- Event ternormalisasi yang telah resolved, canonical result, ringkasan bukti, dan riwayat pengiriman disimpan selama 30 hari.
+- Body webhook mentah dibuang setelah normalisasi tervalidasi.
+- Pemeliharaan berkala (setiap jam dan saat startup) menjalankan penghapusan data kedaluwarsa, *checkpoint* WAL, pemeriksaan integritas & kapasitas, serta *incremental vacuum* jika diperlukan.
+- Pada batas target 100 MiB, rekaman resolved terlama akan dihapus terlebih dahulu.
+- Data insiden aktif tidak pernah dihapus secara otomatis demi pemulihan kapasitas.
+- Pada batas keras 250 MiB, jika pemeliharaan aman tidak dapat memulihkan kapasitas, probe readiness akan gagal dan webhook baru akan menerima respons `503 Service Unavailable` sampai kapasitas dipulihkan dengan aman.
 
-The physical schema must represent schema migrations, requests, events,
-incidents, target identity, canonical results, evidence summaries,
-custom rules (`custom_rules` with unique branches), notification attempts,
-deduplication keys, and housekeeping state. Physical tables and indexes are
-finalized during implementation design.
+Penghapusan named volume, penghapusan database, perbaikan manual, ekspor, atau recovery merupakan tindakan operasional destruktif yang memerlukan otorisasi terpisah. Prosedur backup dan disaster recovery tingkat produksi berada di luar lingkup pilot.
 
-## ✅ Acceptance
+---
 
-Tests must cover empty-volume initialization, migration failure, commit before
-`202`, restart deduplication, firing/resolved correlation, WAL recovery,
-retention, target and hard capacity thresholds, and protection of active
-incidents.
+## 📋 Data Logis Minimum
+
+Skema fisik merepresentasikan:
+- Migrasi skema (`schema_migrations`);
+- Permintaan dan event alert (`diagnostic_events`);
+- Riwayat insiden dan status siklus hidup;
+- Identitas target kanonikal;
+- Hasil kanonikal terstruktur (`canonical_results`);
+- Ringkasan bukti terbatas (`evidence_summaries`);
+- Aturan kustom deklaratif (`custom_rules` dengan branch unik);
+- Riwayat percobaan notifikasi (`delivery_attempts`);
+- Kunci deduplikasi dan status pemeliharaan.
+
+---
+
+## ✅ Skenario Penerimaan dan Pengujian
+
+Pengujian mencakup: inisialisasi volume kosong, penanganan kegagalan migrasi, commit database sebelum respons `202`, deduplikasi event setelah restart service, korelasi firing/resolved, pemulihan mode WAL, penegakan retensi 30 hari, ambang batas kapasitas 100 MiB & 250 MiB, serta perlindungan data insiden aktif.
+
+---
 
 ## 📌 Status
 
-**Accepted and partially implemented.** Migrations, durable ingestion,
-deduplication, queue, canonical results, and disposable database lifecycle have
-source/image evidence. Persistent named-volume restart, housekeeping,
-retention, capacity, corruption, and recovery behavior remain unverified.
+**Implemented & Verified in Runtime (`tomcat-diagnostic-service` v0.1.4 / `devops-lab`).**
+Persistensi database SQLite pada volume bernama `diagnostic_data`, mode WAL, migrasi otomatis skema (termasuk `004-custom-rules.sql`), proteksi deduplikasi, retensi, dan ketahanan data saat container direstart telah diimplementasikan 100% dan terverifikasi secara live pada lingkungan `devops-lab` ([TN-005](../engineering-journal/diagnostic-mvp-pilot/TN-005-implement-durable-diagnostic-ingestion-and-queue.md), [TN-007](../engineering-journal/diagnostic-mvp-pilot/TN-007-implement-worker-canonical-result-and-renderers.md), [TN-013](../engineering-journal/diagnostic-mvp-pilot/TN-013-rebuild-and-verify-diagnostic-service-mailpit-runtime.md), [TN-015](../engineering-journal/diagnostic-mvp-pilot/TN-015-deploy-persistent-monitoring-runtime.md), [TN-017](../engineering-journal/diagnostic-mvp-pilot/TN-017-verify-end-to-end-incident-diagnostic-flow.md), dan [TN-018](../engineering-journal/diagnostic-mvp-pilot/TN-018-implement-strict-declarative-rulepack-engine.md)).
+
+---
+
+## 🔗 Related Documentation
+
+- [Diagnostic MVP Index](index.md)
+- [Alertmanager Webhook Contract](alertmanager-webhook-contract.md)
+- [Diagnostic Result and Confidence Contract](diagnostic-result-and-confidence-contract.md)
+- [Runtime Configuration and Verification Contract](runtime-configuration-and-verification-contract.md)
+- [TN-005 — Implement Durable Diagnostic Ingestion and Queue](../engineering-journal/diagnostic-mvp-pilot/TN-005-implement-durable-diagnostic-ingestion-and-queue.md)
+- [TN-015 — Deploy Persistent Monitoring Runtime](../engineering-journal/diagnostic-mvp-pilot/TN-015-deploy-persistent-monitoring-runtime.md)
+- [TM-ADR-0008 — SQLite Embedded Persistence Lifecycle](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0008.md)

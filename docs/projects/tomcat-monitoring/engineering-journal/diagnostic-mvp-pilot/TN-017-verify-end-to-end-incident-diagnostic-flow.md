@@ -64,22 +64,22 @@ flowchart TD
     B -->|"Durable Ingestion<br/>& Deduplication"| C[("SQLite Database<br/>events & work_queue")]
     C -->|"Single Worker<br/>Claim"| D["Diagnostic Worker<br/>Single Processing Loop"]
     D -->|"Bounded Window<br/>(±5 Menit)"| E["Evidence Collection<br/>Pipeline"]
-    
+
     subgraph Evidence_Sources ["Sumber Bukti Diagnostik (Evidence Sources)"]
         E1["Prometheus Adapter<br/>(JMX Scrape & Metrics)"]
         E2["Restricted Collector Spool<br/>(container_state & runtime_oom)"]
         E3["Local File Evidence Reader<br/>(catalina.out & hs_err logs)"]
         E4["Application Health Probe<br/>(HTTP Endpoint)"]
     end
-    
+
     E --> E1
     E --> E2
     E --> E3
     E --> E4
-    
+
     E1 & E2 & E3 & E4 --> F["Diagnostic Engine<br/>evaluateTomcatDown()"]
     F -->|"Evaluasi Berurutan"| G{"Tabel Keputusan<br/>TD-01 s/d TD-08"}
-    
+
     G -->|"Branch Terpilih"| H["Build Canonical Result<br/>& SHA-256 Hash"]
     H -->|"Persistensi Hasil"| I[("SQLite Persistence<br/>results & summaries")]
     H -->|"Guard Notifikasi"| J{"Perubahan<br/>Material?"}
