@@ -48,15 +48,24 @@ Diagnostic Engine mengevaluasi bukti telemetri dalam rentang waktu terbatas (*bo
 Rentang waktu pengumpulan data dibatasi secara presisi di sekitar waktu insiden:
 
 ```text
-startsAt - 15 Menit              startsAt (Waktu Insiden)          Diagnosis + 2 Menit
-        ├─── Konteks Historis ─────────────┼─── Bukti Pasca-Insiden ──────┤
-        ◄── Log aplikasi, scrape sampel ───►◄── Exit event, crash dump ───►
-        └─────────────── Total Jendela Evaluasi Bukti ────────────────────┘
+  Batas Awal (Lookback Window)         Waktu Insiden (`startsAt`)       Batas Akhir (Lookahead Window)
+     [startsAt - 15 Menit]                        │                         [Diagnosis + 2 Menit]
+              │                                   │                                   │
+              ├─── Konteks Historis (15m) ────────┼─── Bukti Pasca-Insiden (2m) ──────┤
+              ◄── Log aplikasi, sampel metrik ────►◄── Event exit, crash dump host ───►
+              │                                                                       │
+              └────────────────── Total Jendela Evaluasi Bukti ───────────────────────┘
+                                                  │
+                 ┌────────────────────────────────┴────────────────────────────────┐
+                 │ Batas Eksekusi Global (Global Timeout): Maksimal 60 Detik       │
+                 └─────────────────────────────────────────────────────────────────┘
 ```
 
-1. **Batas Awal (*Lookback Window*):** Menarik log dan sampel metrik hingga **15 menit sebelum insiden terjadi (`startsAt`)** untuk menangkap anomali awal sebelum layanan down.
-2. **Batas Akhir (*Lookahead Window*):** Mengumpulkan bukti hingga **2 menit setelah proses diagnosis dimulai** untuk menangkap status akhir kontainer atau event terminasi.
-3. **Batas Eksekusi Global (*Global Timeout*):** Seluruh proses pengumpulan bukti oleh Diagnostic Engine wajib selesai dalam waktu maksimal **60 detik**.
+1. **Batas Awal (*Lookback Window*):** Menarik log aplikasi dan sampel metrik hingga **15 menit sebelum insiden terjadi (`startsAt`)** untuk menangkap anomali atau degradasi performa sebelum layanan *down*.
+2. **Waktu Insiden (`startsAt`):** Titik waktu saat kondisi alert `TomcatDown` pertama kali terpenuhi pada Prometheus dan diteruskan ke Alertmanager.
+3. **Batas Akhir (*Lookahead Window*):** Mengumpulkan bukti telemetri hingga **2 menit setelah proses diagnosis dimulai** guna menangkap status akhir kontainer, event terminasi, atau *crash dump*.
+4. **Total Jendela Evaluasi Bukti (*Bounded Evidence Window*):** Batas rentang waktu pengumpulan bukti secara keseluruhan yang bersifat tertutup dan deterministik.
+5. **Batas Eksekusi Global (*Global Timeout*):** Seluruh rangkaian pengumpulan dan korelasi bukti oleh Diagnostic Engine wajib selesai dalam batas waktu maksimal **60 detik** guna mencegah proses diagnostik menggantung (*hanging*).
 
 ### Evidence Sources Matrix
 
@@ -86,7 +95,7 @@ Diagnostic Engine mengorelasikan bukti dari lima sumber data independen:
 
 Evaluasi aturan dijalankan secara berurutan dari atas ke bawah. Cabang aturan pertama yang seluruh kondisinya terpenuhi (*first matching branch*) langsung ditetapkan sebagai kesimpulan utama (*primary assessment*).
 
-| Cabang | Korelasi Bukti Terkait | Asesmen (*Primary Assessment*) | Klasifikasi | Tingkat Keyakinan |
+| Branch | Correlated Evidence | Primary Assessment | Classification | Confidence Level |
 | :---: | :--- | :--- | :---: | :---: |
 | **TD-01** | Scrape JMX gagal; health check aplikasi sukses; container dalam status berjalan (*running*). | Tomcat tidak terbukti down; JMX Exporter, TLS, atau jalur scrape mengalami kegagalan. | `probable_cause` | `medium` |
 | **TD-02** | Scrape JMX dan health check aplikasi gagal; runtime mencatat terminasi OOM kill atau kenaikan cgroup `oom_kill` sebelum container keluar. | Container dihentikan paksa oleh mekanisme Linux kernel OOM killer. | `confirmed_cause` | `high` |
@@ -120,7 +129,7 @@ Seluruh skenario pengujian otomatis dan verifikasi deterministik distandarkan ke
 
 ### Evidence Correlation and Rule Decision Scenarios
 
-| No | ID Skenario | Kondisi / Bukti Input | Asesmen / Cabang Aturan | Hasil yang Diharapkan |
+| No | Scenario ID | Input Evidence & Conditions | Rule Branch & Assessment | Expected Result |
 | :---: | :---: | :--- | :---: | :--- |
 | 1 | **TC-01** | Scrape JMX gagal, health check aplikasi sukses, container status *running*. | `TD-01` (`probable_cause`) | JMX/TLS failure; Tomcat tidak terbukti mati. |
 | 2 | **TC-02** | Scrape JMX dan health check gagal, log/cgroup mencatat Linux OOM kill. | `TD-02` (`confirmed_cause`) | Terminasi oleh kernel OOM killer terkonfirmasi. |
@@ -134,7 +143,7 @@ Seluruh skenario pengujian otomatis dan verifikasi deterministik distandarkan ke
 
 ### Engine Resilience, Lifecycle, and Integration Scenarios
 
-| No | ID Skenario | Aspek Verifikasi | Perilaku yang Divalidasi |
+| No | Scenario ID | Verification Aspect | Validated Behavior |
 | :---: | :---: | :--- | :--- |
 | 10 | **TC-10** | *Prometheus Adapter Timeout* | Batas waktu 5 detik diterapkan; ketiadaan metrik tidak membatalkan alur diagnostik. |
 | 11 | **TC-11** | *Deduplikasi Firing* | Event webhook firing berulang diabaikan tanpa re-evaluasi atau notifikasi duplikat. |
