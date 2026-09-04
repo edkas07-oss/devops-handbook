@@ -42,13 +42,13 @@ Dalam insiden riil, satu kegagalan sering kali memicu serangkaian error beruntun
 
 ```mermaid
 flowchart TD
-    A["Larik Bukti Masuk Multi-Source<br/>(JMX + Health + cgroup + Logs)"] --> B{"Apakah ada bukti kontradiktif?"}
-    B -- "Ya" --> C["Tetapkan TD-08 (Undetermined)<br/><i>Hindari tebakan salah</i>"]
-    B -- "Tidak" --> D{"Apakah cocok dengan Enriched Custom Rule?<br/>(TD-09 s/d TD-18+)"}
-    D -- "Ya (Pola Spesifik)" --> E["Tetapkan Branch Kustom Terdaftar<br/>(confirmed_cause / probable_cause)"]
-    D -- "Tidak" --> F{"Evaluasi Built-in Core Engine<br/>(Urutan Prioritas: TD-02 ➔ TD-03 ➔ TD-04 ➔ TD-05 ➔ TD-01 ➔ TD-06)"}
-    F -- "Cocok" --> G["Tetapkan Built-in Branch Terpilih"]
-    F -- "Tidak Ada Bukti Konklusif" --> H["Tetapkan Fallback TD-08 (Undetermined)"]
+    A["Larik Bukti Masuk Multi-Source<br/>(JMX, Health, cgroup, Logs)"] --> B{"Bukti Kontradiktif?"}
+    B -- "Ya" --> C["TD-08 (Undetermined)<br/><i>Hindari Tebakan Salah</i>"]
+    B -- "Tidak" --> D{"Cocok Custom Rule?<br/>(TD-09 s/d TD-18+)"}
+    D -- "Ya" --> E["Branch Kustom Terdaftar<br/>(confirmed / probable)"]
+    D -- "Tidak" --> F{"Cocok Core Rule?<br/>(TD-02 s/d TD-06)"}
+    F -- "Ya" --> G["Branch Inti Terpilih<br/>(confirmed_cause)"]
+    F -- "Tidak" --> H["Fallback TD-08<br/>(Undetermined)"]
 ```
 
 1. **Prioritas Bukti Primer:** Bukti log langsung (*fatal crash*, *cgroup OOM*, *deadlock*) selalu mengalahkan gejala turunan (*scrape timeout*).
