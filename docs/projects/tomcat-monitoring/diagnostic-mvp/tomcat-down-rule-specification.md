@@ -2,94 +2,140 @@
 
 ## 🔍 Overview
 
-`TomcatDown` detects a sustained Prometheus scrape failure for the configured
-Tomcat JMX Exporter target and triggers bounded evidence correlation. The alert
-does not prove that Tomcat is down.
+Alert `TomcatDown` dipicu ketika Prometheus mengalami kegagalan beruntun saat mengambil metrik (*scrape*) dari endpoint Tomcat JMX Exporter. Pemicuan alert ini menjadi titik awal bagi Diagnostic Service untuk mengumpulkan dan mengorelasikan bukti-bukti operasional dalam rentang waktu terbatas (*bounded evidence correlation*).
+
+Perlu ditekankan bahwa status alert ini menunjukkan hilangnya keterjangkauan metrik JMX dan tidak secara otomatis membuktikan bahwa proses JVM Tomcat telah mati total.
+
+---
 
 ## 📋 Alert Contract
 
-| Field | Pilot value |
-| --- | --- |
-| Alert name | `TomcatDown` |
-| Expression | `up{job="tomcat-jmx-exporter"} == 0` |
-| Duration | `2m` |
-| Severity | `critical` |
-| Scrape interval used by the decision | `30s` |
-| Service label | `tomcat` |
-| Check label | `runtime-availability` |
+| Parameter | Nilai Pilot |
+| :--- | :--- |
+| Nama Alert | `TomcatDown` |
+| Ekspresi PromQL | `up{job="tomcat-jmx-exporter"} == 0` |
+| Durasi (*For*) | `2m` |
+| Tingkat Keparahan (*Severity*) | `critical` |
+| Interval Scrape yang Digunakan | `30s` |
+| Label Service | `tomcat` |
+| Label Check | `runtime-availability` |
 
-The two-minute duration represents four current scrape intervals. A future
-change to scrape interval, target naming, expression, or duration requires a
-contract review and matching rule tests.
+Klausul Durasi (`for: 2m`) mewajibkan kondisi evaluasi (`up == 0`) bernilai benar (*true*) secara terus-menerus tanpa putus selama minimal 2 menit sebelum status alert berubah dari `Pending` menjadi `Firing` (mengirimkan alert).
 
-Required identity labels are `environment`, `host`, and `tomcat_instance`.
-`job` and `instance` identify the technical scrape endpoint. `application` is
-optional context and is not part of the `TomcatDown` identity.
+Dengan interval *scrape* 30 detik, durasi 2 menit setara dengan 4 kali *scrape* berturut-turut:
 
-## 🧩 Evidence Window and Sources
+| Titik Waktu | Siklus Scrape | Status Tomcat | Evaluasi (`up == 0`) | Status Alert |
+| :---: | :--- | :---: | :---: | :--- |
+| `00:00` | Interval 1 | `Down` | `True` | `Pending` (timer mulai berjalan) |
+| `00:30` | Interval 2 | `Down` | `True` | `Pending` (durasi berjalan: 30 detik) |
+| `01:00` | Interval 3 | `Up` | `False` | `Reset` (kembali normal, timer dibatalkan) |
+| `01:30` | Interval 4 | `Up` | `False` | `Inactive` |
 
-The rule evaluates bounded evidence from 15 minutes before `startsAt` through
-two minutes after the diagnostic begins, subject to the global 60-second
-processing timeout.
+Karena pada interval 3 (menit ke-1) Tomcat sudah kembali aktif (`up == 1`), kondisi alert langsung batal terpenuhi. Ambang batas durasi 2 menit tidak tercapai, sehingga tidak ada alert yang ditembakkan atau terkirim ke Alertmanager.
 
-| Source | Purpose | Requirement |
-| --- | --- | --- |
-| Prometheus | Scrape state, last successful sample, and error context when available | Required attempt |
-| Application health | Distinguish a live application from JMX/TLS/scrape-path failure | Supporting; optional |
-| Tomcat logs | Lifecycle, startup failure, orderly shutdown, bind, and JVM error evidence | Required attempt when configured |
-| JVM crash artifacts | Correlate a fatal JVM termination | Optional bounded evidence |
-| Restricted event collector | Container exit, OOM, stop, restart, cgroup, and approved host event evidence | Required attempt when configured |
+Durasi evaluasi `2m` setara dengan empat siklus *scrape* berturut-turut (interval `30s`). Oleh karena itu, setiap modifikasi pada interval *scrape*, nama target, ekspresi PromQL, maupun durasi alert wajib ditinjau ulang terhadap kontrak arsitektur serta divalidasi melalui pengujian aturan.
 
-Unavailable evidence is reported as unavailable. It is not interpreted as
-proof that an event did not occur.
+Identitas unik sebuah instance Tomcat ditentukan secara kanonikal melalui gabungan label: `environment`, `host`, dan `tomcat_instance`. Sementara itu, label `job` dan `instance` hanya digunakan untuk identifikasi teknis koneksi Prometheus, dan label `application` bersifat opsional sebagai metadata pelengkap.
 
-The Prometheus adapter has one total five-second deadline per diagnostic run,
-including connection and response processing. It performs one attempt without
-an in-run retry. A timeout produces evidence status `timeout` and does not fail
-the whole diagnostic. The worker continues with every other configured source,
-including bounded Tomcat logs, crash artifacts, application health, and the
-restricted event collector spool. The canonical result and notification must
-identify Prometheus as unavailable rather than omitting it or treating missing
-metrics as proof of a Tomcat condition.
+---
+
+## 🧩 Time Window and Evidence Sources
+
+Engine diagnostik mengevaluasi bukti telemetri dalam rentang waktu yang dibatasi secara ketat (*bounded time window*): mulai dari **15 menit sebelum insiden terjadi (`startsAt`)** hingga **2 menit setelah proses diagnosis dimulai**, dengan batas waktu eksekusi global (*global timeout*) maksimal 60 detik.
+
+| Sumber Bukti | Tujuan Pengumpulan | Persyaratan |
+| :--- | :--- | :--- |
+| **Prometheus** | Status scrape, sampel sukses terakhir, dan konteks error saat tersedia. | Percobaan wajib (*Required attempt*) |
+| **Application Health** | Membedakan aplikasi yang masih hidup dari kegagalan jalur scrape/TLS/JMX. | Pendukung; opsional |
+| **Tomcat Logs** | Bukti siklus hidup, kegagalan startup, shutdown normal, error binding port, dan anomali JVM. | Percobaan wajib jika terkonfigurasi |
+| **JVM Crash Artifacts** | Mengkorelasikan terminasi fatal JVM (misal `hs_err_pid*.log`). | Bukti terbatas opsional |
+| **Restricted Event Collector** | Bukti terminasi container, OOM kill, stop, restart, cgroup, dan event host yang disetujui. | Percobaan wajib jika terkonfigurasi |
+
+Sumber bukti yang tidak dapat diakses atau tidak ditemukan akan dicatat dengan status *unavailable*. Sesuai prinsip *no negative proof*, ketiadaan data telemetri tidak boleh dianggap sebagai bukti bahwa suatu kejadian (misalnya crash atau OOM) tidak terjadi.
+
+Adapter Prometheus memiliki batas waktu (*deadline*) maksimal **5 detik** per sesi diagnosis (mencakup pembentukan koneksi dan penerimaan respons) tanpa mekanisme coba-ulang dalam siklus berjalan (*in-run retry*). Jika batas waktu terlampaui, adapter akan mengembalikan status `timeout` tanpa membatalkan proses diagnostik secara keseluruhan. Worker akan tetap melanjutkan pengumpulan bukti dari sumber lain. Pada hasil kanonikal (*canonical result*) dan laporan notifikasi, data Prometheus akan secara transparan dilaporkan sebagai tidak tersedia.
+
+---
 
 ## ⚖️ Deterministic Decision Table
 
-The first matching branch in this table governs the primary assessment.
+Evaluasi aturan dijalankan secara berurutan dari atas ke bawah. Cabang aturan pertama yang seluruh kondisinya terpenuhi (*first matching branch*) langsung ditetapkan sebagai kesimpulan utama (*primary assessment*).
 
-| Branch | Correlated evidence | Assessment | Confidence |
-| --- | --- | --- | --- |
-| TD-01 | JMX scrape fails; application health succeeds; container is running | Tomcat is not proven down; JMX Exporter, TLS, or scrape path failed | `medium` |
-| TD-02 | JMX and application health fail; runtime records OOM kill or cgroup `oom_kill` increase before exit | Container terminated by OOM mechanism | `high` |
-| TD-03 | Fatal JVM marker, matching crash artifact, and runtime death event correlate | JVM fatal crash | `high` |
-| TD-04 | Startup sequence, connector `BindException`, and incomplete startup correlate | Connector startup failed because the configured port could not bind | `high` |
-| TD-05 | Orderly shutdown log and explicit stop event correlate | Controlled or externally requested shutdown | `high` |
-| TD-06 | Container is exited, but no rule-approved cause evidence is available | Container exited; cause undetermined | no confidence |
-| TD-07 | Container runs while JMX and health time out with supporting long-pause evidence | Tomcat may be unresponsive; process is not proven down | `medium` |
-| TD-08 | Required sources are unavailable or evidence conflicts without a decisive branch | Cause undetermined from available evidence | no confidence |
+| Cabang | Korelasi Bukti Terkait | Asesmen (*Primary Assessment*) | Klasifikasi | Tingkat Keyakinan |
+| :---: | :--- | :--- | :---: | :---: |
+| **TD-01** | Scrape JMX gagal; health check aplikasi sukses; container dalam status berjalan (*running*). | Tomcat tidak terbukti down; JMX Exporter, TLS, atau jalur scrape mengalami kegagalan. | `probable_cause` | `medium` |
+| **TD-02** | Scrape JMX dan health check aplikasi gagal; runtime mencatat terminasi OOM kill atau kenaikan cgroup `oom_kill` sebelum container keluar. | Container dihentikan paksa oleh mekanisme Linux kernel OOM killer. | `confirmed_cause` | `high` |
+| **TD-03** | Penanda fatal JVM pada log, crash artifact yang cocok, dan event terminasi runtime saling berkorelasi. | Terjadi fatal crash pada JVM (misal SIGSEGV/core dump). | `confirmed_cause` | `high` |
+| **TD-04** | Sekuen startup, log `BindException` pada connector, dan startup yang tidak tuntas saling berkorelasi. | Startup connector Tomcat gagal karena port yang dikonfigurasi tidak dapat di-bind. | `confirmed_cause` | `high` |
+| **TD-05** | Log shutdown normal (*orderly shutdown*) dan event stop eksplisit saling berkorelasi. | Shutdown terkontrol atau dihentikan secara sengaja dari luar. | `confirmed_cause` | `high` |
+| **TD-06** | Container telah keluar (*exited*), tetapi tidak ditemukan bukti penyebab yang disetujui dalam aturan. | Container keluar (*exited*); penyebab spesifik belum dapat ditentukan. | `undetermined` | *None* (`null`) |
+| **TD-07** | Container berjalan, sementara JMX dan health check timeout disertai bukti jeda panjang (*long-pause* JVM/GC). | Tomcat berpotensi tidak responsif (*freeze*); proses tidak terbukti mati. | `possible_cause` | `medium` |
+| **TD-08** | Sumber bukti wajib tidak tersedia atau bukti telemetri saling bertentangan tanpa cabang penentu yang cocok. | Penyebab tidak dapat ditentukan dari bukti yang tersedia. | `undetermined` | *None* (`null`) |
 
-Contradicting direct evidence is evaluated before supporting evidence. Generic
-log text alone cannot establish a confirmed cause. Result selection is
-deterministic for the same normalized evidence and `rule_version`.
+!!! note "Ekstensibilitas Dynamic Rulepack (TD-09+)"
+    Selain aturan inti TD-01 s/d TD-08, Diagnostic Service dilengkapi dengan **Declarative Rulepack Engine** (`rulepack-v1.schema.json`). Aturan deklaratif kustom (seperti `TD-09` *DatabaseConnectionPoolExhausted*) dievaluasi setelah pemeriksaan kontradiksi dan sebelum fallback TD-08 tanpa memerlukan modifikasi kode inti engine.
 
-## 🔄 Lifecycle
+Logika evaluasi menerapkan aturan ketat: bukti langsung yang saling bertentangan selalu diprioritaskan sebelum bukti pendukung dianalisis. Potongan teks log yang bersifat umum tidak dapat digunakan sebagai dasar konfirmasi tanpa dukungan korelasi runtime yang sah. Seluruh proses pengambilan keputusan bersifat deterministik mutlak untuk masukan bukti dan `rule_version` yang sama.
 
-- The first unique firing event runs the diagnostic and produces one initial
-  canonical result.
-- Duplicate firing delivery performs no repeated diagnosis or notification.
-- A material canonical-result change may produce one update during the pilot.
-- Resolved processing reuses the stored firing result; it does not run a full
-  diagnosis again.
-- A resolved event without stored firing state is accepted as
-  `resolved_without_previous_firing` and must not invent a prior diagnosis.
+---
 
-## ✅ Acceptance Scenarios
+## 🔄 Alert Lifecycle
 
-Tests must cover JMX-only failure, application and JMX failure, OOM kill, JVM
-fatal crash, controlled shutdown, unexplained exit, unavailable evidence,
-Prometheus completion within five seconds, Prometheus timeout fallback without
-retry, duplicate firing, one material update, Mailpit failure, restart
-persistence, and resolved delivery.
+- **Notifikasi Pemicuan Awal (*Initial Firing*):** Menjalankan siklus diagnosis menyeluruh, menyimpan status insiden ke database SQLite, dan menerbitkan satu laporan hasil kanonikal awal ke Mailpit.
+- **Pemicuan Duplikat (*Duplicate Firing*):** Webhook firing berulang dari Alertmanager akan diakui dengan respons `202 Accepted` tanpa menjalankan ulang proses diagnosis atau mengirim notifikasi ganda.
+- **Pembaruan Material (*Material Update*):** Jika bukti baru yang masuk mengubah klasifikasi diagnosis secara signifikan, engine diizinkan mengirimkan maksimal 1 kali notifikasi pembaruan selama insiden aktif berlangsung.
+- **Pemulihan Insiden (*Resolved*):** Saat menerima sinyal *resolved*, engine mengambil riwayat insiden dari SQLite untuk menyusun dan mengirimkan notifikasi pemulihan tanpa mengulang proses diagnosis dari awal.
+- **Pemulihan Tanpa Insiden Sebelumnya (*Resolved without Prior Firing*):** Event dicatat dengan status `resolved_without_previous_firing` tanpa menghasilkan data diagnostik buatan.
+
+---
+
+## ✅ Acceptance and Verification Scenarios
+
+Seluruh skenario pengujian otomatis dan verifikasi deterministik distandarkan ke dalam dua kelompok pengujian berikut:
+
+### Evidence Correlation and Rule Decision Scenarios
+
+| No | ID Skenario | Kondisi / Bukti Input | Asesmen / Cabang Aturan | Hasil yang Diharapkan |
+| :---: | :---: | :--- | :---: | :--- |
+| 1 | **TC-01** | Scrape JMX gagal, health check aplikasi sukses, container status *running*. | `TD-01` (`probable_cause`) | JMX/TLS failure; Tomcat tidak terbukti mati. |
+| 2 | **TC-02** | Scrape JMX dan health check gagal, log/cgroup mencatat Linux OOM kill. | `TD-02` (`confirmed_cause`) | Terminasi oleh kernel OOM killer terkonfirmasi. |
+| 3 | **TC-03** | JVM crash fatal log / core dump (`hs_err_pid*.log`) berkorelasi dengan event runtime. | `TD-03` (`confirmed_cause`) | Fatal crash JVM terkonfirmasi. |
+| 4 | **TC-04** | Sekuen startup mendeteksi `BindException` pada connector port. | `TD-04` (`confirmed_cause`) | Kegagalan startup port binding terkonfirmasi. |
+| 5 | **TC-05** | Log shutdown normal (*orderly shutdown*) berkorelasi dengan stop event. | `TD-05` (`confirmed_cause`) | Penghentian terkontrol/sengaja terkonfirmasi. |
+| 6 | **TC-06** | Container berstatus *exited* tanpa bukti penyebab spesifik yang valid. | `TD-06` (`undetermined`) | Container exited; penyebab belum teridentifikasi. |
+| 7 | **TC-07** | Container *running*, JMX/health check timeout, bukti *long-pause* GC/JVM. | `TD-07` (`possible_cause`) | Proses Tomcat berpotensi *freeze* / tidak responsif. |
+| 8 | **TC-08** | Bukti telemetri saling bertentangan atau sumber wajib tidak tersedia. | `TD-08` (`undetermined`) | Fallback deterministik tanpa spekulasi fiktif. |
+| 9 | **TC-09** | Aturan dinamis `TD-09` (*DatabaseConnectionPoolExhausted*) dimuat via Rulepack API. | `TD-09` (`confirmed_cause`) | Remapping firing otomatis ke rulepack deklaratif. |
+
+### Engine Resilience, Lifecycle, and Integration Scenarios
+
+| No | ID Skenario | Aspek Verifikasi | Perilaku yang Divalidasi |
+| :---: | :---: | :--- | :--- |
+| 10 | **TC-10** | *Prometheus Adapter Timeout* | Batas waktu 5 detik diterapkan; ketiadaan metrik tidak membatalkan alur diagnostik. |
+| 11 | **TC-11** | *Deduplikasi Firing* | Event webhook firing berulang diabaikan tanpa re-evaluasi atau notifikasi duplikat. |
+| 12 | **TC-12** | *Material Update Protection* | Maksimum 1 kali pembaruan notifikasi jika klasifikasi hasil kanonikal berubah. |
+| 13 | **TC-13** | *SQLite Restart Persistence* | Database SQLite dan antrean event bertahan utuh saat service di-restart. |
+| 14 | **TC-14** | *Mailpit Retry & Delivery* | Retensi pengiriman SMTP tahan terhadap downtime Mailpit dan mengirimkan alert resolved. |
+
+---
 
 ## 📌 Status
 
-**Accepted specification — not implemented or verified.**
+**Implemented & Verified in Runtime (`tomcat-diagnostic-service` v0.1.4 / `devops-lab`).**
+Seluruh spesifikasi aturan deterministik, korelasi bukti multi-sumber, siklus hidup firing/resolved, serta integrasi Declarative Rulepack Engine (`TD-01` s/d `TD-09`) telah diimplementasikan 100% dan terverifikasi secara live pada lingkungan persisten `devops-lab` ([TN-006](../engineering-journal/diagnostic-mvp-pilot/TN-006-implement-target-isolation-evidence-adapters-and-tomcatdown-engine.md), [TN-014](../engineering-journal/diagnostic-mvp-pilot/TN-014-configure-tomcatdown-rule-and-alertmanager-diagnostic-route.md), [TN-017](../engineering-journal/diagnostic-mvp-pilot/TN-017-verify-end-to-end-incident-diagnostic-flow.md), [TN-018](../engineering-journal/diagnostic-mvp-pilot/TN-018-implement-strict-declarative-rulepack-engine.md), dan [TN-019](../engineering-journal/diagnostic-mvp-pilot/TN-019-verify-ai-enrichment-and-incident-remapping.md)).
+
+---
+
+## 🔗 Related Documentation
+
+- [Diagnostic MVP Index](index.md)
+- [Alertmanager Webhook Contract](alertmanager-webhook-contract.md)
+- [Target and Evidence Contract](target-and-evidence-contract.md)
+- [Diagnostic Result and Confidence Contract](diagnostic-result-and-confidence-contract.md)
+- [Restricted Event Collector Contract](restricted-event-collector-contract.md)
+- [Knowledge Base and AI Enrichment Architecture](knowledge-base-and-ai-enrichment-architecture.md)
+- [TN-006 — Implement Target Isolation, Evidence Adapters, and TomcatDown Engine](../engineering-journal/diagnostic-mvp-pilot/TN-006-implement-target-isolation-evidence-adapters-and-tomcatdown-engine.md)
+- [TN-014 — Configure TomcatDown Rule and Alertmanager Diagnostic Route](../engineering-journal/diagnostic-mvp-pilot/TN-014-configure-tomcatdown-rule-and-alertmanager-diagnostic-route.md)
+- [TN-017 — Verify End-to-End Incident Diagnostic Flow](../engineering-journal/diagnostic-mvp-pilot/TN-017-verify-end-to-end-incident-diagnostic-flow.md)
+- [TN-018 — Implement Strict Declarative Rulepack Engine](../engineering-journal/diagnostic-mvp-pilot/TN-018-implement-strict-declarative-rulepack-engine.md)
+- [TM-ADR-0004 — Deterministic Alert Rule Specification](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0004.md)
