@@ -126,6 +126,7 @@ ke **Monitoring Platform Integration Phase** dengan fokus:
 | [CI/CD](ci-cd/index.md) | Menjelaskan pipeline build, test, dan deployment |
 | [Operations](operations/index.md) | Menjelaskan coverage monitoring dan aktivitas operasional |
 | [Troubleshooting](troubleshooting/index.md) | Menyediakan panduan diagnosis dan penyelesaian masalah |
+| [FAQ](faq.md) | Menyajikan tanya jawab teknis, logika diagnosis multi-error, dan tata kelola AI |
 | [Engineering Journal](engineering-journal/index.md) | Menyimpan histori perencanaan dan implementasi |
 | [References](references/index.md) | Mengumpulkan repository, ADR, dan referensi eksternal |
 
