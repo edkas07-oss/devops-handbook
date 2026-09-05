@@ -55,13 +55,119 @@ Ajv `8.20.0` dipin sebagai satu-satunya application dependency. Ia mendukung
 JSON Schema draft-07 yang digunakan webhook schema. SQLite tetap diisolasi pada
 satu adapter sesuai TM-ADR-0013.
 
-## 🧭 Implementation Plan
+## 🔄 Technical Workflow
+
+Alur teknis penerimaan webhook Alertmanager hingga antrean SQLite dirancang deterministik dan tahan terhadap kegagalan jaringan maupun pengiriman ulang (*at-least-once delivery*):
 
 ```text
-Webhook -> schema/allowlist -> normalize event key
-        -> one SQLite transaction: event + incident + queue item
-        -> accepted; duplicate does not create new work
+1. Webhook -> 2. schema/allowlist -> 3. normalize event key
+           -> 4. one SQLite transaction: event + incident + queue item
+           -> 5. accepted; duplicate does not create new work
 ```
+
+### Rincian Aktivitas Alur Kerja
+
+1. **Webhook:**
+   Menerima permintaan HTTP POST payload notifikasi insiden dari Alertmanager v4 pada endpoint `/api/v1/alerts`.
+2. **schema/allowlist:**
+    - **schema:** Memvalidasi payload terhadap JSON Schema Draft-07 menggunakan pustaka Ajv mode strict (memeriksa struktur envelope, timestamp RFC3339, labels, dan annotations).
+    - **allowlist:** Memverifikasi label target (`environment`, `host`, `tomcat_instance`) terhadap daftar target allowlist konfigurasi lokal yang valid.
+3. **normalize event key:**
+   Membentuk kunci event unik deterministik (`event_key` via SHA-256) dari kombinasi identitas target, `fingerprint` alert, status (`firing`/`resolved`), dan waktu `startsAt` untuk mencegah duplikasi pemrosesan.
+4. **one SQLite transaction: event + incident + queue item:**
+   Mengeksekusi satu transaksi tunggal SQLite yang atomik (*all-or-nothing*) untuk menjamin konsistensi data:
+    - **event:** Menyimpan rekaman alert ke tabel `events` dan memeriksa apakah `event_key` telah ada sebelumnya (deduplikasi data).
+    - **incident:** Melakukan *upsert* pembaruan status insiden pada tabel `incidents` berdasarkan alert fingerprint.
+    - **queue item:** Memeriksa kapasitas antrean (`work_queue` < 50 item); jika aman, mendaftarkan tugas baru berstatus `queued` untuk diproses worker asinkron.
+5. **accepted; duplicate does not create new work:**
+    - **accepted:** Mengembalikan respons HTTP `202 Accepted` kepada Alertmanager segera setelah payload tersimpan aman di database.
+    - **duplicate does not create new work:** Apabila alert yang diterima merupakan event duplikat yang telah tersimpan di database, transaksi tetap di-commit namun supresi diterapkan sehingga tidak ada antrean kerja baru yang dibuat pada `work_queue`.
+
+### Pseudocode Alur Ingestion & Antrean
+
+```python
+# Berkas Implementasi: src/application/ingest-alertmanager.js & src/adapters/sqlite-repository.js
+
+def handle_webhook_alertmanager(http_request):
+    # 1. Webhook: Menerima payload HTTP POST (src/application/ingest-alertmanager.js)
+    body = parse_json(http_request.body, max_bytes=262144)
+
+    # 2. schema/allowlist: (src/server/webhook-schema.js & src/application/ingest-alertmanager.js)
+    # - schema: Validasi JSON Schema Draft-07 (Ajv mode strict)
+    if not ajv_schema_validator.validate(body):
+        return http_response(400, "invalid_alertmanager_schema")
+
+    # - allowlist: Validasi allowlist target lokal
+    for alert in body.alerts:
+        target_identity = resolve_target(alert.labels)
+        if target_identity not in local_target_allowlist:
+            return http_response(422, "untrusted_target_identity")
+
+    # 3. normalize event key: Bentuk event_key unik deterministik untuk setiap alert (src/application/ingest-alertmanager.js)
+    normalized_alerts = []
+    for alert in body.alerts:
+        target_identity = resolve_target(alert.labels)
+        event_key = generate_deterministic_key(target_identity, alert.fingerprint, alert.status, alert.starts_at)
+        normalized_alerts.append((event_key, target_identity, alert))
+
+    # 4. one SQLite transaction: event + incident + queue item (src/adapters/sqlite-repository.js)
+    with sqlite_db.transaction():
+        for event_key, target_identity, alert in normalized_alerts:
+            # - event: Deduplikasi rekaman event
+            if sqlite_db.exists("events", event_key=event_key):
+                # - duplicate does not create new work: Lewati pendaftaran antrean
+                continue
+
+            event_id = sqlite_db.insert("events", {
+                "event_key": event_key,
+                "fingerprint": alert.fingerprint,
+                "status": alert.status,
+                "labels": alert.labels,
+                "annotations": alert.annotations
+            })
+
+            # - incident: Upsert status insiden
+            upsert_incident(
+                fingerprint=alert.fingerprint,
+                target=target_identity,
+                state=alert.status,
+                timestamp=alert.starts_at
+            )
+
+            # - queue item: Enqueue tugas dengan batas kapasitas 50 (src/application/bounded-queue.js)
+            if sqlite_db.count("work_queue", state="queued") >= 50:
+                raise QueueCapacityExhaustedError("Batas kapasitas antrean 50 terlampaui")
+
+            sqlite_db.insert("work_queue", {
+                "event_id": event_id,
+                "state": "queued",
+                "created_at": current_timestamp()
+            })
+
+    # 5. accepted; duplicate does not create new work: (src/adapters/sqlite-repository.js)
+    # - accepted: Mengembalikan respons HTTP 202 Accepted
+    return http_response(202, {"status": "accepted"})
+```
+
+### Pemetaan Berkas Implementasi & Self-Documentation
+
+Setiap tahapan alur kerja dan pseudocode di atas diimplementasikan secara modular pada berkas sumber (*source code*) repositori `tomcat-diagnostic-service` dengan standar *self-documentation* Bahasa Indonesia:
+
+| Tahap Alur Kerja | Berkas Sumber (*Source File*) | Fungsi / Komponen Utama | Standar *Self-Documentation* & Batasan |
+| --- | --- | --- | --- |
+| **1. Webhook** | `src/application/ingest-alertmanager.js`<br/>*(Gateway HTTPS pada `src/server/http-service.js`)* | `ingestAlertmanager()` | Menerima payload alert notifikasi insiden dari Alertmanager v4. |
+| **2. schema/allowlist** | `config/schemas/alertmanager-webhook-v4.schema.json`<br/>`src/server/webhook-schema.js`<br/>`src/application/ingest-alertmanager.js` | `createWebhookValidator()`<br/>`normalizeWebhook()` | Validasi JSON Schema draft-07 via compiler Ajv mode strict & verifikasi target terhadap allowlist lokal. |
+| **3. normalize event key** | `src/application/ingest-alertmanager.js` | `normalizeWebhook()` | Normalisasi timestamp RFC 3339 UTC & pembentukan `eventKey` via hash SHA-256 (`fingerprint + status + eventTime`). |
+| **4. one SQLite transaction: event + incident + queue item** | `src/adapters/sqlite-repository.js`<br/>`src/application/bounded-queue.js`<br/>`migrations/001-initial.sql` | `SqliteRepository.accept()`<br/>`BoundedWorkQueue.accept()` | Eksekusi transaksi atomik SQLite: pencatatan event, upsert status insiden, dan enqueue ke `work_queue` (batas kapasitas 50). |
+| **5. accepted; duplicate does not create new work** | `src/adapters/sqlite-repository.js`<br/>`src/application/ingest-alertmanager.js` | `SqliteRepository.accept()` | Pengembalian status accepted (HTTP 202) serta supresi tugas kerja baru untuk alert duplikat. |
+
+## 🧭 Implementation Plan
+
+| Tahap | Rencana |
+| :--- | :--- |
+| **Add Schema Validation** | Menambahkan validasi schema webhook menggunakan `ajv@8.20.0` dan mengunci dependensi pada `package.json`. |
+| **Implement Durable Acceptance** | Mengembangkan skema migrasi database SQLite `001-initial.sql`, adapter repositori, dan antrean kerja berbatas. |
+| **Verify Persistence and Queue Behavior** | Menjalankan uji sumber dan verifikasi socket/transaksi untuk memastikan persistensi event dan penanganan duplikasi. |
 
 ## ⚙️ Implementation
 

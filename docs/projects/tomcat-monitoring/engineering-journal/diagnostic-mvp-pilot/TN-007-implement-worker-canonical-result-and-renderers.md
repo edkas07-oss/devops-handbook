@@ -38,12 +38,120 @@ Pekerjaan yang dikecualikan mencakup HTTP/TLS, SMTP, runtime Mailpit, build imag
 | Node runtime | Local image `localhost/nodejs:24.18.0` |
 | Tests | Container sementara (*temporary container*) dan SQLite saja |
 
-## 🧭 Implementation Plan
+## 🔄 Technical Workflow
+
+Alur kerja pemrosesan antrean kerja oleh *single worker loop*, pembentukan hasil kanonikal, hingga rendering laporan:
 
 ```text
-durable queue -> single worker -> bounded evidence -> TD rule
-              -> canonical result v1 -> SQLite -> text/HTML renderer
+1. durable queue -> 2. single worker -> 3. bounded evidence -> 4. TD rule
+                 -> 5. canonical result v1 -> 6. SQLite -> 7. text/HTML renderer
 ```
+
+### Rincian Aktivitas Alur Kerja
+
+1. **durable queue:**
+   Antrean kerja persisten (`work_queue`) pada database SQLite lokal yang menampung event alert terverifikasi berstatus `queued`.
+2. **single worker:**
+   Worker asinkron loop tunggal (*concurrency = 1*) yang secara sekuensial mengklaim item tertua dari antrean dan mengubah statusnya menjadi `processing` untuk mencegah *lock contention* pada SQLite.
+3. **bounded evidence:**
+   Pengumpulan bukti telemetri terisolasi (log catalina, rekaman spool atomik, metrik JMX Prometheus, dan status health) yang dibatasi pada jendela waktu kejadian insiden untuk target terkait.
+4. **TD rule:**
+   Evaluasi seluruh bukti yang terkumpul terhadap basis aturan keputusan deterministik `TomcatDown`.
+5. **canonical result v1:**
+   Penyusunan hasil diagnosis kanonikal standar v1:
+    - **diagnostic_id:** Pembuatan pengidentifikasi unik diagnosis (UUID v4).
+    - **result_hash:** Perhitungan SHA-256 hash deterministik dengan mengecualikan timestamp volatil (*volatile timestamp exclusion*).
+    - **material update guard:** Pengecekan perubahan materiil insiden untuk membatasi pengiriman notifikasi berulang.
+6. **SQLite:**
+   Persistensi atomik hasil kanonikal ke tabel `canonical_results` dan ringkasan bukti ke `evidence_summaries`, lalu memperbarui status item antrean `work_queue` menjadi `completed`.
+7. **text/HTML renderer:**
+   Transformasi hasil kanonikal menjadi format presentasi laporan diagnosis 7-seksi SRE:
+    - **plain text renderer:** Format teks polos (*plain text*) 7-seksi SRE sebagai payload fallback email.
+    - **HTML renderer:** Format HTML responsif 7-seksi SRE untuk rendering visual email insiden.
+
+### Pseudocode Alur Worker & Pembentukan Hasil Kanonikal
+
+```python
+# Berkas Implementasi: src/application/diagnostic-worker.js, src/domain/canonical-result.js, & src/application/result-renderer.js
+
+def run_diagnostic_worker_cycle():
+    # 1. durable queue: Tersedia tugas berstatus 'queued' pada tabel work_queue (src/adapters/sqlite-repository.js)
+    # 2. single worker: Klaim item tertua secara sekuensial concurrency = 1 (src/application/diagnostic-worker.js)
+    with sqlite_db.transaction():
+        job = sqlite_db.query_one(
+            "SELECT id, event_id FROM work_queue WHERE state = 'queued' ORDER BY id ASC LIMIT 1"
+        )
+        if not job:
+            return False  # Antrean kosong, worker beristirahat
+
+        sqlite_db.update("work_queue", id=job.id, state="processing", started_at=current_timestamp())
+
+    # 3. bounded evidence: Ambil bukti telemetri dalam jendela waktu insiden (src/domain/evidence.js)
+    event = sqlite_db.get_event(job.event_id)
+    evidence_items = evidence_collector.collect(event.target_id, event.starts_at)
+
+    # 4. TD rule: Evaluasi keputusan deterministik TomcatDown (src/domain/tomcat-down-engine.js)
+    decision = evaluate_tomcat_down(evidence_items)
+
+    # 5. canonical result v1: Susun objek hasil diagnosis kanonikal (src/domain/canonical-result.js)
+    # - diagnostic_id: Pengidentifikasi unik diagnosis (UUID v4)
+    diagnostic_id = generate_uuid_v4()
+
+    # - result_hash: Perhitungan SHA-256 deterministik tanpa timestamp volatil
+    result_hash = compute_sha256_excluding_volatile_time(decision, evidence_items)
+
+    canonical_result = {
+        "diagnostic_id": diagnostic_id,
+        "event_id": event.id,
+        "classification": decision.classification,
+        "confidence": decision.confidence,
+        "branch": decision.branch,
+        "assessment": decision.assessment,
+        "result_hash": result_hash,
+        "created_at": current_timestamp()
+    }
+
+    # - material update guard: Pengecekan reservasi izin pembaruan material
+    is_material_update = sqlite_db.reserve_material_update_slot(event.incident_id, canonical_result["result_hash"])
+
+    # 6. SQLite: Persistensi atomik hasil kanonikal dan finalisasi antrean kerja (src/adapters/sqlite-repository.js)
+    with sqlite_db.transaction():
+        result_id = sqlite_db.insert("canonical_results", canonical_result)
+        sqlite_db.insert_evidence_summaries(result_id, evidence_items)
+        sqlite_db.update("work_queue", id=job.id, state="completed", completed_at=current_timestamp())
+
+    # 7. text/HTML renderer: Render presentasi laporan 7-seksi SRE (src/application/result-renderer.js)
+    # - plain text renderer: Fallback teks polos
+    plain_text_report = render_plain_text_report(canonical_result, evidence_items)
+
+    # - HTML renderer: Email responsif
+    html_report = render_html_report(canonical_result, evidence_items)
+
+    return True
+```
+
+### Pemetaan Berkas Implementasi & Self-Documentation
+
+Setiap tahapan alur kerja dan pseudocode di atas diimplementasikan secara modular pada berkas sumber (*source code*) repositori `tomcat-diagnostic-service` dengan standar *self-documentation* Bahasa Indonesia:
+
+| Tahap Alur Kerja | Berkas Sumber (*Source File*) | Fungsi / Komponen Utama | Standar *Self-Documentation* & Batasan |
+| --- | --- | --- | --- |
+| **1. durable queue** | `src/adapters/sqlite-repository.js`<br/>`migrations/001-initial.sql` | Tabel `work_queue` | Antrean persisten SQLite untuk menampung tugas berstatus `queued` (kapasitas berbatas 50). |
+| **2. single worker** | `src/application/diagnostic-worker.js` | `DiagnosticWorker.runOnce()` | Eksekusi klaim tugas sekuensial tunggal (*concurrency = 1*) dan transisi state `processing`. |
+| **3. bounded evidence** | `src/domain/evidence.js`<br/>`src/adapters/*.js` | `createEvidence()`, `withinWindow()` | Pengumpulan bukti telemetri berbatas dalam jendela observasi `startsAt ± 5m`. |
+| **4. TD rule** | `src/domain/tomcat-down-engine.js` | `evaluateTomcatDown()` | Evaluasi pohon keputusan deterministik 8 cabang `TomcatDown` (`TD-01` s/d `TD-08`). |
+| **5. canonical result v1** | `src/domain/canonical-result.js` | `buildCanonicalResult()`, `isMaterialChange()` | Penyusunan format kanonikal v1, kalkulasi `resultHash` SHA-256 tanpa timestamp volatil, dan *material update guard*. |
+| **6. SQLite** | `src/adapters/sqlite-repository.js`<br/>`migrations/002-canonical-results.sql` | `SqliteRepository` | Persistensi atomik ke `canonical_results` dan `evidence_summaries`, serta finalisasi `work_queue` ke `completed`. |
+| **7. text/HTML renderer** | `src/application/result-renderer.js` | `renderResult()`, `renderHtml()`, `renderText()` | Transformasi hasil kanonikal ke laporan 7-seksi Enterprise SRE multipart (HTML sanitasi & Plain Text). |
+
+## 🧭 Implementation Plan
+
+| Tahap | Rencana |
+| :--- | :--- |
+| **Add Result Persistence** | Menambahkan migrasi `002-canonical-results.sql` dan persistensi canonical results pada repositori SQLite. |
+| **Implement the Single Worker Loop** | Mengimplementasikan pemrosesan antrean sekuensial tunggal (single worker) untuk evaluasi deterministik. |
+| **Implement Canonical Renderers** | Mengembangkan format renderer laporan diagnosis 7-seksi (HTML dan Plain Text). |
+| **Run Source Verification** | Menjalankan validasi statis dan pengujian integrasi berbasis kontainer sementara. |
 
 ## ⚙️ Implementation
 

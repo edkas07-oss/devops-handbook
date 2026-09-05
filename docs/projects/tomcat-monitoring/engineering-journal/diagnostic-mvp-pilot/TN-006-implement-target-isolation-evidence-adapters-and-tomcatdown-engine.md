@@ -48,13 +48,94 @@ configuration, commit, dan push tidak termasuk scope.
 | External Prometheus or health endpoint | Not used; fetch fixtures only |
 | Implementation authorization | Approved 2026-08-31 |
 
-## 🧭 Implementation Plan
+## 🔄 Technical Workflow
+
+Alur teknis pengumpulan bukti terisolasi (*isolated evidence collection*) dan evaluasi pohon keputusan `TomcatDown`:
 
 ```text
-Trusted target config -> target registry
-                      -> bounded adapters -> isolated evidence
-                                          -> TD-01 through TD-08
+1. Trusted target config -> 2. target registry
+                         -> 3. bounded adapters -> 4. isolated evidence
+                                                -> 5. TD-01 through TD-08
 ```
+
+### Rincian Aktivitas Alur Kerja
+
+1. **Trusted target config:**
+   Konfigurasi non-secret `targets.json` lokal yang mendefinisikan target resmi yang diizinkan untuk dipantau (`environment`, `host`, `tomcat_instance`, health URL, query Prometheus, path log, dan path spool).
+2. **target registry:**
+   Registri target terisolasi yang memvalidasi integritas konfigurasi: menolak target di luar allowlist, menolak URL non-HTTPS, serta memblokir path berbahaya (path traversal `../`, symlink, atau path di luar direktori yang disetujui).
+3. **bounded adapters:**
+   Adapter bukti khusus yang dibatasi secara ketat untuk mencegah kebocoran data atau konsumsi sumber daya berlebih:
+    - **local-file adapter:** Membaca cuplikan log aplikasi host (`catalina.out`) dengan batas ukuran maksimum 64 KiB dan sensor redaksi data sensitif.
+    - **collector-spool adapter:** Membaca rekaman spool status container atomik (`.tmp` $\to$ `.json`) dari direktori spool collector (maksimal 200 berkas).
+    - **application-health adapter:** Melakukan probe endpoint HTTP `/health` dengan batas waktu timeout agresif (maksimal 3000ms).
+    - **prometheus adapter:** Mengambil metrik telemetri via Prometheus API menggunakan label selector exact-match dan batas waktu query 5000ms.
+4. **isolated evidence:**
+   Pengumpulan dan agregasi seluruh bukti telemetri yang dibatasi hanya pada jendela waktu kejadian insiden (`startsAt ± 5 menit`) untuk memastikan bukti terisolasi dan spesifik pada insiden Tomcat terkait.
+5. **TD-01 through TD-08:**
+   Evaluasi bukti oleh Decision Engine deterministik terhadap 8 cabang aturan built-in (`TD-01` s/d `TD-08`) untuk menetapkan klasifikasi akar masalah (*root cause*), asesmen, dan tingkat keyakinan (*confidence*).
+
+### Pseudocode Alur Pengumpulan Bukti & Evaluasi
+
+```python
+# Berkas Implementasi: src/application/target-registry.js, src/adapters/*.js, & src/domain/tomcat-down-engine.js
+
+def execute_target_diagnosis(target_id, event):
+    # 1. Trusted target config: Muat file konfigurasi targets.json lokal (config/targets.json)
+    raw_config = load_target_config("config/targets.json")
+
+    # 2. target registry: Validasi dan resolusi target terhadap allowlist (src/application/target-registry.js)
+    target = target_registry.resolve(target_id, raw_config)
+    if not target:
+        raise UntrustedTargetError(f"Target {target_id} tidak terdaftar pada targets.json")
+
+    # 3. bounded adapters: Eksekusi adapter bukti berbatas waktu dan ukuran (src/adapters/*.js)
+    # 4. isolated evidence: Batasi jendela waktu bukti startsAt ± 5 menit (src/domain/evidence.js)
+    time_window = calculate_time_window(event.starts_at, delta_minutes=5)
+    evidence_items = []
+
+    # - local-file adapter: Baca cuplikan log catalina.out maks 64 KiB (src/adapters/local-file-evidence-adapter.js)
+    log_excerpt = local_file_adapter.read_tail(target.log_path, max_bytes=65536)
+    if log_excerpt:
+        evidence_items.append({"source": "local-file", "data": log_excerpt})
+
+    # - collector-spool adapter: Baca rekaman status container atomik .tmp -> .json (src/adapters/collector-spool-adapter.js)
+    spool_records = collector_spool_adapter.read_window(target.spool_path, time_window)
+    evidence_items.extend(spool_records)
+
+    # - application-health adapter: Probe status HTTP /health timeout 3000ms (src/adapters/application-health-adapter.js)
+    health_status = application_health_adapter.check(target.health_url, timeout_ms=3000)
+    evidence_items.append({"source": "application-health", "data": health_status})
+
+    # - prometheus adapter: Kueri metrik telemetri Prometheus exact label match (src/adapters/prometheus-adapter.js)
+    metric_sample = prometheus_adapter.query_instant(target.prometheus_query, time_window.end)
+    evidence_items.append({"source": "prometheus", "data": metric_sample})
+
+    # 5. TD-01 through TD-08: Evaluasi deterministik terhadap cabang TD-01 s/d TD-08 (src/domain/tomcat-down-engine.js)
+    diagnostic_result = evaluate_tomcat_down(evidence_items)
+    return diagnostic_result
+```
+
+### Pemetaan Berkas Implementasi & Self-Documentation
+
+Setiap tahapan alur kerja dan pseudocode di atas diimplementasikan secara modular pada berkas sumber (*source code*) repositori `tomcat-diagnostic-service` dengan standar *self-documentation* Bahasa Indonesia:
+
+| Tahap Alur Kerja | Berkas Sumber (*Source File*) | Fungsi / Komponen Utama | Standar *Self-Documentation* & Batasan |
+| --- | --- | --- | --- |
+| **1. Trusted target config** | `config/targets.json` | Konfigurasi Target Non-secret | Menampung allowlist target terdaftar beserta parameter path log, spool, URL health, dan selector Prometheus. |
+| **2. target registry** | `src/application/target-registry.js` | `TargetRegistry`, `canonicalTargetId()` | Membentuk target ID kanonikal, memvalidasi normalisasi path absolut, menolak symlink/traversal, dan memverifikasi skema HTTPS. |
+| **3. bounded adapters** | `src/adapters/bounded-file-reader.js`<br/>`src/adapters/local-file-evidence-adapter.js`<br/>`src/adapters/collector-spool-adapter.js`<br/>`src/adapters/application-health-adapter.js`<br/>`src/adapters/prometheus-adapter.js` | `readBoundedFile()`<br/>`collectLocalFileEvidence()`<br/>`readCollectorSpool()`<br/>`collectApplicationHealth()`<br/>`PrometheusAdapter.query()` | Penegakan batas buffer dan timeout ketat (file 64 KiB, health 3000ms, Prometheus 5000ms) serta redaksi data sensitif. |
+| **4. isolated evidence** | `src/domain/evidence.js` | `createEvidence()`, `withinWindow()` | Standardisasi model bukti kanonikal, pembuatan hash SHA-256 evidence ID, dan isolasi observasi pada jendela waktu insiden (`startsAt ± 5m`). |
+| **5. TD-01 through TD-08** | `src/domain/tomcat-down-engine.js` | `evaluateTomcatDown()` | Mesin evaluasi aturan keputusan bawaan (*Built-in Decision Engine Layer 1*) 8 cabang (`TD-01` s/d `TD-08`). |
+
+## 🧭 Implementation Plan
+
+| Tahap | Rencana |
+| :--- | :--- |
+| **Establish Trusted Target Identity** | Membentuk registri target terisolasi dari konfigurasi lokal dan menolak identity atau path yang tidak valid. |
+| **Implement Target-Isolated Adapters** | Mengimplementasikan adapter pembaca file berbatas, status container, dan scrape bukti Prometheus. |
+| **Implement the TomcatDown Rule Engine** | Mengimplementasikan pohon keputusan deterministik 8 cabang (`TD-01` s/d `TD-08`). |
+| **Run Source Verification** | Menjalankan validasi statis dan unit tests untuk membuktikan isolasi target dan akurasi evaluasi aturan. |
 
 ## ⚙️ Implementation
 
