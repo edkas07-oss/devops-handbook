@@ -17,12 +17,22 @@
 
 ## 🎯 Objective
 
-Mengubah durable queue item menjadi persisted canonical result melalui satu worker, lalu membentuk plain-text/HTML content dan operational state tanpa HTTP atau SMTP runtime.
+Mengubah durable queue item menjadi persisted canonical result melalui satu worker asinkron, lalu membentuk laporan diagnosis 7-seksi SRE (Plain Text dan HTML) serta model status operasional.
+
+**Target Utama & Kriteria Keberhasilan:**
+
+1. **Worker Orchestration & Persistence:** Membangun *single worker loop* dengan batas waktu *global deadline* 60 detik, persistensi database DDL migrasi `002-canonical-results.sql`, dan proteksi *material-update*.
+2. **Canonical Result & Renderers:** Mengimplementasikan semantik skema *canonical result* v1, hash deterministik SHA-256 (*volatile timestamp exclusion*), status *health/metrics*, serta *renderer* laporan 7-seksi SRE multipart (Plain Text dan HTML dengan proteksi *HTML escaping*).
+3. **Boundary:** Pengujian unit dan integrasi berbasis kontainer sementara (*temporary container*) dan SQLite terisolasi; tanpa HTTP/TLS server aktif, runtime SMTP, atau Mailpit live.
+
+## 🌍 Background
+
+TN-005 menyediakan mekanisme *durable ingestion* dan antrean kerja berbatas, sementara TN-006 mengimplementasikan registri target terisolasi, *bounded adapters*, dan engine pohon keputusan `TomcatDown`. Tahap ini mengorkestrasi seluruh komponen tersebut melalui satu *worker* asinkron untuk memproses antrean menjadi *canonical result* yang terpersistensi secara atomik ke database SQLite lokal dan merendernya menjadi laporan insiden terstruktur.
 
 ## 📚 Scope
 
 Pekerjaan yang disetujui mencakup:
-- Migration `002`, *single worker*, *global deadline* 60 detik;
+- Migration `002-canonical-results.sql`, *single worker*, *global deadline* 60 detik;
 - Semantik *canonical result* v1, hash deterministik, proteksi *material-change*, dan persistensi SQLite;
 - Model status operasional *health/metrics*;
 - *Renderer* laporan 7-seksi (Plain Text dan HTML);
@@ -36,15 +46,26 @@ Pekerjaan yang dikecualikan mencakup HTTP/TLS, SMTP, runtime Mailpit, build imag
 | --- | --- |
 | TN-005/TN-006 source | Commit `aa55170`, tersinkronisasi dengan `origin/main` |
 | Node runtime | Local image `localhost/nodejs:24.18.0` |
+| Decision Baseline | TM-ADR-0013, TM-ADR-0014, TM-ADR-0015, TM-ADR-0016 accepted |
 | Tests | Container sementara (*temporary container*) dan SQLite saja |
+| Implementation authorization | Approved 2026-08-31 |
+
+## ⚖️ Execution Decision
+
+Implementasi menerapkan [TM-ADR-0013](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0013.md) untuk isolasi persistensi `node:sqlite`, [TM-ADR-0014](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0014.md) dengan memastikan renderer dan worker tidak mengeksekusi tindakan otomatis (*Zero Automatic Remediation*), [TM-ADR-0015](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md) untuk antrean *single worker claim*, dan [TM-ADR-0016](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md) untuk otoritas notifikasi kanonikal berdasar hash SHA-256 stabil.
 
 ## 🔄 Technical Workflow
 
-Alur kerja pemrosesan antrean kerja oleh *single worker loop*, pembentukan hasil kanonikal, hingga rendering laporan:
+Alur teknis pemrosesan antrean kerja oleh *single worker loop*, pembentukan hasil diagnosis kanonikal, hingga rendering laporan insiden:
 
-```text
-1. durable queue -> 2. single worker -> 3. bounded evidence -> 4. TD rule
-                 -> 5. canonical result v1 -> 6. SQLite -> 7. text/HTML renderer
+```mermaid
+flowchart LR
+    A["1. Durable Queue\n(SQLite work_queue)"] --> B["2. Single Worker\n(Concurrency=1, 60s Deadline)"]
+    B --> C["3. Bounded Evidence\n(Target, Gen, Time-window)"]
+    C --> D["4. TD Engine\n(TD-01 s/d TD-08)"]
+    D --> E["5. Canonical Result v1\n(UUID, SHA-256 Hash, Guard)"]
+    E --> F["6. SQLite Persistence\n(results + summaries + status)"]
+    F --> G["7. SRE Renderers\n(7-Section Text & HTML)"]
 ```
 
 ### Rincian Aktivitas Alur Kerja
@@ -52,31 +73,31 @@ Alur kerja pemrosesan antrean kerja oleh *single worker loop*, pembentukan hasil
 1. **durable queue:**
    Antrean kerja persisten (`work_queue`) pada database SQLite lokal yang menampung event alert terverifikasi berstatus `queued`.
 2. **single worker:**
-   Worker asinkron loop tunggal (*concurrency = 1*) yang secara sekuensial mengklaim item tertua dari antrean dan mengubah statusnya menjadi `processing` untuk mencegah *lock contention* pada SQLite.
+   Worker asinkron loop tunggal (*concurrency = 1*) yang secara sekuensial mengklaim item tertua dari antrean dan mengubah statusnya menjadi `processing` untuk mencegah *lock contention* pada SQLite dengan batas waktu eksekusi global 60 detik.
 3. **bounded evidence:**
    Pengumpulan bukti telemetri terisolasi (log catalina, rekaman spool atomik, metrik JMX Prometheus, dan status health) yang dibatasi pada jendela waktu kejadian insiden untuk target terkait.
-4. **TD rule:**
-   Evaluasi seluruh bukti yang terkumpul terhadap basis aturan keputusan deterministik `TomcatDown`.
+4. **TD engine:**
+   Evaluasi seluruh bukti yang terkumpul oleh Decision Engine deterministik terhadap basis aturan keputusan `TomcatDown` (`TD-01` s/d `TD-08`).
 5. **canonical result v1:**
    Penyusunan hasil diagnosis kanonikal standar v1:
     - **diagnostic_id:** Pembuatan pengidentifikasi unik diagnosis (UUID v4).
     - **result_hash:** Perhitungan SHA-256 hash deterministik dengan mengecualikan timestamp volatil (*volatile timestamp exclusion*).
-    - **material update guard:** Pengecekan perubahan materiil insiden untuk membatasi pengiriman notifikasi berulang.
-6. **SQLite:**
+    - **material update guard:** Pengecekan perubahan materiil insiden untuk membatasi pengiriman notifikasi berulang (maksimal 1 kali pembaruan).
+6. **SQLite persistence:**
    Persistensi atomik hasil kanonikal ke tabel `canonical_results` dan ringkasan bukti ke `evidence_summaries`, lalu memperbarui status item antrean `work_queue` menjadi `completed`.
-7. **text/HTML renderer:**
+7. **SRE renderers:**
    Transformasi hasil kanonikal menjadi format presentasi laporan diagnosis 7-seksi SRE:
     - **plain text renderer:** Format teks polos (*plain text*) 7-seksi SRE sebagai payload fallback email.
-    - **HTML renderer:** Format HTML responsif 7-seksi SRE untuk rendering visual email insiden.
+    - **HTML renderer:** Format HTML responsif 7-seksi SRE untuk rendering visual email insiden dengan pengamanan karakter khusus (*escaping*).
 
 ## 🧭 Implementation Plan
 
 | Tahap | Rencana |
 | :--- | :--- |
 | **Add Result Persistence** | Menambahkan migrasi `002-canonical-results.sql` dan persistensi canonical results pada repositori SQLite. |
-| **Implement the Single Worker Loop** | Mengimplementasikan pemrosesan antrean sekuensial tunggal (single worker) untuk evaluasi deterministik. |
-| **Implement Canonical Renderers** | Mengembangkan format renderer laporan diagnosis 7-seksi (HTML dan Plain Text). |
-| **Run Source Verification** | Menjalankan validasi statis dan pengujian integrasi berbasis kontainer sementara. |
+| **Build and Render the Canonical Result** | Mengembangkan skema canonical result v1, hash deterministik, serta format renderer laporan diagnosis 7-seksi (HTML dan Plain Text). |
+| **Run the Single Worker** | Mengimplementasikan pemrosesan antrean sekuensial tunggal (single worker loop) dengan timeout global 60 detik. |
+| **Verify the Complete Source** | Menjalankan validasi statis dan pengujian integrasi berbasis kontainer sementara. |
 
 ## ⚙️ Implementation
 
@@ -143,17 +164,61 @@ podman run --rm --name tomcat-diagnostic-tn007-node --userns=keep-id \
 
 ## 📁 Artifact Manifest
 
-| Path | Responsibility |
-| --- | --- |
-| `migrations/002-canonical-results.sql` | Persistensi result/evidence dan proteksi material update |
-| `src/application/diagnostic-worker.js` | Siklus hidup single-worker dan timeout deadline |
-| `src/domain/canonical-result.js` | Semantik skema, hash SHA-256, dan deteksi material change |
-| `src/application/result-renderer.js` | Perenderan output laporan 7-seksi Text/HTML |
-| `src/application/health-metrics.js` | Status liveness, readiness, counter, dan gauge |
-| `src/adapters/sqlite-repository.js` | Pembacaan antrean dan persistensi hasil ke SQLite |
-| `test/unit/canonical-result.test.js` | Pengujian hash, validasi, urutan render, dan escaping |
-| `test/unit/health-metrics.test.js` | Pengujian status operasional tanpa label sensitif |
-| `test/integration/diagnostic-worker.test.js` | Siklus transaksi queue-to-result |
+Bagian ini mencatat seluruh berkas (*artifacts*) pada repositori `tomcat-diagnostic-service` yang dibuat atau dimodifikasi selama aktivitas TN-007 untuk mengimplementasikan orkestrasi worker, pembentukan canonical result, perenderan laporan 7-seksi, dan status health/metrics.
+
+### Panduan Membaca Tabel
+
+Tabel di bawah mengelompokkan berkas berdasarkan peran teknis dan lapisan (*layer*) arsitekturalnya:
+
+- **Berkas (*Path*)**: Lokasi berkas relatif terhadap direktori utama (*root*) repositori `tomcat-diagnostic-service`.
+- **Layer / Kategori**: Lapisan sistem dari komponen terkait (Tata Kelola, Basis Data, Model Domain, Logika Aplikasi, Adapter Infrastruktur, atau Pengujian Otomatis).
+- **Status**: Status perubahan berkas dibandingkan kondisi baseline TN-006 (`Baru` = berkas baru dibuat; `Modifikasi` = berkas diperbarui).
+- **Tanggung Jawab Teknis**: Peran fungsional berkas tersebut dalam pemrosesan antrean, evaluasi insiden, persistensi data, dan perenderan laporan.
+
+### Tabel Manifest Berkas
+
+| Berkas (*Path*) | Layer / Kategori | Status | Tanggung Jawab Teknis |
+| --- | --- | :---: | --- |
+| `README.md` | Tata Kelola Repositori | Modifikasi | Memperbarui dokumentasi status implementasi worker, canonical result, dan status pengujian. |
+| `scripts/validate.sh` | Tata Kelola Repositori | Modifikasi | Menambahkan aturan validasi berkas migrasi `002`, dependensi, dan batasan impor komponen worker. |
+| `migrations/002-canonical-results.sql` | Basis Data (SQLite) | Baru | Skrip DDL migrasi untuk tabel penyimpanan hasil diagnosis (`canonical_results`), ringkasan bukti (`evidence_summaries`), dan kolom proteksi *material update*. |
+| `src/domain/canonical-result.js` | Model Domain | Baru | Mendefinisikan struktur model hasil diagnosis kanonikal v1, pembuatan UUID v4, hashing SHA-256 deterministik, dan pendeteksi *material change*. |
+| `src/application/diagnostic-worker.js` | Logika Aplikasi (Worker) | Baru | Mengelola siklus hidup *single worker loop*, klaim antrean sekuensial, orkestrasi pengumpulan bukti & aturan, serta *global deadline* timeout 60 detik. |
+| `src/application/result-renderer.js` | Logika Aplikasi (Renderer) | Baru | Merender laporan diagnosis insiden 7-seksi SRE dalam format Plain Text dan HTML responsif dengan sanitasi *HTML escaping*. |
+| `src/application/health-metrics.js` | Logika Aplikasi (Metrics) | Baru | Menyediakan status liveness, readiness, counters, dan gauges operasional tanpa mengekspos label sensitif target. |
+| `src/adapters/sqlite-repository.js` | Adapter Infrastruktur | Modifikasi | Memperluas adapter SQLite untuk mendukung persistensi hasil diagnosis, penyimpanan ringkasan bukti, dan reservasi *material-update* atomik. |
+| `test/unit/canonical-result.test.js` | Pengujian Otomatis (Unit) | Baru | Menguji kestabilan hash SHA-256, validasi semantik skema, deteksi *material change*, dan urutan 7-seksi render serta HTML escaping. |
+| `test/unit/health-metrics.test.js` | Pengujian Otomatis (Unit) | Baru | Menguji status operasional health liveness/readiness dan metrik Prometheus internal tanpa label target. |
+| `test/integration/diagnostic-worker.test.js` | Pengujian Otomatis (Integrasi) | Baru | Menguji siklus transaksi lengkap dari klaim antrean (`queue`), pengumpulan bukti, evaluasi engine, hingga persistensi `canonical_results`. |
+
+### Alur Keterkaitan Antar-Berkas
+
+Diagram berikut mengilustrasikan bagaimana berkas-berkas di atas saling berinteraksi saat sebuah item antrean dievaluasi dan dirender:
+
+```mermaid
+flowchart TD
+    Q["SQLite work_queue\n(Tabel Antrean TN-005)"] --> WKR["src/application/diagnostic-worker.js<br/>(Single Worker & Global 60s Timeout)"]
+
+    WKR --> EV_ADP["Bounded Evidence Adapters<br/>(Log, Spool, Metrics, Health - TN-006)"]
+    WKR --> TD_ENG["src/domain/tomcat-down-engine.js<br/>(Pohon Keputusan TD-01 s/d TD-08)"]
+
+    EV_ADP --> CANON["src/domain/canonical-result.js<br/>(Skema v1, SHA-256 Hash, Material Guard)"]
+    TD_ENG --> CANON
+
+    CANON --> REPO["src/adapters/sqlite-repository.js<br/>(Persistensi Atomik Transaksi)"]
+    REPO --> SQL[("migrations/002-canonical-results.sql<br/>(Tabel canonical_results & evidence_summaries)")]
+
+    CANON --> RND["src/application/result-renderer.js<br/>(Renderer 7-Seksi Plain Text & HTML)"]
+    WKR --> MET["src/application/health-metrics.js<br/>(Liveness, Readiness, Gauges)"]
+
+    subgraph TESTS["Pengujian Terotomasi"]
+        T_CAN["test/unit/canonical-result.test.js"] -. Memverifikasi .-> CANON
+        T_CAN -. Memverifikasi .-> RND
+        T_MET["test/unit/health-metrics.test.js"] -. Memverifikasi .-> MET
+        T_INT["test/integration/diagnostic-worker.test.js"] -. Memverifikasi .-> WKR
+        T_INT -. Memverifikasi .-> REPO
+    end
+```
 
 ## 🧪 Test Scenario Matrix
 
@@ -220,6 +285,14 @@ Mengimplementasikan antarmuka service HTTP/TLS, autentikasi bearer, batasan ukur
 
 ## 🔗 Related Documentation
 
-- [TN-006](TN-006-implement-target-isolation-evidence-adapters-and-tomcatdown-engine.md)
-- [Diagnostic Result Contract](../../diagnostic-mvp/diagnostic-result-and-confidence-contract.md)
-- [Notification Contract](../../diagnostic-mvp/notification-and-integration-contract.md)
+- [TN-006 — Implement Target Isolation, Evidence Adapters, and TomcatDown Engine](TN-006-implement-target-isolation-evidence-adapters-and-tomcatdown-engine.md)
+- [TN-008 — Implement Secure Service and SMTP Delivery Boundaries](TN-008-implement-secure-service-and-smtp-delivery-boundaries.md)
+- [Diagnostic Result and Confidence Contract](../../diagnostic-mvp/diagnostic-result-and-confidence-contract.md)
+- [Notification and Integration Contract](../../diagnostic-mvp/notification-and-integration-contract.md)
+- [Target and Evidence Contract](../../diagnostic-mvp/target-and-evidence-contract.md)
+- [TomcatDown Rule Specification](../../diagnostic-mvp/tomcat-down-rule-specification.md)
+- [TM-ADR-0013 — Use Built-in node:sqlite for MVP Local Persistence](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0013.md)
+- [TM-ADR-0014 — Enforce Zero Automatic Remediation for Diagnostic Service](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0014.md)
+- [TM-ADR-0015 — Adopt Asynchronous Webhook Ingestion with Durable SQLite Acceptance Pattern](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md)
+- [TM-ADR-0016 — Designate Diagnostic Service as Canonical Incident Notification Authority](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md)
+- [TM-ADR-0017 — Adopt Vertical Slice Minimum Viable Product Scoping for Diagnostic Pilot](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0017.md)

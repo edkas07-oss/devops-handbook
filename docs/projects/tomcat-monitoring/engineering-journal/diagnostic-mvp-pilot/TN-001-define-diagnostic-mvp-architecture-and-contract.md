@@ -17,7 +17,13 @@
 
 ## 🎯 Objective
 
-Memvalidasi ulang artefak hasil brainstorming Diagnostic MVP dan kondisi riil repositori, kemudian menetapkan gerbang keputusan (*Decision Gate*) berbasis repositori untuk pilot terbatas `TomcatDown` sebelum perubahan kode atau mutasi runtime dijalankan.
+Menyelaraskan hasil inisiasi Diagnostic MVP dengan kondisi aktual repositori serta menetapkan gerbang keputusan (*Decision Gate*) untuk arsitektur pilot `TomcatDown`.
+
+**Target Utama & Kriteria Keberhasilan:**
+
+1. **Baseline Validation:** Memverifikasi ketiadaan komponen diagnostik di repositori dan mendokumentasikan kesenjangan (*gaps*).
+2. **Architecture Baseline:** Mengesahkan ADR fondasi (TM-ADR-0013 s.d. TM-ADR-0017) dan kontrak data MVP.
+3. **Boundary:** Dokumentasi murni (*read-only discovery*), tanpa perubahan kode atau eksekusi runtime.
 
 ## 🌍 Background
 

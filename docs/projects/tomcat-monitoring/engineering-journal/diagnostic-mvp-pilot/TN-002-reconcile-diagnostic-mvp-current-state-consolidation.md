@@ -17,10 +17,13 @@
 
 ## 🎯 Objective
 
-Mengoreksi hasil konsolidasi TN-001 dengan melebur capability Diagnostic MVP
-ke section existing pada Architecture, Development, dan Infrastructure, serta
-menetapkan aturan konsolidasi feature agar pola section tambahan yang terpisah
-tidak terulang.
+Mengonsolidasikan kapabilitas Diagnostic MVP ke dalam struktur bab dokumentasi yang sudah ada (*existing sections*) dan menegakkan aturan konsolidasi fitur.
+
+**Target Utama & Kriteria Keberhasilan:**
+
+1. **Structural Integration:** Melebur deskripsi MVP ke halaman Arsitektur, Infrastruktur, dan Development tanpa membuat bab terisolasi baru.
+2. **Standardization:** Menetapkan panduan tata kelola agar penambahan fitur di masa depan selalu mengadopsi pola konsolidasi modular.
+3. **Boundary:** Khusus perbaikan struktur dokumentasi, tanpa perubahan kode sumber.
 
 ## 🌍 Background
 

@@ -17,9 +17,13 @@
 
 ## 🎯 Objective
 
-Menghasilkan implementation plan, source boundary, dan validation interface
-yang dapat disetujui untuk repository `tomcat-diagnostic-service` sebelum
-source implementation dimulai.
+Menetapkan rencana implementasi, batas kepemilikan komponen, dan antarmuka validasi terstandar untuk repositori `tomcat-diagnostic-service`.
+
+**Target Utama & Kriteria Keberhasilan:**
+
+1. **Repository Contract:** Menetapkan batas tanggung jawab repositori aplikasi, lifecycle image, dan isolasi SQLite.
+2. **Validation Interface:** Mendefinisikan spesifikasi skrip `validate.sh` dan baseline unit test.
+3. **Boundary:** Rencana implementasi dan kontrak teknis; belum melakukan instalasi dependensi atau pembuatan source code.
 
 ## 🌍 Background
 

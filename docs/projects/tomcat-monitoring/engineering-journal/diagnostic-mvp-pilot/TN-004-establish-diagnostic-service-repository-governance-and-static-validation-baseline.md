@@ -17,8 +17,13 @@
 
 ## 🎯 Objective
 
-Membentuk governance, metadata dependency-free, dan static validation baseline
-yang dapat dijalankan secara lokal pada repository `tomcat-diagnostic-service`.
+Membangun tata kelola repositori, struktur berkas awal tanpa dependensi eksternal, dan skrip verifikasi statis lokal pada `tomcat-diagnostic-service`.
+
+**Target Utama & Kriteria Keberhasilan:**
+
+1. **Governance & Metadata:** Menyediakan berkas `AGENTS.md`, `README.md`, `package.json` dasar, dan lisensi.
+2. **Static Validation Baseline:** Mengimplementasikan skrip `scripts/validate.sh` untuk pemeriksaan integritas struktur dan aturan batasan impor.
+3. **Boundary:** Eksekusi validasi statis lokal; tanpa instalasi npm packages atau image build.
 
 ## 🌍 Background
 

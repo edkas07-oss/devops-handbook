@@ -17,8 +17,13 @@
 
 ## 🎯 Objective
 
-Mengimplementasikan target isolation, bounded evidence adapters, dan seluruh
-branch deterministic `TomcatDown` tanpa mengakses runtime aktual.
+Mengimplementasikan registri target terisolasi, adapter pengumpul bukti berbatas (*bounded adapters*), dan engine evaluasi aturan deterministik `TomcatDown`.
+
+**Target Utama & Kriteria Keberhasilan:**
+
+1. **Target Isolation & Adapters:** Membangun validasi allowlist `targets.json`, adapter log dengan redaksi sensitif, spool collector, Prometheus query, dan probe health HTTP.
+2. **Deterministic Rule Engine:** Mengimplementasikan pohon keputusan 8 cabang (`TD-01` s/d `TD-08`) dengan pemetaan tingkat keyakinan (*confidence level*).
+3. **Boundary:** Pengujian menggunakan berkas *fixture* terisolasi; tanpa akses jaringan eksternal atau runtime container host hidup.
 
 ## 🌍 Background
 
@@ -52,10 +57,12 @@ configuration, commit, dan push tidak termasuk scope.
 
 Alur teknis pengumpulan bukti terisolasi (*isolated evidence collection*) dan evaluasi pohon keputusan `TomcatDown`:
 
-```text
-1. Trusted target config -> 2. target registry
-                         -> 3. bounded adapters -> 4. isolated evidence
-                                                -> 5. TD-01 through TD-08
+```mermaid
+flowchart LR
+    A["1. Trusted Target Config\n(targets.json)"] --> B["2. Target Registry\n(Strict Validation)"]
+    B --> C["3. Bounded Adapters\n(File, Spool, Prometheus, Health)"]
+    C --> D["4. Isolated Evidence\n(Target, Gen, Time-window)"]
+    D --> E["5. TomcatDown Engine\n(TD-01 s/d TD-08)"]
 ```
 
 ### Rincian Aktivitas Alur Kerja
@@ -66,7 +73,7 @@ Alur teknis pengumpulan bukti terisolasi (*isolated evidence collection*) dan ev
    Registri target terisolasi yang memvalidasi integritas konfigurasi: menolak target di luar allowlist, menolak URL non-HTTPS, serta memblokir path berbahaya (path traversal `../`, symlink, atau path di luar direktori yang disetujui).
 3. **bounded adapters:**
    Adapter bukti khusus yang dibatasi secara ketat untuk mencegah kebocoran data atau konsumsi sumber daya berlebih:
-    - **local-file adapter:** Membaca cuplikan log aplikasi host (`catalina.out`) dengan batas ukuran maksimum 64 KiB dan sensor redaksi data sensitif.
+    - **local-file adapter:** Membaca cuplikan log aplikasi host (`catalina.out`) melalui pembaca berkas berbatas (*bounded reader* maks 500 baris / 512 KiB) dengan sensor redaksi data sensitif otomatis.
     - **collector-spool adapter:** Membaca rekaman spool status container atomik (`.tmp` $\to$ `.json`) dari direktori spool collector (maksimal 200 berkas).
     - **application-health adapter:** Melakukan probe endpoint HTTP `/health` dengan batas waktu timeout agresif (maksimal 3000ms).
     - **prometheus adapter:** Mengambil metrik telemetri via Prometheus API menggunakan label selector exact-match dan batas waktu query 5000ms.
@@ -188,22 +195,67 @@ substantive tests lulus dan container dihapus otomatis dengan `--rm`.
 
 ## 📁 Artifact Manifest
 
-TN-006 menambahkan capability berikut di atas source TN-005:
+Bagian ini mencatat seluruh berkas (*artifacts*) pada repositori `tomcat-diagnostic-service` yang dibuat atau dimodifikasi selama aktivitas TN-006 untuk mengimplementasikan isolasi target, adapter bukti berbatas, dan evaluasi aturan deterministik `TomcatDown`.
 
-| Path | Responsibility |
-| --- | --- |
-| `src/application/target-registry.js` | Canonical target dan trusted mapping validation |
-| `src/domain/evidence.js` | Evidence identity, status, strength, dan isolation window |
-| `src/domain/tomcat-down-engine.js` | Deterministic TD-01 sampai TD-08 evaluation |
-| `src/adapters/prometheus-adapter.js` | One-attempt query dan five-second timeout status |
-| `src/adapters/application-health-adapter.js` | Bounded health HTTP status evidence |
-| `src/adapters/bounded-file-reader.js` | Root confinement, traversal/symlink rejection, byte/line bounds |
-| `src/adapters/local-file-evidence-adapter.js` | Sanitized log/crash excerpt evidence |
-| `src/adapters/collector-spool-adapter.js` | Bounded read-only collector record ingestion |
-| `test/unit/adapters.test.js` | Prometheus and application-health behavior |
-| `test/unit/collector-spool-adapter.test.js` | Malformed, target, generation, dan time filtering |
-| `test/unit/evidence-isolation.test.js` | Registry, path, target, generation, dan time isolation |
-| `test/unit/tomcat-down-engine.test.js` | TD-01 sampai TD-08, confidence, dan contradiction tests |
+### Panduan Membaca Tabel
+
+Tabel di bawah mengelompokkan berkas berdasarkan peran teknis dan lapisan (*layer*) arsitekturalnya:
+
+- **Berkas (*Path*)**: Lokasi berkas relatif terhadap direktori utama (*root*) repositori `tomcat-diagnostic-service`.
+- **Layer / Kategori**: Lapisan sistem dari komponen terkait (Registri Target, Model Domain, Engine Aturan, Adapter Infrastruktur, atau Pengujian Otomatis).
+- **Status**: Status perubahan berkas dibandingkan kondisi baseline TN-005 (`Baru` = berkas baru dibuat; `Modifikasi` = berkas diperbarui).
+- **Tanggung Jawab Teknis**: Peran fungsional berkas tersebut dalam isolasi target, pengumpulan bukti berbatas, dan evaluasi diagnosis insiden.
+
+### Tabel Manifest Berkas
+
+| Berkas (*Path*) | Layer / Kategori | Status | Tanggung Jawab Teknis |
+| --- | --- | :---: | --- |
+| `src/application/target-registry.js` | Logika Aplikasi (Registry) | Baru | Memvalidasi konfigurasi target resmi (`targets.json`), menegakkan allowlist, kewajiban HTTPS, serta memblokir injeksi selector Prometheus dan path traversal. |
+| `src/domain/evidence.js` | Model Domain | Baru | Mendefinisikan struktur model bukti kanonikal (*canonical evidence*), isolasi jendela waktu kejadian insiden (UTC window), generation ID, status bukti, dan flag redaksi data. |
+| `src/domain/tomcat-down-engine.js` | Engine Aturan (Domain) | Baru | Mengevaluasi sekumpulan bukti telemetri secara deterministik menggunakan pohon keputusan 8 cabang (`TD-01` s/d `TD-08`) tanpa skoring probabilitas. |
+| `src/adapters/bounded-file-reader.js` | Adapter Infrastruktur (File) | Baru | Pembaca berkas berbatas aman: mengurung akses pada direktori root, menolak symlink/traversal, serta membatasi ukuran byte (512 KiB) dan jumlah baris (500 baris). |
+| `src/adapters/local-file-evidence-adapter.js` | Adapter Infrastruktur (Log) | Baru | Membaca cuplikan log aplikasi (`catalina.out`) via bounded file reader dan melakukan redaksi otomatis token, password, atau credential sensitif. |
+| `src/adapters/collector-spool-adapter.js` | Adapter Infrastruktur (Spool) | Baru | Membaca berkas spool status container atomik (`.tmp` $\to$ `.json`) secara read-only dan memfilter record berdasarkan target, generation, serta timestamp. |
+| `src/adapters/prometheus-adapter.js` | Adapter Infrastruktur (Metrik) | Baru | Mengambil metrik telemetri dari endpoint Prometheus API dengan query tunggal (*one attempt*) dan batas timeout agresif (5 detik). |
+| `src/adapters/application-health-adapter.js` | Adapter Infrastruktur (Probe) | Baru | Melakukan probe endpoint kesehatan HTTP `/health` via HTTPS dengan batas timeout 3 detik dan hanya mencatat status boolean up/down tanpa menyimpan response body. |
+| `test/unit/evidence-isolation.test.js` | Pengujian Otomatis (Unit) | Baru | Menguji isolasi target registry, penolakan path traversal/symlink, serta pemfilteran evidence lintas target, generasi, dan jendela waktu. |
+| `test/unit/adapters.test.js` | Pengujian Otomatis (Unit) | Baru | Menguji keandalan adapter Prometheus dan Application Health saat kondisi sukses, timeout eksplisit, maupun kegagalan koneksi. |
+| `test/unit/collector-spool-adapter.test.js` | Pengujian Otomatis (Unit) | Baru | Menguji parsing berkas spool collector, penanganan berkas rusak (*malformed JSON*), serta isolasi target dan generation status container. |
+| `test/unit/tomcat-down-engine.test.js` | Pengujian Otomatis (Unit) | Baru | Menguji determinisme evaluasi pohon keputusan seluruh cabang `TD-01` hingga `TD-08`, pemetaan tingkat keyakinan (*confidence*), dan penanganan bukti kontradiktif. |
+
+### Alur Keterkaitan Antar-Berkas
+
+Diagram berikut mengilustrasikan bagaimana berkas-berkas di atas saling berinteraksi saat sebuah insiden dievaluasi:
+
+```mermaid
+flowchart TD
+    TGT["Target Config (targets.json)"] --> REG["src/application/target-registry.js<br/>(Validasi Target, Allowlist, HTTPS)"]
+
+    REG --> ADPT_GRP
+
+    subgraph ADPT_GRP["Bounded Evidence Adapters"]
+        BFR["src/adapters/bounded-file-reader.js<br/>(Root Confinement & Anti-Symlink)"] --> LFA["src/adapters/local-file-evidence-adapter.js<br/>(Sanitized Log catalina.out)"]
+        CSA["src/adapters/collector-spool-adapter.js<br/>(Bounded Collector Spool .json)"]
+        PMA["src/adapters/prometheus-adapter.js<br/>(One-attempt Prometheus Query)"]
+        AHA["src/adapters/application-health-adapter.js<br/>(HTTPS Health Probe Timeout 3s)"]
+    end
+
+    LFA --> EVI["src/domain/evidence.js<br/>(Isolated Canonical Evidence Model)"]
+    CSA --> EVI
+    PMA --> EVI
+    AHA --> EVI
+
+    EVI --> ENG["src/domain/tomcat-down-engine.js<br/>(Deterministic TD-01 s/d TD-08 Engine)"]
+
+    subgraph TESTS["Pengujian Terotomasi (Unit Tests)"]
+        T_ISO["test/unit/evidence-isolation.test.js"] -. Memverifikasi .-> REG
+        T_ISO -. Memverifikasi .-> EVI
+        T_ADP["test/unit/adapters.test.js"] -. Memverifikasi .-> PMA
+        T_ADP -. Memverifikasi .-> AHA
+        T_SPL["test/unit/collector-spool-adapter.test.js"] -. Memverifikasi .-> CSA
+        T_ENG["test/unit/tomcat-down-engine.test.js"] -. Memverifikasi .-> ENG
+    end
+```
 
 ## 🧪 Test Scenario Matrix
 
@@ -291,5 +343,6 @@ TN dokumentasi-only.
 ## 🔗 Related Documentation
 
 - [TN-005 — Implement Durable Diagnostic Ingestion and Queue](TN-005-implement-durable-diagnostic-ingestion-and-queue.md)
+- [TN-007 — Implement Worker Canonical Result and Renderers](TN-007-implement-worker-canonical-result-and-renderers.md)
 - [Target and Evidence Contract](../../diagnostic-mvp/target-and-evidence-contract.md)
 - [TomcatDown Rule Specification](../../diagnostic-mvp/tomcat-down-rule-specification.md)

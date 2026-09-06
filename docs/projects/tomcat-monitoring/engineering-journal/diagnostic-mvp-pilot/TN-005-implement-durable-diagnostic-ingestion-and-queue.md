@@ -17,9 +17,13 @@
 
 ## 🎯 Objective
 
-Membentuk schema, versioned migration, durable SQLite ingestion, deduplication,
-dan bounded queue Diagnostic Service yang dapat diuji tanpa HTTP server atau
-runtime persisten.
+Mengimplementasikan mekanisme penyerapan (*ingestion*) alert webhook yang tahan uji (*durable*) berbasis SQLite transaksi tunggal dan antrean berbatas (*bounded queue*).
+
+**Target Utama & Kriteria Keberhasilan:**
+
+1. **Schema & Validation:** Mengunci dependensi `ajv@8.20.0` dan menyusun JSON Schema Webhook v4 Alertmanager.
+2. **Persistence & Queue:** Menyediakan skrip migrasi DDL `001-initial.sql`, adapter `node:sqlite` WAL mode, deduplikasi kunci SHA-256, dan antrean berkapasitas 50 item.
+3. **Boundary:** Pengujian unit/integrasi terisolasi via temporary Node.js container; tanpa HTTP/TLS server aktif atau database persisten.
 
 ## 🌍 Background
 
@@ -44,7 +48,7 @@ push tidak termasuk scope.
 | Prerequisite | State |
 | --- | --- |
 | Diagnostic Service baseline | Commit `03f1296` |
-| Toolchain decision | TM-ADR-0013 accepted |
+| Toolchain & Ingestion decision | TM-ADR-0013 and TM-ADR-0015 accepted |
 | Runtime used for tests | Local image `localhost/nodejs:24.18.0` |
 | Persistent database or container | Not used |
 | Implementation authorization | Approved 2026-08-31 |
@@ -53,16 +57,19 @@ push tidak termasuk scope.
 
 Ajv `8.20.0` dipin sebagai satu-satunya application dependency. Ia mendukung
 JSON Schema draft-07 yang digunakan webhook schema. SQLite tetap diisolasi pada
-satu adapter sesuai TM-ADR-0013.
+satu adapter sesuai TM-ADR-0013 dan pola durable ingestion asinkron mengikuti
+TM-ADR-0015.
 
 ## 🔄 Technical Workflow
 
 Alur teknis penerimaan webhook Alertmanager hingga antrean SQLite dirancang deterministik dan tahan terhadap kegagalan jaringan maupun pengiriman ulang (*at-least-once delivery*):
 
-```text
-1. Webhook -> 2. schema/allowlist -> 3. normalize event key
-           -> 4. one SQLite transaction: event + incident + queue item
-           -> 5. accepted; duplicate does not create new work
+```mermaid
+flowchart LR
+    A["1. Webhook\n(/api/v1/alerts)"] --> B["2. Schema & Allowlist\n(Ajv Strict + Target Registry)"]
+    B --> C["3. Normalize Event Key\n(Deterministic SHA-256)"]
+    C --> D["4. SQLite Transaction\n(Event + Incident + Queue)"]
+    D --> E["5. Accepted (202)\n(Duplicate Suppressed)"]
 ```
 
 ### Rincian Aktivitas Alur Kerja
@@ -362,5 +369,7 @@ telah disetujui; tidak diperlukan TN dokumentasi-only tersendiri.
 ## 🔗 Related Documentation
 
 - [TN-004 — Establish Diagnostic Service Repository Governance and Static Validation Baseline](TN-004-establish-diagnostic-service-repository-governance-and-static-validation-baseline.md)
+- [TN-006 — Implement Target Isolation, Evidence Adapters, and TomcatDown Engine](TN-006-implement-target-isolation-evidence-adapters-and-tomcatdown-engine.md)
 - [Diagnostic MVP](../../diagnostic-mvp/index.md)
-- [TM-ADR-0013](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0013.md)
+- [TM-ADR-0013 — Use Built-in node:sqlite for MVP Local Persistence](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0013.md)
+- [TM-ADR-0015 — Adopt Asynchronous Webhook Ingestion with Durable SQLite Acceptance Pattern](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md)
