@@ -61,15 +61,15 @@ Alur teknis batas penerimaan permintaan HTTPS (*ingress*) dan pengiriman notifik
 flowchart LR
     subgraph INGRESS["1. Jalur Penerimaan Webhook Ingestion (HTTPS Request Boundary)"]
         direction LR
-        A["1. HTTPS Request\n(Port 8443 TLS)"] --> B["2. Security Checks\n(Bearer Auth, Size 256K, JSON)"]
-        B --> C["3. Durable Ingestion\n(SQLite Atomic Tx)"]
-        C --> D["4. HTTP 202 Accepted\n(Payload Stored)"]
+        A["1. HTTPS Request<br/>(Port 8443 TLS)"] --> B["2. Security Checks<br/>(Bearer Auth, Size 256K, JSON)"]
+        B --> C["3. Durable Ingestion<br/>(SQLite Atomic Tx)"]
+        C --> D["4. HTTP 202 Accepted<br/>(Payload Stored)"]
     end
 
     subgraph EGRESS["2. Jalur Pengiriman Notifikasi Insiden (SMTP Delivery Boundary)"]
         direction LR
-        E["1. Canonical Render\n(7-Section Multipart)"] --> F["2. Bounded SMTP Transport\n(Anti-SSRF, Anti-LFI, Timeout 5s)"]
-        F --> G["3. Delivery Attempt State\n(SQLite delivery_attempts)"]
+        E["1. Canonical Render<br/>(7-Section Multipart)"] --> F["2. Bounded SMTP Transport<br/>(Anti-SSRF, Anti-LFI, Timeout 5s)"]
+        F --> G["3. Delivery Attempt State<br/>(SQLite delivery_attempts)"]
     end
 ```
 

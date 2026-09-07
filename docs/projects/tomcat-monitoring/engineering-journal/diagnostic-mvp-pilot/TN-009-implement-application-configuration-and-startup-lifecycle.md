@@ -17,45 +17,99 @@
 
 ## 🎯 Objective
 
-Implement dan memverifikasi konfigurasi non-secret berversi, startup HTTPS
-application, satu worker loop, Prometheus serialization, serta graceful
-shutdown Diagnostic Service tanpa image build atau persistent runtime.
+Mengimplementasikan dan memverifikasi konfigurasi aplikasi non-secret berversi, orkestrasi startup HTTPS, siklus hidup *single worker loop*, serialisasi Prometheus text format, serta *graceful shutdown* terkoordinasi pada Diagnostic Service sebelum pembuatan image dimulai.
+
+**Target Utama & Kriteria Keberhasilan:**
+
+1. **Versioned Configuration & Secret Redaction:** Membangun loader konfigurasi berbasis JSON Schema v1 (`application-config-v1.schema.json`) yang memvalidasi *non-secret operational settings*, memuat rahasia hanya dari berkas terpasang (*mounted files*), serta menolak path non-absolut tanpa membocorkan nilai rahasia pada pesan error.
+2. **Startup Lifecycle & Prometheus Serialization:** Mengorkestrasi urutan startup deterministik di mana migrasi SQLite (`001`, `002`, `003`) tuntas sebelum penerimaan traffic HTTPS dan kesiapan (*readiness*), menjalankan tepat satu sequential worker loop, serta menserialisasi status metrik ke format Prometheus text 0.0.4.
+3. **Graceful Shutdown & Signal Handling:** Menangani sinyal `SIGTERM`/`SIGINT` secara idempoten melalui `src/main.js` dan `src/application/application.js` dengan urutan penutupan terkoordinasi: mematikan gerbang penerimaan request (*stop acceptance*), menandai `readiness: false`, menghentikan listener HTTPS, menghentikan worker loop, dan menutup koneksi database SQLite terakhir.
+4. **Boundary:** Verifikasi komponen soket HTTPS/SQLite/fake-SMTP menggunakan direktori dan sertifikat sementara (`/tmp/tomcat-diagnostic-tn009-component`); tanpa pembuatan image container, tanpa persistent volume/Mailpit runtime, deployment, atau penyimpanan nilai rahasia (*secrets*) di Git.
 
 ## 🌍 Background
 
-TN-008 menutup HTTPS request dan SMTP delivery boundaries pada source commit
-`bc4b7ae`. Application startup configuration, migration-before-readiness,
-worker lifecycle, dan coordinated shutdown belum tersedia. Immutable Node.js
-base identity juga belum tersedia sehingga image build tetap dilarang.
+TN-008 menutup HTTPS request dan SMTP delivery boundaries pada source commit `bc4b7ae`. Application startup configuration, migration-before-readiness, worker lifecycle, dan coordinated shutdown belum tersedia. Immutable Node.js base identity juga belum tersedia sehingga image build tetap dilarang.
 
 ## 📚 Scope
 
-Scope yang disetujui mencakup source dan documentation pada repository
-`tomcat-diagnostic-service` serta `devops-handbook`; static, source, dan
-ephemeral HTTPS/SQLite/fake-SMTP component verification; dan cleanup exact
-target `/tmp/tomcat-diagnostic-tn009-component`.
+Scope yang disetujui mencakup source dan documentation pada repository `tomcat-diagnostic-service` serta `devops-handbook`; static, source, dan ephemeral HTTPS/SQLite/fake-SMTP component verification; dan cleanup exact target `/tmp/tomcat-diagnostic-tn009-component`.
 
-Image build, `Containerfile`, persistent container atau volume, deployment,
-`tomcat-monitoring` integration configuration, commit, dan push tidak termasuk
-scope.
+Image build, `Containerfile`, persistent container atau volume, deployment, `tomcat-monitoring` integration configuration, commit, dan push tidak termasuk scope.
 
 ## 📋 Prerequisites
 
-| Prerequisite | Expected state | Initial evidence |
-| --- | --- | --- |
-| Diagnostic Service revision | `bc4b7ae`, clean, aligned with `origin/main` | Confirmed at intake |
-| Handbook revision | `f8ad89d`, clean, aligned with `origin/main` | `git rev-parse HEAD`, `git rev-parse origin/main`, dan `git status --short --branch` |
-| TN-008 | `Completed`; 25 source tests and 2 socket tests passed | TN-008 Outcome dan Next Steps |
-| Immutable Node.js base identity | Not available | Image build excluded |
-| Implementation authorization | Approved for stated plan and exact temporary cleanup target | Project-owner response on 2026-09-01 |
+| Item | State |
+| --- | --- |
+| Diagnostic Service revision | `bc4b7ae`, clean, aligned with `origin/main` |
+| Handbook revision | `f8ad89d`, clean, aligned with `origin/main` |
+| TN-008 source | `Completed`; 25 source tests and 2 socket tests passed |
+| Decision Baseline | TM-ADR-0013, TM-ADR-0014, TM-ADR-0015, TM-ADR-0016, TM-ADR-0017 accepted |
+| Immutable Node.js base identity | Not available (Image build excluded) |
+| Implementation authorization | Approved for stated plan and exact temporary cleanup target |
 
 ## ⚖️ Execution Decision
 
-Configuration menyimpan hanya operational values dan mounted-file references.
-Secret, certificate, private key, dan environment-specific allowlist tetap di
-luar Git. Startup membuka database dan menjalankan migration sebelum readiness,
-kemudian mengaktifkan HTTPS dan tepat satu sequential worker loop. Shutdown
-menghentikan acceptance terlebih dahulu dan menutup database terakhir.
+Implementasi menegakkan [TM-ADR-0013](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0013.md) untuk isolasi persistensi lokal `node:sqlite` dan pemisahan rahasia, [TM-ADR-0014](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0014.md) dengan menjamin bahwa startup dan shutdown worker tidak mengeksekusi remediasi otomatis (*Zero Automatic Remediation*), [TM-ADR-0015](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md) untuk konsistensi durable ingestion dan eksekusi tepat satu sequential worker loop, [TM-ADR-0016](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md) untuk serialisasi notifikasi dan metrik operasional terstandarisasi, serta [TM-ADR-0017](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0017.md) untuk batasan cakupan vertikal MVP tanpa dependensi image build dini.
+
+## 🔄 Technical Workflow
+
+Alur teknis orkestrasi startup aplikasi, pemrosesan antrean kerja, dan sekuens *graceful shutdown* terkoordinasi:
+
+```mermaid
+flowchart LR
+    subgraph STARTUP["1. Startup & Migration Lifecycle"]
+        direction LR
+        A["1. Load & Validate Config<br/>(JSON Schema v1 & Mounted Secrets)"] --> B["2. Initialize DB & Migrations<br/>(001, 002, 003 Sebelum Listen)"]
+        B --> C["3. Start HTTPS & Worker<br/>(Port 8443 & Sequential Loop)"]
+        C --> D["4. Set Readiness Ready<br/>(Accepting Ingestion & Metrics)"]
+    end
+
+    subgraph RUNTIME["2. Runtime Execution & Ingestion Loop"]
+        direction LR
+        E["1. HTTPS Webhook<br/>(202 Accepted & Enqueue)"] --> F["2. Worker Claim & Diagnostic<br/>(One Job at a Time)"]
+        F --> G["3. Prometheus Metrics<br/>(Text 0.0.4 Serialization)"]
+    end
+
+    subgraph SHUTDOWN["3. Coordinated Graceful Shutdown Sequence"]
+        direction LR
+        H["1. Signal Received<br/>(SIGTERM / SIGINT)"] --> I["2. Stop Acceptance & Unready<br/>(Close Ingress Port 8443)"]
+        I --> J["3. Stop Worker Loop<br/>(Await Current Job Completion)"]
+        J --> K["4. Close SQLite DB<br/>(Database Closed Last)"]
+    end
+```
+
+### Rincian Aktivitas Alur Kerja
+
+#### 1. Siklus Startup dan Migrasi (Startup & Migration Lifecycle)
+
+1. **Load & Validate Config:**
+   Memuat konfigurasi aplikasi dari file JSON dan memvalidasinya terhadap `application-config-v1.schema.json`. Membaca mounted secrets (TLS key/cert, Bearer token, allowlist targets) dari filesystem tanpa mengekspos isi rahasia ke log.
+2. **Initialize DB & Migrations:**
+   Membuka database SQLite dan mengeksekusi skrip migrasi berurutan (`001-events-and-jobs.sql`, `002-canonical-results.sql`, `003-delivery-attempts.sql`) hingga selesai sebelum server membuka port jaringan.
+3. **Start HTTPS & Worker:**
+   Menginisialisasi listener HTTPS pada port terkonfigurasi (8443) dan memulai tepat satu loop worker asinkron berurutan (*single sequential worker*).
+4. **Set Readiness Ready:**
+   Menandai status readiness internal menjadi `ready: true`, menandakan bahwa service siap menerima traffic webhook dan melayani endpoint `/health` serta `/metrics`.
+
+#### 2. Siklus Eksekusi Runtime dan Antrean (Runtime Execution Loop)
+
+1. **HTTPS Webhook:**
+   Menerima payload alert dari Alertmanager, memverifikasi Bearer token secara timing-safe, membatasi payload, menyimpan alert ke antrean SQLite, dan mengembalikan `202 Accepted`.
+2. **Worker Claim & Diagnostic:**
+   Worker loop mengambil pekerjaan dari antrean secara atomic, menjalankan analisis diagnosa, menyimpan canonical result, dan mengirim notifikasi via SMTP jika terkonfigurasi.
+3. **Prometheus Metrics:**
+   Menyediakan serialisasi metrik Prometheus format teks 0.0.4 yang deterministik pada endpoint `GET /metrics`.
+
+#### 3. Sekuens Graceful Shutdown Terkoordinasi (Coordinated Graceful Shutdown)
+
+1. **Signal Received:**
+   Menangkap sinyal terminasi OS (`SIGTERM` atau `SIGINT`) melalui handler sinyal di `src/main.js`.
+2. **Stop Acceptance & Unready:**
+   Mengubah status kesiapan menjadi `readiness: false` dan menutup listener HTTPS port 8443 sehingga tidak ada request baru yang diterima.
+3. **Stop Worker Loop:**
+   Menghentikan timer polling worker dan menunggu pekerjaan yang sedang berlangsung (*in-flight job*) selesai diproses.
+4. **Close SQLite DB:**
+   Menutup koneksi ke database SQLite sebagai langkah paling akhir untuk mencegah *dangling writes* atau kegagalan transaksi.
 
 ## 🧭 Implementation Plan
 
@@ -363,20 +417,64 @@ procedure step tempat command tersebut dijalankan.
 
 ## 📁 Artifact Manifest
 
-| Path | Responsibility |
-| --- | --- |
-| `config/schemas/application-config-v1.schema.json` | Versioned non-secret application contract |
-| `src/application/config-loader.js` | Schema/path/allowlist validation dan mounted-file loading |
-| `src/application/application.js` | Migration, HTTPS, one-worker, readiness, dan shutdown lifecycle |
-| `src/main.js` | `--config` startup serta SIGTERM/SIGINT handling |
-| `src/application/health-metrics.js` | Prometheus text serialization |
-| `src/server/http-service.js` | Configurable request limit, acceptance gate, metrics media type |
-| `src/adapters/smtp-adapter.js` | Optional mounted SMTP authentication and secure mode |
-| `test/unit/config-loader.test.js` | Configuration dan secret-redaction scenarios |
-| `test/unit/main.test.js` | Shared idempotent SIGTERM/SIGINT shutdown path |
-| `test/integration/application-lifecycle.test.js` | Startup failure dan ordered shutdown |
-| `test/component/application-startup-component.test.js` | Actual HTTPS/SQLite startup component scenario |
-| `README.md`, `scripts/validate.sh`, `package.json`, `package-lock.json` | Public, validation, dan startup contracts |
+Bagian ini mencatat seluruh berkas (*artifacts*) pada repositori `tomcat-diagnostic-service` yang dibuat atau dimodifikasi selama aktivitas TN-009 untuk mengimplementasikan konfigurasi aplikasi berversi, startup lifecycle, Prometheus metrics serialization, dan graceful shutdown.
+
+### Panduan Membaca Tabel
+
+Tabel di bawah mengelompokkan berkas berdasarkan peran teknis dan lapisan (*layer*) arsitekturalnya:
+
+- **Berkas (*Path*)**: Lokasi berkas relatif terhadap direktori utama (*root*) repositori `tomcat-diagnostic-service`.
+- **Layer / Kategori**: Lapisan sistem dari komponen terkait (Tata Kelola, Dependensi & Tooling, Konfigurasi & Kontrak, Aplikasi & Orkestrasi Lifecycle, Server, Adapter, atau Pengujian Otomatis).
+- **Status**: Status perubahan berkas dibandingkan kondisi baseline TN-008 (`Baru` = berkas baru dibuat; `Modifikasi` = berkas diperbarui).
+- **Tanggung Jawab Teknis**: Peran fungsional berkas tersebut dalam konfigurasi berversi, penanganan startup, serialisasi metrik, dan penutupan terkoordinasi.
+
+### Tabel Manifest Berkas
+
+| Berkas (*Path*) | Layer / Kategori | Status | Tanggung Jawab Teknis |
+| --- | --- | :---: | --- |
+| `README.md` | Tata Kelola Repositori | Modifikasi | Memperbarui dokumentasi status implementasi startup lifecycle, CLI entrypoint, dan batasan mounted secrets. |
+| `package.json`<br/>`package-lock.json` | Dependensi & Tooling | Modifikasi<br/>Modifikasi | Mendaftarkan skrip startup `npm start`, binary entrypoint `bin`, dan dependensi schema validator. |
+| `scripts/validate.sh` | Tata Kelola Repositori | Modifikasi | Menambahkan aturan validasi integritas schema JSON, loader konfigurasi, dan file entrypoint. |
+| `config/schemas/application-config-v1.schema.json` | Konfigurasi & Kontrak | Baru | JSON Schema v1 untuk memvalidasi konfigurasi non-secret aplikasi, listen port, database path, timeout, dan batas request. |
+| `src/application/config-loader.js` | Konfigurasi & Loader | Baru | Modul pemuat konfigurasi: validasi path absolut, isolasi mounted secrets, penolakan unknown properties, dan pembersihan error message. |
+| `src/application/application.js` | Aplikasi & Orkestrasi Lifecycle | Baru | Kelas `DiagnosticApplication` yang mengatur orkestrasi startup (migrasi DB sebelum listen), kesiapan readiness, worker loop, dan graceful shutdown terkoordinasi. |
+| `src/main.js` | Entrypoint & Signal Handling | Baru | Titik masuk utama CLI aplikasi: pemrosesan opsi `--config`, inisialisasi aplikasi, dan penanganan sinyal `SIGTERM`/`SIGINT`. |
+| `src/application/health-metrics.js` | Aplikasi & Observabilitas | Modifikasi | Serialisasi status kesehatan dan antrean menjadi format Prometheus text format 0.0.4 yang deterministik. |
+| `src/server/http-service.js` | Server / Antarmuka HTTPS | Modifikasi | Menambahkan dukungan configurable payload limit, gate penerimaan request (*acceptance gate*), dan format media type metrics. |
+| `src/adapters/smtp-adapter.js` | Adapter Infrastruktur (SMTP) | Modifikasi | Memperluas adapter SMTP untuk mendukung konfigurasi kredensial dari mounted files dan mode koneksi aman. |
+| `test/unit/config-loader.test.js` | Pengujian Otomatis (Unit) | Baru | Menguji validasi skema konfigurasi, isolasi rahasia, path normalisasi, dan penolakan konfigurasi tidak valid. |
+| `test/unit/health-metrics.test.js` | Pengujian Otomatis (Unit) | Modifikasi | Menguji serialisasi Prometheus text format, deterministic sorting, label escaping, dan penolakan nama tidak valid. |
+| `test/unit/main.test.js` | Pengujian Otomatis (Unit) | Baru | Menguji penanganan sinyal terminasi OS (`SIGTERM`/`SIGINT`) dan pemanggilan graceful shutdown yang idempoten. |
+| `test/integration/application-lifecycle.test.js` | Pengujian Otomatis (Integrasi) | Baru | Menguji siklus hidup lengkap: kegagalan startup menutup database, urutan shutdown terkoordinasi, dan integritas status worker. |
+| `test/component/application-startup-component.test.js` | Pengujian Otomatis (Komponen) | Baru | Menguji soket riil HTTPS dengan sertifikat sementara, migrasi 3 skrip SQLite, readiness gate, dan pengiriman notifikasi ke mock SMTP. |
+
+### Alur Keterkaitan Antar-Berkas
+
+Diagram berikut mengilustrasikan keterkaitan struktural dan relasi pengujian antar-komponen aplikasi:
+
+```mermaid
+flowchart TD
+    CLI["CLI Argument / Environment<br/>(--config path/to/config.json)"] --> MAIN["src/main.js<br/>(CLI Entrypoint & Signal Handling)"]
+    MAIN -->|SIGTERM / SIGINT| APP["src/application/application.js<br/>(DiagnosticApplication Lifecycle)"]
+
+    SCHEMA["config/schemas/application-config-v1.schema.json"] -. Validasi Skema .-> LOADER["src/application/config-loader.js<br/>(Config Loader & Secret Redaction)"]
+    LOADER --> APP
+
+    APP -->|1. Run Migrations & Open DB| SQLITE["src/adapters/sqlite-repository.js<br/>(SQLite Database Instance)"]
+    APP -->|2. Start HTTPS Server| HTTP["src/server/http-service.js<br/>(HTTPS Ingress & Acceptance Gate)"]
+    APP -->|3. Start Worker Loop| WORKER["src/application/diagnostic-worker.js<br/>(Single Sequential Worker)"]
+
+    HTTP -->|GET /metrics| METRICS["src/application/health-metrics.js<br/>(Prometheus Text 0.0.4 Serializer)"]
+    WORKER -->|Send Notification| SMTP["src/adapters/smtp-adapter.js<br/>(Bounded SMTP Adapter)"]
+
+    subgraph TESTS["Pengujian Terotomasi"]
+        T_CONF["test/unit/config-loader.test.js"] -. Menguji .-> LOADER
+        T_MAIN["test/unit/main.test.js"] -. Menguji .-> MAIN
+        T_METR["test/unit/health-metrics.test.js"] -. Menguji .-> METRICS
+        T_LIFE["test/integration/application-lifecycle.test.js"] -. Menguji .-> APP
+        T_COMP["test/component/application-startup-component.test.js"] -. Menguji Komponen .-> APP
+    end
+```
 
 ## 🧪 Test-Scenario Matrix
 
@@ -425,7 +523,13 @@ dan disposable image-level verification sebagai authorization terpisah.
 
 ## 🔗 Related Documentation
 
-- [TN-008](TN-008-implement-secure-service-and-smtp-delivery-boundaries.md)
+- [TN-008 — Implement Secure Service and SMTP Delivery Boundaries](TN-008-implement-secure-service-and-smtp-delivery-boundaries.md)
+- [TN-010 — Build and Verify Diagnostic Service Image](TN-010-build-and-verify-diagnostic-service-image.md)
 - [Diagnostic MVP](../../diagnostic-mvp/index.md)
 - [Non-Functional and Security Contract](../../diagnostic-mvp/non-functional-and-security-contract.md)
 - [SQLite Lifecycle Contract](../../diagnostic-mvp/sqlite-lifecycle-contract.md)
+- [TM-ADR-0013 — Use Built-in node:sqlite for MVP Local Persistence](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0013.md)
+- [TM-ADR-0014 — Enforce Zero Automatic Remediation for Diagnostic Service](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0014.md)
+- [TM-ADR-0015 — Adopt Asynchronous Webhook Ingestion with Durable SQLite Acceptance Pattern](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md)
+- [TM-ADR-0016 — Designate Diagnostic Service as Canonical Incident Notification Authority](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md)
+- [TM-ADR-0017 — Adopt Vertical Slice Minimum Viable Product Scoping for Diagnostic Pilot](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0017.md)

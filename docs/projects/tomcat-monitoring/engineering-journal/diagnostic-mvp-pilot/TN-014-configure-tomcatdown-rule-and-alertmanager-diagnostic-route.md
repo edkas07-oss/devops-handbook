@@ -4,7 +4,7 @@
 | --- | --- |
 | Status | Completed |
 | Outcome | Target isolation tercapai, webhook schema v4 diverifikasi. |
-| Activity Type | Implementation |
+| Activity Type | Implementation and Verification |
 | Record Type | Live |
 | Project | Tomcat Monitoring |
 | Phase | Diagnostic MVP Pilot |
@@ -12,37 +12,31 @@
 | Recorded Date | 2026-09-02 |
 | Owner | Project owner |
 | Working Mode | Write |
-| Authorization Status | Approved |
+| Authorization Status | Source, static validation, runtime verifier, and cleanup approved/executed |
 | Approved By | Project owner |
 | Approval Date | 2026-09-02 |
 
 ## 🎯 Objective
 
-Mengkonfigurasi Prometheus `TomcatDown` rule beserta `external_labels`, dan
-menambahkan Alertmanager sub-route beserta receiver `lab-diagnostic-service`
-yang mengirim webhook ke Diagnostic Service, lalu membuktikan bahwa synthetic
-`TomcatDown` firing dan resolved payload diterima oleh disposable Diagnostic
-Service dengan HTTP `202` dan tersimpan di SQLite.
+Mengkonfigurasi aturan Prometheus `TomcatDown` beserta `external_labels`, menambahkan sub-route Alertmanager beserta receiver `lab-diagnostic-service` yang mengirim webhook ke Diagnostic Service, dan membuktikan bahwa payload synthetic `TomcatDown` firing dan resolved diterima oleh disposable Diagnostic Service dengan status HTTP `202 Accepted` serta tersimpan di database SQLite lokal.
+
+**Target Utama & Kriteria Keberhasilan:**
+
+1. **Prometheus Detection Rule & External Labels:** Menambahkan konfigurasi `external_labels` (`environment: lab`, `host: tomcat-01`) pada `prometheus.yml`, mendefinisikan rule `TomcatDown` pada `application-health.yml` dengan label wajib Webhook Schema v4 (`check: runtime-availability`, `tomcat_instance: default`, `severity: critical`), dan memverifikasi 3 skenario evaluasi menggunakan unit test `promtool`.
+2. **Alertmanager Isolated Sub-Route & Secret Contracts:** Menambahkan sub-route `routes:` pada `alertmanager.yml` yang mencocokkan `alertname = "TomcatDown"` ke receiver `lab-diagnostic-service` dengan `continue: false` dan `max_alerts: 1`, serta mengintegrasikan secret contract paths (`url_file`, `credentials_file`, `ca_file`) di bawah `/run/secrets/tomcat-monitoring/`.
+3. **Disposable Verification & SQLite State Proof:** Mengorkestrasi topologi 2 kontainer ephemeral (`tm-tn014-alertmanager` dan `tm-tn014-diagnostic-service`) pada jaringan terisolasi `tm-tn014-diagnostic-route`, memverifikasi penerimaan webhook HTTP `202`, dan membuktikan tercatatnya minimal 1 event `firing` dan 1 event `resolved` (`sqlite_events=2`) via probe SQLite independen.
+4. **Boundary:** Seluruh kontainer verifikasi berjalan tanpa publikasi host port pada Diagnostic Service, Alertmanager API hanya terikat pada loopback (`127.0.0.1:19094`), tanpa named volume baru, tanpa remediasi otomatis (*Zero Automatic Remediation*), dan membersihkan seluruh resource sementara secara total setelah otorisasi pengujian selesai.
 
 ## 🌍 Background
 
-TN-013 menyelesaikan image `0.1.1` dan disposable Diagnostic Service–Mailpit
-runtime verification. Alur `Prometheus → Alertmanager → Diagnostic Service`
-yang dijanjikan phase ini belum memiliki dua prerequisite penting:
+TN-013 menyelesaikan image `0.1.1` dan disposable Diagnostic Service–Mailpit runtime verification. Alur `Prometheus → Alertmanager → Diagnostic Service` yang dijanjikan phase ini belum memiliki dua prerequisite penting:
 
-1. **Prometheus rule `TomcatDown` belum ada** — `application-health.yml` hanya
-   memiliki tiga application-health rules; tidak ada rule yang mendeteksi
-   kondisi JMX Exporter unreachable.
-2. **Alertmanager route ke Diagnostic Service belum ada** — `alertmanager.yml`
-   hanya memiliki `lab-mailpit` receiver tanpa sub-route untuk `TomcatDown`.
+1. **Prometheus rule `TomcatDown` belum ada** — `application-health.yml` hanya memiliki tiga application-health rules; tidak ada rule yang mendeteksi kondisi JMX Exporter unreachable (`up == 0`).
+2. **Alertmanager route ke Diagnostic Service belum ada** — `alertmanager.yml` hanya memiliki `lab-mailpit` receiver tanpa sub-route untuk `TomcatDown`.
 
-Discovery juga mengungkap bahwa webhook schema v4 DS mewajibkan label
-`environment`, `host`, dan `tomcat_instance` pada setiap alert. Label tersebut
-belum ada di Prometheus scrape labels. Solusi yang disetujui: tambahkan
-`external_labels` ke `prometheus.yml` dan `tomcat_instance` ke rule labels.
+Discovery juga mengungkap bahwa webhook schema v4 DS mewajibkan label `environment`, `host`, dan `tomcat_instance` pada setiap alert. Label tersebut belum ada di Prometheus scrape labels. Solusi yang disetujui: tambahkan `external_labels` ke `prometheus.yml` dan `tomcat_instance` ke rule labels.
 
-Persistent deployment ke Prometheus dan Alertmanager yang sedang berjalan
-berada di luar scope TN-014 dan menjadi tanggung jawab TN-015.
+Persistent deployment ke Prometheus dan Alertmanager yang sedang berjalan berada di luar scope TN-014 dan menjadi tanggung jawab [TN-015](TN-015-deploy-persistent-monitoring-runtime.md).
 
 ## 📚 Scope
 
@@ -52,28 +46,24 @@ Scope yang disetujui mencakup:
   - `config/prometheus/prometheus.yml` — tambahkan `external_labels`
   - `config/prometheus/rules/application-health.yml` — tambahkan rule `TomcatDown`
   - `config/prometheus/tests/application-health.test.yml` — tambahkan unit test
-  - `config/alertmanager/alertmanager.yml` — tambahkan `routes:` sub-route dan
-    receiver `lab-diagnostic-service`
+  - `config/alertmanager/alertmanager.yml` — tambahkan `routes:` sub-route dan receiver `lab-diagnostic-service`
   - `config/alertmanager/README.md` — update documentation contract
-  - `scripts/prepare-alertmanager-diagnostic-service.sh` — fixture preparation
-    script baru untuk disposable verification
-  - `scripts/verify-alertmanager-diagnostic-service.sh` — disposable verifier
-    script baru untuk Alertmanager → DS webhook delivery
+  - `scripts/prepare-alertmanager-diagnostic-service.sh` — fixture preparation script baru untuk disposable verification
+  - `scripts/verify-alertmanager-diagnostic-service.sh` — disposable verifier script baru untuk Alertmanager → DS webhook delivery
   - `fixtures/alertmanager-diagnostic-route/probe.js` — SQLite probe baru
   - `scripts/validate-alertmanager.sh` — update static contract checks
   - `scripts/validate.sh` — update REQUIRED_FILES dan contract validation
 - `devops-handbook`:
   - TN-014 live Engineering Journal record
 
-Exclusion: persistent deployment ke Prometheus/Alertmanager volume, named
-volume baru, Restricted Event Collector, actual Tomcat downtime, Mailpit dalam
-disposable runtime ini, commit, push.
+Exclusion: persistent deployment ke Prometheus/Alertmanager volume, named volume baru, Restricted Event Collector, actual Tomcat downtime, Mailpit dalam disposable runtime ini, commit, push.
 
 ## 📋 Prerequisites
 
 | Prerequisite | State |
 | --- | --- |
 | TN-013 source baseline | `tomcat-diagnostic-service` commit `bb0c9d2`; `tomcat-monitoring` commit `07f9e21` |
+| Decision Baseline | TM-ADR-0013, TM-ADR-0014, TM-ADR-0015, TM-ADR-0016, TM-ADR-0017 accepted |
 | Diagnostic Service image `0.1.1` | Digest `sha256:94bf8fbe4ce75e60f3481b9346cb0e79bdb397a36d32e7de4e2adfbe9f5fa20f` |
 | Alertmanager image | `localhost/alertmanager:1.0.0` |
 | Node.js image untuk probe | `localhost/nodejs@sha256:76b1444d507be3398f3196f37bd20f7a97a703871ed2716fa91a1a9520fc482d` |
@@ -82,25 +72,74 @@ disposable runtime ini, commit, push.
 
 ## ⚖️ Execution Decision
 
-- `external_labels` (`environment: lab`, `host: tomcat-01`) ditambahkan ke
-  `prometheus.yml`; `tomcat_instance: default` ditambahkan ke rule labels.
-  Nilai ini bersifat lab-only placeholder dan akan diperbarui sesuai target
-  deployment aktual.
-- `TomcatDown` menggunakan `check: runtime-availability` sesuai webhook
-  schema v4 contract; ini membedakannya dari application-health alerts yang
-  menggunakan `check: application-health`.
-- `continue: false` pada sub-route memastikan `TomcatDown` hanya masuk ke
-  `lab-diagnostic-service`, tidak ke `lab-mailpit`. Diagnostic Service
-  mengirim notification email sendiri.
-- `max_alerts: 1` pada webhook receiver memastikan setiap webhook call memuat
-  tepat satu alert, konsisten dengan DS ingestion contract.
-- `url_file` dan `credentials_file` menggunakan path
-  `/run/secrets/tomcat-monitoring/` sebagai persistent secret contract.
-  File actual bukan tanggung jawab repository ini dan tidak disimpan di Git.
-- `tls_config.ca_file` dipasang sebagai secret mount karena DS menggunakan
-  self-signed certificate yang tidak ada di system trust store.
-- Disposable verifier tidak memiliki cleanup trap agar evidence tetap tersedia
-  sampai cleanup diotorisasi secara terpisah.
+Implementasi ini secara ketat menegakkan keputusan arsitektur proyek:
+
+- **Kepatuhan [TM-ADR-0013](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0013.md):** Penegakan persistensi database lokal SQLite `diagnostic.db` dengan izin ketat `0600`.
+- **Kepatuhan [TM-ADR-0014](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0014.md):** Penegakan prinsip *Zero Automatic Remediation*, di mana Diagnostic Service murni bertindak sebagai penerima, penganalisis bukti, dan pemberi rekomendasi tindakan manual.
+- **Kepatuhan [TM-ADR-0015](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md):** Penerimaan webhook secara asinkron dengan respons cepat HTTP `202 Accepted` dan antrean persisten pada SQLite.
+- **Kepatuhan [TM-ADR-0016](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md):** Penetapan Diagnostic Service sebagai otoritas tunggal notifikasi insiden `TomcatDown`. Konfigurasi `continue: false` pada sub-route Alertmanager memastikan alert tidak diteruskan ke receiver `lab-mailpit`.
+- **Kepatuhan [TM-ADR-0017](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0017.md):** Pengujian vertical slice MVP sekali-pakai (*disposable runtime*) untuk memvalidasi kontrak webhook sebelum implementasi ke deployment persisten.
+- `external_labels` (`environment: lab`, `host: tomcat-01`) ditambahkan ke `prometheus.yml`; `tomcat_instance: default` ditambahkan ke rule labels. Nilai ini bersifat lab-only placeholder dan akan diperbarui sesuai target deployment aktual.
+- `TomcatDown` menggunakan `check: runtime-availability` sesuai webhook schema v4 contract; ini membedakannya dari application-health alerts yang menggunakan `check: application-health`.
+- `continue: false` pada sub-route memastikan `TomcatDown` hanya masuk ke `lab-diagnostic-service`, tidak ke `lab-mailpit`. Diagnostic Service mengirim notification email sendiri.
+- `max_alerts: 1` pada webhook receiver memastikan setiap webhook call memuat tepat satu alert, konsisten dengan DS ingestion contract.
+- `url_file` dan `credentials_file` menggunakan path `/run/secrets/tomcat-monitoring/` sebagai persistent secret contract. File actual bukan tanggung jawab repository ini dan tidak disimpan di Git.
+- `tls_config.ca_file` dipasang sebagai secret mount karena DS menggunakan self-signed certificate yang tidak ada di system trust store.
+- Disposable verifier tidak memiliki cleanup trap agar evidence tetap tersedia sampai cleanup diotorisasi secara terpisah.
+
+## 🔄 Technical Workflow
+
+Alur teknis konfigurasi aturan deteksi, penyusunan rute Alertmanager, orkestrasi pengujian disposable, dan pembersihan terotorisasi:
+
+```mermaid
+%%{init: {'themeVariables': { 'fontSize': '12px' }}}%%
+flowchart LR
+    subgraph CONFIG["1. Rule & Route Configuration"]
+        direction LR
+        A["1. Prometheus Config<br/>(Add external_labels &<br/>TomcatDown Rule)"] --> B["2. Promtool Unit Tests<br/>(3 Test Scenarios<br/>in application-health)"]
+        B --> C["3. Alertmanager Route<br/>(Add sub-route &<br/>lab-diagnostic-service)"]
+    end
+
+    subgraph VERIFIER["2. Disposable Verifier & Fixtures Setup"]
+        direction LR
+        D["1. Setup Fixture Script<br/>(prepare-alertmanager-<br/>diagnostic-service.sh)"] --> E["2. SQLite Probe<br/>(probe.js Firing/Resolved<br/>Assertion)"]
+        E --> F["3. Static Contract Validation<br/>(validate-alertmanager.sh<br/>& validate.sh)"]
+    end
+
+    subgraph RUNTIME["3. Disposable Runtime Verification Mesh"]
+        direction LR
+        G["1. Start Ephemeral Mesh<br/>(Alertmanager & DS on<br/>tm-tn014-diagnostic-route)"] --> H["2. Send Synthetic Alerts<br/>(TomcatDown Firing<br/>& Resolved)"]
+        H --> I["3. Webhook Delivery & SQLite<br/>(HTTP 202 Ingestion &<br/>sqlite_events=2)"]
+    end
+
+    subgraph CLEANUP["4. Authorized Cleanup Gate"]
+        direction LR
+        J["1. Capture Proof<br/>(Container State &<br/>SQLite Event Count)"] --> K["2. Teardown Resources<br/>(Remove 2 Containers<br/>& Network)"]
+        K --> L["3. Clean Temp Dir<br/>(Images & Baseline State<br/>Preserved)"]
+    end
+```
+
+### Rincian Aktivitas Alur Kerja
+
+#### 1. Konfigurasi Aturan & Rute (Rule & Route Configuration)
+1. **Prometheus Config:** Menambahkan `external_labels` (`environment: lab`, `host: tomcat-01`) pada `prometheus.yml` dan menambahkan rule `TomcatDown` sebagai rule keempat pada `application-health.yml`.
+2. **Promtool Unit Tests:** Menambahkan 3 skenario tes evaluasi alert pada `application-health.test.yml` dan memverifikasi keabsahan rule dengan `promtool check rules`.
+3. **Alertmanager Route:** Menambahkan sub-route `routes:` pada `alertmanager.yml` dengan filter `alertname = "TomcatDown"`, `continue: false`, dan receiver `lab-diagnostic-service` menggunakan otentikasi webhook bearer token serta CA TLS internal.
+
+#### 2. Penyiapan Fixtures & Skrip Verifier (Disposable Verifier & Fixtures Setup)
+1. **Setup Fixture Script:** Membuat `scripts/prepare-alertmanager-diagnostic-service.sh` untuk menghasilkan konfigurasi sementara, sertifikat TLS, allowlist, dan token otentikasi pada direktori `/tmp/tm-tn014-diagnostic-route.*`.
+2. **SQLite Probe:** Membuat `fixtures/alertmanager-diagnostic-route/probe.js` untuk memverifikasi pencatatan event `firing` dan `resolved` di tabel SQLite Diagnostic Service.
+3. **Static Contract Validation:** Memperbarui `validate-alertmanager.sh` dan `validate.sh` untuk menegakkan kontrak struktur konfigurasi dan mendaftarkan berkas-berkas baru ke `REQUIRED_FILES`.
+
+#### 3. Orkestrasi Pengujian Sekali-Pakai (Disposable Runtime Verification Mesh)
+1. **Start Ephemeral Mesh:** Menjalankan kontainer `tm-tn014-diagnostic-service` (tanpa publikasi port host) dan `tm-tn014-alertmanager` (API loopback `127.0.0.1:19094`) pada jaringan internal `tm-tn014-diagnostic-route`.
+2. **Send Synthetic Alerts:** Mengirimkan payload synthetic `TomcatDown` (firing dan resolved) ke Alertmanager API melalui curl loopback.
+3. **Webhook Delivery & SQLite:** Alertmanager meneruskan payload ke Diagnostic Service via webhook HTTPS. Diagnostic Service merespons dengan HTTP `202 Accepted` dan menyimpan data ke SQLite (`sqlite_events=2`).
+
+#### 4. Gerbang Pembersihan Terotorisasi (Authorized Cleanup Gate)
+1. **Capture Proof:** Mencatat bukti hasil verifikasi runtime, log kontainer, dan penghitungan record SQLite.
+2. **Teardown Resources:** Menghapus kontainer `tm-tn014-alertmanager`, `tm-tn014-diagnostic-service`, dan jaringan `tm-tn014-diagnostic-route`.
+3. **Clean Temp Dir:** Menghapus direktori kerja sementara pada `/tmp/` tanpa memodifikasi state image lokal atau volume persisten.
 
 ## 🧭 Implementation Plan
 
@@ -329,6 +368,64 @@ rm -rf -- /tmp/tm-tn014-diagnostic-route.<suffix>
 
 </div>
 
+## 📁 Artifact Manifest
+
+Bagian ini mencatat seluruh berkas (*artifacts*) pada repositori `tomcat-monitoring` dan `devops-handbook` yang dibuat atau dimodifikasi selama aktivitas TN-014 untuk mengonfigurasi aturan Prometheus `TomcatDown`, menambahkan rute webhook Alertmanager, dan memverifikasi integrasi disposable runtime.
+
+### Panduan Membaca Tabel
+
+Tabel di bawah mengelompokkan berkas berdasarkan repositori, peran teknis, dan lapisan (*layer*) arsitekturalnya:
+
+- **Berkas (*Path*)**: Lokasi berkas relatif terhadap repositori terkait (`tomcat-monitoring` atau `devops-handbook`).
+- **Repositori**: Repositori kepemilikan berkas terkait.
+- **Layer / Kategori**: Lapisan sistem dari komponen terkait (Metrik & Aturan Alert, Perutean & Notifikasi, Verifier & Fixtures, Tata Kelola & Validasi, atau Dokumentasi).
+- **Status**: Status perubahan berkas dibandingkan baseline awal TN-013 (`Baru` = berkas baru dibuat; `Modifikasi` = berkas diperbarui).
+- **Tanggung Jawab Teknis**: Peran fungsional berkas dalam konfigurasi Prometheus, routing Alertmanager, skrip verifikasi probe, dan orkestrasi runtime.
+
+### Tabel Manifest Berkas
+
+| Berkas (*Path*) | Repositori | Layer / Kategori | Status | Tanggung Jawab Teknis |
+| --- | --- | --- | :---: | --- |
+| `config/prometheus/prometheus.yml` | `tomcat-monitoring` | Metrik & Aturan Alert | Modifikasi | Menambahkan konfigurasi `external_labels` (`environment: lab`, `host: tomcat-01`) pada level global Prometheus. |
+| `config/prometheus/rules/application-health.yml` | `tomcat-monitoring` | Metrik & Aturan Alert | Modifikasi | Menambahkan rule `TomcatDown` sebagai rule keempat dengan labels `check: runtime-availability` dan `tomcat_instance: default`. |
+| `config/prometheus/tests/application-health.test.yml` | `tomcat-monitoring` | Pengujian Otomatis (Unit) | Modifikasi | Menambahkan 3 skenario unit test `promtool` untuk rule `TomcatDown` (kondisi up, firing setelah 2m, dan recovery resolved). |
+| `config/alertmanager/alertmanager.yml` | `tomcat-monitoring` | Perutean & Notifikasi | Modifikasi | Menambahkan sub-route `TomcatDown` (`continue: false`) dan receiver webhook `lab-diagnostic-service` dengan secret paths `/run/secrets/`. |
+| `config/alertmanager/README.md` | `tomcat-monitoring` | Tata Kelola Konfigurasi | Modifikasi | Memperbarui dokumentasi kontrak perutean Alertmanager dan penerima webhook Diagnostic Service. |
+| `scripts/prepare-alertmanager-diagnostic-service.sh` | `tomcat-monitoring` | Verifier & Fixtures | Baru | Menyiapkan struktur direktori sementara, konfigurasi Alertmanager ephemeral, sertifikat TLS, allowlist, dan bearer token. |
+| `scripts/verify-alertmanager-diagnostic-service.sh` | `tomcat-monitoring` | Verifier & Orkestrasi | Baru | Mengorkestrasi 2 kontainer disposable (Alertmanager dan DS), mengirimkan synthetic alert firing/resolved, dan mengevaluasi hasil probe. |
+| `fixtures/alertmanager-diagnostic-route/probe.js` | `tomcat-monitoring` | Verifier & Probes | Baru | Runner probe pengujian SQLite untuk memverifikasi pencatatan minimal 1 event firing dan 1 event resolved (`sqlite_events=2`). |
+| `scripts/validate-alertmanager.sh` | `tomcat-monitoring` | Tata Kelola & Validasi | Modifikasi | Menyesuaikan validasi statis agar larangan webhook hanya berlaku pada `lab-mailpit` dan memvalidasi konfigurasi receiver `lab-diagnostic-service`. |
+| `scripts/validate.sh` | `tomcat-monitoring` | Tata Kelola & Validasi | Modifikasi | Mendaftarkan 3 berkas script/fixture baru ke dalam array `REQUIRED_FILES` dan menjalankan validasi terpadu. |
+| `docs/projects/tomcat-monitoring/engineering-journal/diagnostic-mvp-pilot/TN-014-configure-tomcatdown-rule-and-alertmanager-diagnostic-route.md` | `devops-handbook` | Dokumentasi & Jurnal | Modifikasi | Mencatat live engineering journal implementasi dan verifikasi TN-014 secara lengkap dan terstruktur. |
+
+### Alur Keterkaitan Antar-Berkas & Topologi Pengujian
+
+Diagram berikut mengilustrasikan interaksi topologi jaringan dan relasi antar-komponen pengujian disposable runtime pada TN-014:
+
+```mermaid
+flowchart TD
+    subgraph TOPO["Topologi Jaringan Terisolasi: tm-tn014-diagnostic-route"]
+        AM["tm-tn014-alertmanager:1.0.0<br/>(API: 127.0.0.1:19094)"]
+        DS["tm-tn014-diagnostic-service:0.1.1<br/>(HTTPS Server & SQLite Worker<br/>No Host Port Published)"]
+        PROBE["Node.js SQLite Probe<br/>(probe.js)"]
+
+        AM -->|"1. Webhook HTTPS POST /api/v1/alerts/alertmanager<br/>(Bearer Auth & Internal TLS CA)"| DS
+        PROBE -.->|"3. Verify Ingested Events<br/>(sqlite_events=2, firing=1, resolved=1)"| DB
+    end
+
+    subgraph STORAGE["Direktori Bind Mount Sementara (/tmp/tm-tn014-diagnostic-route.*)"]
+        CONF["alertmanager.yml, bearer-token (0444),<br/>server.crt, ca.crt, allowlist"] -. "Mounted ro" .-> AM
+        DSCONF["config.json, server.crt, server.key,<br/>bearer-token, allowlist"] -. "Mounted ro" .-> DS
+        DB[("data/diagnostic.db<br/>(Mode 0600,<br/>Owner 1000:1000)")] <-->|"Atomic Ingest Tx"| DS
+    end
+
+    subgraph AUTOMATION["Skrip Otomasi Pengujian (tomcat-monitoring)"]
+        PREP["scripts/prepare-alertmanager-<br/>diagnostic-service.sh"] -->|"Generates"| STORAGE
+        VERIFY["scripts/verify-alertmanager-<br/>diagnostic-service.sh"] -->|"Orchestrates"| TOPO
+        VERIFY -->|"2. Inject Synthetic Alerts<br/>(curl POST to Alertmanager API)"| AM
+    end
+```
+
 ## 🧪 Test Scenario Matrix
 
 | Scenario | Layer | Expected Result |
@@ -349,22 +446,85 @@ rm -rf -- /tmp/tm-tn014-diagnostic-route.<suffix>
 | `bash -n scripts/*.sh` | Shell syntax valid | Lulus |
 | `./scripts/validate.sh` | Source layout dan static contract valid | Lulus |
 | `git diff --check` | Tidak ada trailing whitespace | Lulus |
-| Disposable runtime verification | Firing dan resolved diterima; SQLite probe passed | Lulus (`sqlite_events=2`) |
+| Disposable runtime verification | Firing dan resolved diterima; SQLite probe passed | Lulus (`sqlite_events=2`, `sqlite_firing=1`, `sqlite_resolved=1`) |
+
+## 🛠️ Troubleshooting
+
+| Attempt | Actual result | Resolution |
+| --- | --- | --- |
+| Validasi statis Alertmanager awal | `validate-alertmanager.sh` gagal karena melarang keyword `webhook_configs:` secara blanket | Ubah pemeriksaan validasi statis agar larangan webhook hanya berlaku secara ketat pada receiver `lab-mailpit`, dan tambahkan positive check untuk receiver `lab-diagnostic-service`. |
+| Pengiriman webhook Alertmanager ke DS pada runtime | Alertmanager gagal membaca file `bearer-token` karena izin berkas terlalu ketat bagi non-root container | Sesuaikan permission mode berkas fixture `bearer-token` pada direktori sementara menjadi `0444` agar dapat dibaca oleh proses Alertmanager secara aman. |
+
+## 🧹 Cleanup Evidence
+
+Setelah pencatatan bukti verifikasi selesai dan diotorisasi oleh project owner, seluruh komponen disposable berhasil dibersihkan:
+
+| Resource | Status Teardown | Bukti Keberadaan (*Absence Verification*) |
+| --- | :---: | --- |
+| Container `tm-tn014-alertmanager` | Dihapus | `podman container exists tm-tn014-alertmanager` -> `false` |
+| Container `tm-tn014-diagnostic-service` | Dihapus | `podman container exists tm-tn014-diagnostic-service` -> `false` |
+| Network `tm-tn014-diagnostic-route` | Dihapus | `podman network exists tm-tn014-diagnostic-route` -> `false` |
+| Temporary Root Directory `/tmp/tm-tn014-diagnostic-route.*` | Dihapus | Direktori absent, zero residual files |
+| Persistent Named Volumes | Tidak Berubah | `podman volume ls` identik dengan volume baseline awal |
+| Local Images (`0.1.1`, Alertmanager, Node.js) | Dipertahankan | Seluruh digest image tetap tersedia untuk pengujian lanjutan |
+
+## 🧭 Reproduction Boundary
+
+- **Source Baselines:** `tomcat-diagnostic-service` commit `bb0c9d2`, `tomcat-monitoring` commit `07f9e21`, dan `devops-handbook` commit `db2ade2`.
+- **Image Digest Baseline:** `localhost/tomcat-diagnostic-service@sha256:94bf8fbe4ce75e60f3481b9346cb0e79bdb397a36d32e7de4e2adfbe9f5fa20f` dan `localhost/nodejs@sha256:76b1444d507be3398f3196f37bd20f7a97a703871ed2716fa91a1a9520fc482d`.
+- **Topologi Reproduksi:** Verifier disposable dijalankan melalui script `./scripts/verify-alertmanager-diagnostic-service.sh <temporary_root>` tanpa membutuhkan akses internet eksternal atau publikasi host port.
+
+## 🖥️ Source-Control Handoff
+
+Seluruh perubahan konfigurasi dan skrip pada repositori `tomcat-monitoring` telah divalidasi dan siap di-commit. Pada repositori `devops-handbook`, catatan live journal TN-014 telah diperbarui secara menyeluruh dan siap disinkronisasikan ke situs handbook.
 
 ## 🖥️ Commands Executed
 
-Command aktual ditempatkan pada procedure step sesuai chronology di atas.
+```bash
+# Discovery and baseline inspection
+git -C /home/eddywiyatno/git/tomcat-diagnostic-service status --short --branch
+git -C /home/eddywiyatno/git/tomcat-monitoring status --short --branch
+git -C /home/eddywiyatno/git/devops-handbook status --short --branch
+cat /home/eddywiyatno/git/tomcat-diagnostic-service/config/schemas/alertmanager-webhook-v4.schema.json
+cat /home/eddywiyatno/git/tomcat-monitoring/config/prometheus/prometheus.yml
+cat /home/eddywiyatno/git/tomcat-monitoring/config/prometheus/rules/application-health.yml
+cat /home/eddywiyatno/git/tomcat-monitoring/config/alertmanager/alertmanager.yml
+
+# Static syntax and contract checks
+bash -n scripts/*.sh
+./scripts/validate.sh
+git diff --check
+
+# Disposable runtime execution
+temporary_root="$(mktemp -d /tmp/tm-tn014-diagnostic-route.XXXXXX)"
+./scripts/prepare-alertmanager-diagnostic-service.sh "${temporary_root}"
+find "${temporary_root}" -maxdepth 2 -printf '%M %u:%g %p\n' | sort
+
+DIAGNOSTIC_IMAGE='localhost/tomcat-diagnostic-service@sha256:94bf8fbe4ce75e60f3481b9346cb0e79bdb397a36d32e7de4e2adfbe9f5fa20f' \
+  ./scripts/verify-alertmanager-diagnostic-service.sh \
+  "${temporary_root}"
+
+# Authorized teardown
+podman rm --force tm-tn014-alertmanager tm-tn014-diagnostic-service
+podman network rm tm-tn014-diagnostic-route
+rm -rf -- "${temporary_root}"
+```
 
 ## 🧾 Outcome
 
-Target isolation tercapai, Prometheus `TomcatDown` rule beserta Alertmanager `lab-diagnostic-service` sub-route berhasil dikonfigurasi dan divalidasi. Verifikasi disposable runtime mengkonfirmasi bahwa webhook payload Alertmanager dapat diterima dan diproses oleh Diagnostic Service (SQLite probe membuktikan adanya status `firing` dan `resolved`). Cleanup telah diotorisasi dan dieksekusi.
+Target isolasi rute notifikasi tercapai, aturan Prometheus `TomcatDown` beserta sub-route Alertmanager `lab-diagnostic-service` berhasil dikonfigurasi dan divalidasi secara statis dan runtime. Verifikasi disposable runtime mengonfirmasi bahwa webhook payload Alertmanager dapat diterima dengan status HTTP `202 Accepted` dan diproses oleh Diagnostic Service (probe SQLite membuktikan tercatatnya event `firing` dan `resolved` dengan `sqlite_events=2`). Seluruh sumber daya sementara telah dibersihkan secara terotorisasi.
 
 ## ⏭️ Next Steps
 
-Implementasi dan verifikasi source selesai. Lakukan handoff dokumentasi dengan melakukan commit pada repositori `tomcat-monitoring` dan `devops-handbook`. Deploy configuration yang persisten ke Prometheus dan Alertmanager environment akan menjadi tanggung jawab TN-015.
+Implementasi dan verifikasi source selesai. Lakukan handoff dokumentasi dengan melakukan commit pada repositori `tomcat-monitoring` dan `devops-handbook`. Deploy konfigurasi yang persisten ke Prometheus dan Alertmanager environment akan menjadi tanggung jawab [TN-015 — Deploy Persistent Monitoring Runtime](TN-015-deploy-persistent-monitoring-runtime.md).
 
 ## 🔗 Related Documentation
 
 - [TN-013 — Rebuild and Verify Diagnostic Service–Mailpit Runtime](TN-013-rebuild-and-verify-diagnostic-service-mailpit-runtime.md)
-- [Diagnostic MVP](../../diagnostic-mvp/index.md)
-- [Alertmanager README](../../../../../tomcat-monitoring/config/alertmanager/README.md)
+- [TN-015 — Deploy Persistent Monitoring Runtime](TN-015-deploy-persistent-monitoring-runtime.md)
+- [Diagnostic MVP Index](../../diagnostic-mvp/index.md)
+- [TM-ADR-0013 — Use Built-in node:sqlite for MVP Local Persistence](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0013.md)
+- [TM-ADR-0014 — Enforce Zero Automatic Remediation for Diagnostic Service](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0014.md)
+- [TM-ADR-0015 — Adopt Asynchronous Webhook Ingestion with Durable SQLite Acceptance Pattern](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md)
+- [TM-ADR-0016 — Designate Diagnostic Service as Canonical Incident Notification Authority](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md)
+- [TM-ADR-0017 — Adopt Vertical Slice Minimum Viable Product Scoping for Diagnostic Pilot](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0017.md)

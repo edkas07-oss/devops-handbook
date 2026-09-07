@@ -60,12 +60,12 @@ Alur teknis pemrosesan antrean kerja oleh *single worker loop*, pembentukan hasi
 
 ```mermaid
 flowchart LR
-    A["1. Durable Queue\n(SQLite work_queue)"] --> B["2. Single Worker\n(Concurrency=1, 60s Deadline)"]
-    B --> C["3. Bounded Evidence\n(Target, Gen, Time-window)"]
-    C --> D["4. TD Engine\n(TD-01 s/d TD-08)"]
-    D --> E["5. Canonical Result v1\n(UUID, SHA-256 Hash, Guard)"]
-    E --> F["6. SQLite Persistence\n(results + summaries + status)"]
-    F --> G["7. SRE Renderers\n(7-Section Text & HTML)"]
+    A["1. Durable Queue<br/>(SQLite work_queue)"] --> B["2. Single Worker<br/>(Concurrency=1, 60s Deadline)"]
+    B --> C["3. Bounded Evidence<br/>(Target, Gen, Time-window)"]
+    C --> D["4. TD Engine<br/>(TD-01 s/d TD-08)"]
+    D --> E["5. Canonical Result v1<br/>(UUID, SHA-256 Hash, Guard)"]
+    E --> F["6. SQLite Persistence<br/>(results + summaries + status)"]
+    F --> G["7. SRE Renderers<br/>(7-Section Text & HTML)"]
 ```
 
 ### Rincian Aktivitas Alur Kerja
