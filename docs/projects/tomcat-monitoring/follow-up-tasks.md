@@ -216,6 +216,52 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
   - Event insiden berhasil diterima oleh enterprise event bridge dengan metadata severity, host, slot mapping, dan rekomendasi SOP yang sesuai standar enterprise.
 
+#### TASK-TM-013: Integrasi Shared Persistent Volume Mount untuk Log Runtime Tomcat (Kesiapan Produksi TN-019)
+
+- **Deskripsi:**
+  Mengonfigurasi volume mount persisten antara container runtime Tomcat (`tomcat-jmx-exporter`) dan host/Diagnostic Service agar log aplikasi real-time (`catalina.out`) dapat dibaca langsung oleh Diagnostic Service tanpa bergantung pada injeksi manual atau mock fixture pengujian.
+- **Kebutuhan Teknis:**
+  - Perbarui skrip peluncuran container Tomcat ([`scripts/run.sh`](file:///home/eddywiyatno/git/tomcat-jmx-exporter/scripts/run.sh) & [`scripts/deploy-tomcat.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-tomcat.sh)) untuk menyertakan volume mount:
+    `--volume "/tmp/tomcat-logs:/usr/local/tomcat/logs:z"` (atau volume persisten terstandarisasi).
+  - Pastikan hak akses direktori log host (`0755` / `0775`) dapat dibaca oleh user rootless Diagnostic Service secara *read-only* (`:ro,z`).
+  - Verifikasi bahwa log aplikasi yang ditulis saat startup atau error runtime secara otomatis terbaca oleh `bounded-file-reader` pada `diagnostic-service`.
+- **Kriteria Penerimaan (*Acceptance Criteria*):**
+  - Log runtime container Tomcat hidup tersinkronisasi langsung ke mount `/run/tomcat-diagnostic/logs/catalina.out` pada Diagnostic Service.
+  - Skenario diagnosis kegagalan aplikasi nyata (seperti error connection pool, OOM, atau bind exception) dapat dievaluasi secara otomatis dari log asli tanpa intervensi penulisan manual `echo`.
+
+#### TASK-TM-014: Otomatisasi Service & Daemonization Event Collector (Kesiapan Produksi TN-016)
+
+- **Deskripsi:**
+  Membangun skrip deployment otomatis dan unit service `systemd --user` untuk menjalankan `tomcat-diagnostic-event-collector` sebagai daemon persisten di latar belakang, menggantikan eksekusi manual ad-hoc atau one-shot saat pengujian.
+- **Kebutuhan Teknis:**
+  - Implementasi skrip deployment [`scripts/deploy-event-collector.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-event-collector.sh) pada repositori `tomcat-monitoring`.
+  - Pembuatan unit service `~/.config/systemd/user/tomcat-diagnostic-event-collector.service` dengan restart policy `always`.
+  - Pengalihan path spooling dari direktori ephemeral `/tmp/diagnostic-spool` ke path persisten non-volatile dengan hak akses `0700`.
+- **Kriteria Penerimaan (*Acceptance Criteria*):**
+  - Restricted Event Collector aktif secara otomatis sebagai daemon background dan segera merekam event Podman (`died`, `stop`, `oom`) ke direktori spool secara atomik tanpa intervensi manual operator.
+
+#### TASK-TM-015: Konfigurasi Enterprise SMTP Relay & Otentikasi Terenkripsi (Kesiapan Produksi Notifikasi)
+
+- **Deskripsi:**
+  Mengganti mock server Mailpit dengan koneksi SMTP Relay produksi yang mendukung STARTTLS/TLS (port 587/465), otentikasi kredensial terisolasi, dan header email standar enterprise.
+- **Kebutuhan Teknis:**
+  - Konfigurasi parameter `smtp` pada `application.json` (`host`, `port: 587/465`, `secure: true`, path file username & password).
+  - Manajemen secret file kredensial SMTP dengan izin ketat `0400` yang dipasang via volume mount rootless.
+  - Penanganan retry pengiriman cerdas dan perlindungan dari kegagalan autentikasi relay.
+- **Kriteria Penerimaan (*Acceptance Criteria*):**
+  - Laporan diagnostik terkirim secara aman melalui enterprise SMTP relay resmi dan lolos validasi SPF/DKIM pada inbox tim operasional/SRE.
+
+#### TASK-TM-016: Integrasi Live Prometheus Evidence Adapter pada Application Lifecycle (Kesiapan Produksi Metrik)
+
+- **Deskripsi:**
+  Menghubungkan modul `PrometheusAdapter` ke dalam fungsi pengumpul bukti live `createDefaultEvidenceCollector` pada `src/application/application.js` dan menyertakan `prometheusSelector` pada allowlist `targets.json` di runtime deployment.
+- **Kebutuhan Teknis:**
+  - Panggil `prometheusAdapter.query()` saat worker mengeksekusi analisis insiden `firing`.
+  - Tambahkan konfigurasi `prometheusSelector` (misal: `job="tomcat-jmx-exporter", instance="lab-tomcat-01"`) pada target allowlist.
+  - Pastikan timeout agresif (5000ms) tidak memblokir rantai evaluasi bukti lainnya jika Prometheus tidak responsif.
+- **Kriteria Penerimaan (*Acceptance Criteria*):**
+  - Snapshot metrik live (memory pool, thread busy, scrape health) secara otomatis terlampir pada `evidence_summaries` di database SQLite saat insiden `TomcatDown` diproses.
+
 ---
 
 ## 🛠️ Implementation Priority Matrix
@@ -227,6 +273,10 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-003** | Direct SMTP Emergency Route Alertmanager | **P0 (Blocker)** | TM-ADR-0016 | Alertmanager | Email darurat ke Mailpit bypass webhook |
 | **TASK-TM-004** | Stale Lock Recovery Worker SQLite | **P1 (High)** | TM-ADR-0015 | Diagnostic Service | Re-queue otomatis event status processing |
 | **TASK-TM-005** | Housekeeping & Retention DB SQLite | **P1 (High)** | TM-ADR-0015 | Diagnostic Service | Pembersihan data lama & disk terkendali |
+| **TASK-TM-013** | Persistent Volume Mount Log Tomcat | **P1 (High)** | TN-019 / GAP-006 | Tomcat Runtime / DS | Log container live terbaca otomatis oleh DS |
+| **TASK-TM-014** | Daemonization Restricted Event Collector | **P1 (High)** | TN-016 / GAP-002 | Event Collector | Collector berjalan sebagai systemd user service |
+| **TASK-TM-015** | Enterprise SMTP Relay Configuration | **P1 (High)** | GAP-014 | Diagnostic Service | Notifikasi terkirim via relay SMTP TLS resmi |
+| **TASK-TM-016** | Live Prometheus Evidence Wire-up | **P1 (High)** | GAP-004 / TN-006 | Diagnostic Service | Metrik live otomatis terlampir di evidence |
 | **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | TM-ADR-0014 | Diagnostic Service | Log persisten tindakan manual SRE |
 | **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | TM-ADR-0017 | Diagnostic Service | Deteksi degradasi thread pra-downtime |
 | **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | TM-ADR-0017 | Diagnostic Service | Deteksi dini memory leak pra-OOM |
