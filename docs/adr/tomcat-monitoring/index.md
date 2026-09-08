@@ -33,6 +33,7 @@ konsekuensi keputusan arsitektur yang memengaruhi implementasi project.
 | [**TM-ADR-0019**](adr-records/TM-ADR-0019.md){: target="_blank" } | Adopt Out-of-Band AI Forensic Enrichment Loop for Diagnostic Rule Synthesis | Tomcat Monitoring | Diagnostic AI and Continuous Learning Architecture | Accepted | 2026-09-03 |
 | [**TM-ADR-0020**](adr-records/TM-ADR-0020.md){: target="_blank" } | Enforce Bounded Incident Notification Delivery Lifecycle and Exponential Backoff Retries | Tomcat Monitoring | Incident Notification and Delivery Architecture | Accepted | 2026-09-01 |
 | [**TM-ADR-0021**](adr-records/TM-ADR-0021.md){: target="_blank" } | Adopt Layered Failure Resilience, Container Auto-Healing, and Monitoring Domain Separation | Tomcat Monitoring | Infrastructure Resilience and Fault-Tolerance Architecture | Accepted | 2026-09-08 |
+| [**TM-ADR-0022**](adr-records/TM-ADR-0022.md){: target="_blank" } | Adopt JVM Garbage Collection and Concurrency Saturation Signals over Static Raw Thresholds | Tomcat Monitoring | Observability, Alerting Strategy, and Workload Health Architecture | Accepted | 2026-09-08 |
 
 ## 🗺️ ADR Mapping
 
@@ -59,6 +60,7 @@ konsekuensi keputusan arsitektur yang memengaruhi implementasi project.
 | TM-ADR-0019 | Adopt Out-of-Band AI Forensic Enrichment Loop for Diagnostic Rule Synthesis | Diagnostic MVP Pilot TN-019, TN-020 |
 | TM-ADR-0020 | Enforce Bounded Incident Notification Delivery Lifecycle and Exponential Backoff Retries | Diagnostic MVP Pilot TN-012, TN-017, TN-020 |
 | TM-ADR-0021 | Adopt Layered Failure Resilience, Container Auto-Healing, and Monitoring Domain Separation | Monitoring Integration TN-002 |
+| TM-ADR-0022 | Adopt JVM Garbage Collection and Concurrency Saturation Signals over Static Raw Thresholds | Monitoring Integration TN-003 |
 
 
 ## 📝 Summary

@@ -472,6 +472,7 @@ Untuk mempermudah manajemen aturan deklaratif dan mempercepat eskalasi insiden k
 - Pengetahuan diagnosis diperkaya melalui **AI-Augmented Knowledge Enrichment Workflow** ([TM-ADR-0019](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0019.md)) dengan prinsip *Human-in-the-Loop Governance*.
 - Observabilitas platform menerapkan **Diagnostic Service Self-Monitoring & Emergency Fallback Routing** ([TM-ADR-0020](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0020.md)) untuk menjamin *Zero Silent Failure*.
 - Ketahanan kontainer menerapkan **Layered Resilience, Container Auto-Healing, and Monitoring Domain Separation** ([TM-ADR-0021](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md)) menggunakan bounded retry `--restart=on-failure:5` yang disupervisi oleh `systemd --user podman-restart.service`.
+- Evaluasi beban kerja dan kesehatan JVM menerapkan **JVM Garbage Collection and Concurrency Saturation Signals over Static Raw Thresholds** ([TM-ADR-0022](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0022.md)), menolak ambang batas naif mentah (`Heap > 80%` atau `Threads > 80%`) demi sinyal emas berkeandalan tinggi (GC Pause, GC Overhead/Thrashing, Old Gen Retention, dan Sustained Saturation).
 
 ## Related Architecture Decisions
 
@@ -498,6 +499,7 @@ Untuk mempermudah manajemen aturan deklaratif dan mempercepat eskalasi insiden k
 | [TM-ADR-0019](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0019.md) | Mengadopsi AI-Augmented Knowledge Enrichment Workflow dengan Human-in-the-Loop Governance. |
 | [TM-ADR-0020](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0020.md) | Mengadopsi Self-Monitoring Diagnostic Service dan Emergency Fallback Routing (Zero Silent Failure). |
 | [TM-ADR-0021](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md) | Mengadopsi Layered Resilience, Container Auto-Healing (`--restart=on-failure:5`), dan Pemisahan Domain Monitoring. |
+| [TM-ADR-0022](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0022.md) | Mengadopsi Sinyal Emas GC dan Kejenuhan Konkurensi Menggantikan Ambang Batas Statis Mentah. |
 
 ## Container Auto-Healing & Resilience Architecture
 
