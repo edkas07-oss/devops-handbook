@@ -26,6 +26,10 @@ Mengintegrasikan seluruh subsistem monitoring dan diagnostik ke dalam satu kesat
 
     Mengimplementasikan mitigasi arsitektur TM-ADR-0016 (Zero Silent Failure): menambahkan scrape target HTTPS `/health` Diagnostic Service di Prometheus, membuat alert rule `DiagnosticServiceDown` (`for: 1m`, `critical`), mengonfigurasi sub-route dan receiver `direct-email-emergency` di Alertmanager (bypass webhook ke Mailpit), serta memverifikasi siklus firing dan resolved secara live di `devops-lab`.
 
+2. **[TN-002 — Implement Container Auto-Healing Policy and Multi-Layer Failure Resilience Architecture](TN-002-implement-container-auto-healing-and-crashloop-resilience-policy.md)**
+
+    Menetapkan arsitektur ketahanan sistem berlapis (TM-ADR-0021), pemisahan domain monitoring antara host NMS (SolarWinds/NOC) dan observabilitas aplikasi (Prometheus/SRE), standarisasi container restart policy (`--restart=on-failure:5`), serta pemetaan komprehensif mitigasi 5 vektor kegagalan startup (CrashLoop Prevention).
+
 ---
 
 ## 🔗 Related Documentation
@@ -35,3 +39,5 @@ Mengintegrasikan seluruh subsistem monitoring dan diagnostik ke dalam satu kesat
 - [Follow-up Tasks Backlog](../../follow-up-tasks.md)
 - [Architecture Index](../../architecture/index.md)
 - [TM-ADR-0016 — Designate Diagnostic Service as Canonical Incident Notification Authority](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md)
+- [TM-ADR-0021 — Adopt Layered Failure Resilience, Container Auto-Healing, and Monitoring Domain Separation](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md)
+

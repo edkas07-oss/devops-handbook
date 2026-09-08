@@ -82,14 +82,18 @@ Ditetapkan kebijakan **Pemberi Notifikasi Tunggal (*Canonical Incident Notificat
 - **Kelebihan:**
   - Notifikasi insiden tersaji rapi, akurat, profesional, dan langsung dapat ditindaklanjuti oleh tim SRE.
   - Beban kognitif operator berkurang drastis karena tidak ada email duplikat atau status yang saling bertolak belakang.
-- **Keterbatasan:**
-  - Ketersediaan notifikasi insiden `TomcatDown` kini bergantung pada keaktifan Diagnostic Service. Jika container Diagnostic Service mati, notifikasi insiden ini tidak terkirim via jalur utama.
-  - Untuk mengantisipasi risiko tersebut, platform monitoring harus memiliki pemantauan kesehatan mandiri (*health scrape*) terhadap Diagnostic Service.
+- **Keterbatasan dan Mitigasi (Addendum 2026-09-08):**
+  - **Risiko Awal:** Ketersediaan notifikasi insiden `TomcatDown` bergantung pada keaktifan Diagnostic Service. Jika container Diagnostic Service mati, terjadi risiko *Silent Failure* di mana notifikasi insiden tidak terkirim via jalur utama.
+  - **Mitigasi Terverifikasi (*Zero Silent Failure Safeguard*):**
+    1. **Health Scrape Mandiri:** Prometheus mengikis endpoint `https://diagnostic-service:8443/health` secara berkala dengan verifikasi TLS CA (`diagnostic-service-ca.crt`).
+    2. **Alert Rule `DiagnosticServiceDown`:** Ditetapkan alert kritis (`up{job="tomcat-diagnostic-service"} == 0`, `for: 1m`, `severity: critical`).
+    3. **Emergency Direct SMTP Bypass Route:** Alertmanager mengonfigurasi sub-rute darurat (`matchers: [alertname = "DiagnosticServiceDown"]`) yang secara langsung mengirimkan email peringatan ke operator (`mailpit:1025`) dengan mem-bypass webhook Diagnostic Service. Hal ini menjamin ketiadaan titik kegagalan tunggal (*zero single point of silent failure*).
 
 ## 📌 Status
 
-**Accepted — implemented and verified in devops-lab.**
+**Accepted — implemented, mitigated, and verified in devops-lab.**
 
 ## 📅 Date
 
-**2026-08-31**
+**2026-08-31** *(Mitigation Addendum: 2026-09-08)*
+
