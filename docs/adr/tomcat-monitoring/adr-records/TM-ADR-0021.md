@@ -33,22 +33,50 @@ Ditetapkan 4 pilar keputusan arsitektur ketahanan dan pemulihan sistem:
 ### 2. Model Ketahanan Berlapis (*3-Layer Defense-in-Depth Model*)
 
 ```mermaid
-flowchart TD
-    subgraph Layer1["Layer 1: Instant Auto-Healing (Sub-Detik s.d. Detik)"]
-        Crash["Container Crash / Panic / OOM"] --> Orchestrator["Podman Engine Auto-Restart"]
-        Orchestrator -->|"restart=on-failure:5"| Running["Container Pulih Seketika"]
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'edgeLabelBackground': 'transparent',
+    'fontSize': '12px'
+  }
+}}%%
+flowchart LR
+    %% Layer 1: Instant Auto-Healing
+    subgraph L1["Layer 1: Instant Auto-Healing<br/>(Container Runtime)"]
+        direction TB
+        Crash["Container Failure /<br/>Process Crash"]
+        Podman["Podman Engine<br/>(--restart=on-failure:5)"]
+        Healed["Container Pulih Instan<br/>(Zero Alert Noise)"]
+
+        Crash -->|"Exit code != 0"| Podman
+        Podman -->|"Auto-restart < 2s"| Healed
     end
 
-    subgraph Layer2["Layer 2: Application Health & Emergency Alerting (1 Menit)"]
-        Running -.->|"Gagal Pulih / Hang / CrashLoop"| PromProbe["Prometheus Scrape /health (up == 0)"]
-        PromProbe -->|"for: 1m"| AMRoute["Alertmanager Direct SMTP Route"]
-        AMRoute -->|"Bypass Webhook"| SREAlert["Emergency Email ke On-Call SRE"]
+    %% Layer 2: Logical & Persistent Failure
+    subgraph L2["Layer 2: Application Observability<br/>(Prometheus & Alertmanager)"]
+        direction TB
+        Probe["Prometheus Health Probe<br/>(up == 0 for: 1m)"]
+        AM["Alertmanager Emergency Route<br/>(Bypass Webhook)"]
+        SRE["Mailpit / Emergency SMTP<br/>(On-Call SRE Notified)"]
+
+        Probe -->|"State: FIRING"| AM
+        AM -->|"Direct Email"| SRE
     end
 
-    subgraph Layer3["Layer 3: External Watchdog & Host NMS (Menit)"]
-        HostDown["Host / Prometheus Total Failure"] -.->|"Ping / Heartbeat Hilang"| Watchdog["External Heartbeat / SolarWinds"]
-        Watchdog -->|"Emergency Alarm"| NOC["NOC / Infra On-Call Escalation"]
+    %% Layer 3: External Infrastructure
+    subgraph L3["Layer 3: External Infrastructure<br/>(Enterprise NMS)"]
+        direction TB
+        HostOutage["Host / VM Crash /<br/>Network Partition"]
+        SolarWinds["SolarWinds NMS<br/>(ICMP / SNMP / Agent)"]
+        NOC["NOC & Infra Team<br/>(Hardware / OS Escalation)"]
+
+        HostOutage -->|"Heartbeat / Ping Loss"| SolarWinds
+        SolarWinds -->|"Host Down Alarm"| NOC
     end
+
+    %% Cross-layer escalation flows
+    Crash -.->|"Persistent Failure /<br/>CrashLoop > 1m"| Probe
+    Healed -.->|"Host Down /<br/>Kernel Panic"| HostOutage
 ```
 
 1. **Layer 1 (Instant Recovery / Auto-Healing)**: Container engine (Podman) merestart container secara otomatis saat terjadi transient crash.
