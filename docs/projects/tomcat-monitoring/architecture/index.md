@@ -336,8 +336,77 @@ flowchart TD
 | **Track C: Emergency Direct Route (Zero Silent Failure)** | `DiagnosticServiceDown` (`up{job="tomcat-diagnostic-service"} == 0`) | **TIDAK Boleh Melalui Diagnostic Service.** Engine diagnostik itu sendiri yang sedang mengalami kegagalan. Alertmanager melakukan *emergency bypass* langsung ke Mailpit untuk mencegah *silent failure* ([TM-ADR-0020](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0020.md)). | Direct Emergency Alert ke On-call SRE / Sysadmin. |
 | **Track D: Infrastructure Auto-Healing** | Transient crash / exit code non-zero | **Ditangani di Level Infrastruktur.** Kegagalan transien disembuhkan otomatis oleh `podman-restart.service` (`--restart=on-failure:5`) tanpa memicu kebisingan alert ke operator kecuali jika kuota retry habis ([TM-ADR-0021](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md)). | Restart kontainer lokal otomatis oleh Podman runtime. |
 
+### Detail Spesifikasi Desain 6 Skenario Operasional
+
+#### 🔴 Skenario 1 (Track A): Tomcat Runtime Crash / Outage (`TomcatDown` — Autonomous Diagnostic)
+* **Kondisi Pemicu (*Trigger*):** Proses Tomcat berhenti, container crash, OOMKilled oleh kernel Linux (exit code 137), fatal JVM crash (`hs_err_pid*.log`), konflik port socket, atau shutdown bersih (`SIGTERM`/`SIGINT`).
+* **Deteksi Telemetri:** Prometheus mendeteksi hilangnya scrape JMX Exporter:
+  ```promql
+  up{job="tomcat-jmx-exporter"} == 0  # for: 2m, severity: critical
+  ```
+* **Alur Eksekusi Arsitektural:**
+  1. Prometheus mengirimkan alert `TomcatDown` berstatus *firing* ke Alertmanager.
+  2. Alertmanager mencocokkan matcher `alertname = "TomcatDown"` dan merutekan webhook HTTPS ke Diagnostic Service (`:8443/api/v1/alerts/alertmanager`).
+  3. Ingestion Guard memvalidasi token dan skema JSON v4, menyimpan event secara persisten ke SQLite `events` (transaksi ACID), lalu mengembalikan `HTTP 202 Accepted` ([TM-ADR-0015](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md)).
+  4. Worker tunggal mengambil event dari antrean berkapasitas 50, mengumpulkan bukti terkorelasi dari mount hanya-baca:
+     * Cuplikan log `catalina.out` (maks 500 baris / 512 KiB dengan sensor data rahasia).
+     * Spool record Podman dari Restricted Collector (`exitCode`, `oomKilled`, timestamp crash).
+     * Metrik Prometheus terkini dan health probe.
+  5. Engine mengevaluasi 18 cabang keputusan deterministik (`TD-01` s/d `TD-18`), memetakan ke 8 Failure Domains, menghitung *Confidence Score*, dan menyusun rekomendasi SOP operator (*Zero Automatic Remediation*, [TM-ADR-0014](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0014.md)).
+  6. Menerbitkan **Laporan Diagnosis 7-Seksi** via SMTP ke Mailpit / Email On-call.
+  7. Ketika Tomcat hidup kembali (`up == 1`), event *resolved* masuk ke pipeline, dikorelasikan dengan insiden awal, dan menerbitkan email *Incident Resolved* otomatis ([TM-ADR-0016](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md)).
+
+#### 🟠 Skenario 2 (Track B): HTTP Application Health Check Gagal (`TomcatApplicationHealthFailed` — Direct Alerting)
+* **Kondisi Pemicu (*Trigger*):** Aplikasi Tomcat mengalami kegagalan internal servlet, unhandled exception, mengembalikan HTTP status `500`/`503`, response JSON bukan `{"status":"UP"}`, atau response timeout $> 5\text{s}$, sementara container Tomcat dan JVM-nya sendiri masih berjalan normal.
+* **Deteksi Telemetri:** Telegraf probe gagal memeriksa `:8080/health`, menghasilkan metrik yang di-scrape Prometheus:
+  ```promql
+  max by (job, instance, service, check) (http_response_result_code{job="telegraf-health", service="tomcat", check="application-health"}) != 0  # for: 2m
+  ```
+* **Alur Eksekusi Arsitektural:**
+  1. Prometheus mendeteksi `result_code != 0` dan mengirimkan alert `TomcatApplicationHealthFailed` ke Alertmanager.
+  2. Alertmanager mencocokkan rute default (Track B) dan langsung merender template email Enterprise SRE standar (`[CRITICAL] [LAB] Tomcat Service: TomcatApplicationHealthFailed`).
+  3. Email dikirim langsung ke Mailpit/Operator tanpa memicu Diagnostic Service, karena gejalanya sudah deterministik dan tidak membutuhkan investigasi log/spool yang berat.
+  4. Saat health probe aplikasi kembali mengembalikan HTTP `200` dan body `{"status":"UP"}`, Alertmanager mengirimkan email pemulihan `[RESOLVED] [LAB] Tomcat Service: TomcatApplicationHealthNormal`.
+
+#### 🟡 Skenario 3 (Track B): Kehilangan Sinyal Monitoring Telegraf (`TelegrafHealthScrapeUnavailable` / `MetricsMissing`)
+* **Kondisi Pemicu (*Trigger*):** Container Telegraf mati, konfigurasi network terputus, atau plugin Telegraf tidak menghasilkan metrik.
+* **Deteksi Telemetri:** Prometheus mendeteksi target Telegraf tidak dapat diakses:
+  ```promql
+  up{job="telegraf-health"} == 0  # for: 2m, severity: critical
+  ```
+* **Alur Eksekusi Arsitektural:**
+  1. Prometheus mengirimkan alert `TelegrafHealthScrapeUnavailable` ke Alertmanager.
+  2. Alertmanager merutekan notifikasi peringatan bahwa **sinyal observabilitas kesehatan aplikasi terputus**.
+  3. Pola ini memisahkan secara tegas antara "kegagalan aplikasi" vs "kegagalan alat pemantau" sesuai prinsip [TM-ADR-0004](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0004.md).
+
+#### 🚨 Skenario 4 (Track C): Diagnostic Service Down / Self-Monitoring Outage (`DiagnosticServiceDown` — Emergency Fallback)
+* **Kondisi Pemicu (*Trigger*):** Container Diagnostic Service mati, crash, atau SQLite terkunci.
+* **Deteksi Telemetri:** Prometheus mendeteksi kegagalan scrape endpoint `/health` Diagnostic Service:
+  ```promql
+  up{job="tomcat-diagnostic-service"} == 0  # for: 1m, severity: critical
+  ```
+* **Alur Eksekusi Arsitektural (*Zero Silent Failure*):**
+  1. Prometheus mengirimkan alert `DiagnosticServiceDown` ke Alertmanager.
+  2. Sub-route khusus Alertmanager mencocokkan `alertname = "DiagnosticServiceDown"` dan mengeksekusi **Direct Emergency SMTP Bypass** langsung ke Mailpit/Operator ([TM-ADR-0020](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0020.md)).
+  3. Jalur ini memotong perutean webhook ke Diagnostic Service untuk mencegah ketergantungan melingkar (*circular routing*) dan menjamin operator segera tahu bahwa sistem diagnosis otomatis sedang tidak beroperasi.
+
+#### 🛡️ Skenario 5 (Track D): Auto-Healing Kontainer dari Transient Crash
+* **Kondisi Pemicu (*Trigger*):** Kontainer monitoring atau workload mengalami crash transien (misal SIGKILL acak, lonjakan memori sementara, atau exit non-zero).
+* **Alur Eksekusi Arsitektural:**
+  1. Daemonless supervisor `systemd --user podman-restart.service` mendeteksi status exit kontainer.
+  2. Podman secara otomatis me-restart kontainer sesuai kebijakan `--restart=on-failure:5` ([TM-ADR-0021](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md)).
+  3. Jika restart berhasil (transient issue), layanan kembali `up=1` tanpa menimbulkan kebisingan alert ke operator (*zero alert fatigue*).
+  4. Jika kegagalan permanen (misal berkas konfigurasi korup atau storage rusak), kontainer akan berhenti setelah 5 kali percobaan, memicu alert ketiadaan target (`TomcatDown` atau `DiagnosticServiceDown`) ke operator dan mencegah *unbounded CrashLoop*.
+
+#### 🧠 Skenario 6 (Knowledge Track): Safe Hot-Reloading Aturan Diagnosis Baru (AI & SRE)
+* **Kondisi Pemicu (*Trigger*):** SRE atau AI Knowledge Agent mengimpor aturan diagnosis deklaratif baru hasil sintesis insiden baru via Rules API (`POST /api/v1/rules`).
+* **Alur Eksekusi Arsitektural:**
+  1. Payload JSON rulepack divalidasi oleh **5-Layer Ingestion Defense** (Bearer Auth, JSON Schema validation dengan category enum wajib, ID Collision check, Size limit 64 KiB, dan Safety inspection anti-code execution) ([TM-ADR-0018](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0018.md)).
+  2. Aturan baru disimpan secara persisten ke tabel SQLite `custom_rules`.
+  3. Worker memuat ulang (*hot-reload*) aturan ke memori secara atomik tanpa memerlukan restart kontainer Diagnostic Service (*zero-downtime knowledge enrichment*, [TM-ADR-0019](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0019.md)).
+
 > [!NOTE]
-> Laporan status operasional komprehensif dan rincian teknis 6 skenario live dapat dilihat pada dokumen:
+> Laporan status operasional komprehensif dan ringkasan eksekutif dapat dilihat pada dokumen:
 > 📄 **[Operational Scenarios and System Status Report](operational-scenarios-and-system-status-report.md)**.
 
 ## Architecture Components
