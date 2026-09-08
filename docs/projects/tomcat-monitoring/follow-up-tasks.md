@@ -57,19 +57,32 @@ Kategori ini merupakan prioritas utama (*Critical*) untuk mengantisipasi keterba
 
 #### TASK-TM-001: Konfigurasi Scrape Target `/health` Diagnostic Service di Prometheus
 
+- **Status:** `Completed` ✅
 - **Deskripsi:**
   Menambahkan target scrape baru pada konfigurasi Prometheus (`prometheus.yml`) untuk memantau endpoint kesehatan HTTP Diagnostic Service (`GET /health`) secara reguler.
 - **Kebutuhan Teknis:**
   - Job name: `tomcat-diagnostic-service`.
-  - Skema: HTTPS dengan verifikasi TLS internal menggunakan CA bersama.
-  - Endpoint target: `https://tomcat-diagnostic-service:8443/health`.
+  - Skema: HTTPS dengan verifikasi TLS internal menggunakan CA bersama (`diagnostic-service-ca.crt`).
+  - Endpoint target: `https://diagnostic-service:8443/health`.
   - Scrape interval: `15s`, scrape timeout: `5s`.
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
   - Prometheus menghasilkan metrik `up{job="tomcat-diagnostic-service"} == 1` ketika container Diagnostic Service beroperasi normal.
   - Metrik berubah menjadi `up == 0` dalam toleransi waktu 1 siklus scrape saat service dimatikan.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Konfigurasi [`prometheus.yml`](file:///home/eddywiyatno/git/tomcat-monitoring/config/prometheus/prometheus.yml) dan initializer volume [`initialize-prometheus-volumes.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/initialize-prometheus-volumes.sh) disesuaikan untuk menyalin truststore CA.
+  - Validasi Promtool: `promtool check config config/prometheus/prometheus.yml` $\rightarrow$ `SUCCESS`.
+  - Query Prometheus API saat container aktif:
+    ```json
+    {"status":"success","data":{"resultType":"vector","result":[{"metric":{"__name__":"up","instance":"diagnostic-service:8443","job":"tomcat-diagnostic-service"},"value":[1788855610.066,"1"]}]}}
+    ```
+  - Query Prometheus API saat container dimatikan (`podman stop diagnostic-service`):
+    ```json
+    {"metric":{"__name__":"up","instance":"diagnostic-service:8443","job":"tomcat-diagnostic-service"},"value":[1788855677.756,"0"]}
+    ```
 
 #### TASK-TM-002: Pembuatan Alert Rule `DiagnosticServiceDown` di Prometheus
 
+- **Status:** `Completed` ✅
 - **Deskripsi:**
   Mendefinisikan aturan alert Prometheus untuk mendeteksi matinya Diagnostic Service atau kegagalan komunikasi scrape internal.
 - **Kebutuhan Teknis:**
@@ -80,18 +93,49 @@ Kategori ini merupakan prioritas utama (*Critical*) untuk mengantisipasi keterba
   - Annotations: Memuat ringkasan bahwa jalur notifikasi otomatis insiden Tomcat terputus dan operator harus segera memeriksa status container service.
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
   - Alert berpindah ke status `firing` pada Prometheus dashboard setelah container disimulasikan mati selama lebih dari 1 menit.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Aturan ditambahkan pada [`application-health.yml`](file:///home/eddywiyatno/git/tomcat-monitoring/config/prometheus/rules/application-health.yml).
+  - Unit test promtool ditambahkan pada [`application-health.test.yml`](file:///home/eddywiyatno/git/tomcat-monitoring/config/prometheus/tests/application-health.test.yml):
+    `promtool test rules application-health.test.yml` $\rightarrow$ `SUCCESS`.
+  - Status aktif di Prometheus API (`http://127.0.0.1:9090/api/v1/alerts`) setelah simulasi downtime > 1m:
+    ```json
+    {
+      "labels": {
+        "alertname": "DiagnosticServiceDown",
+        "check": "service-availability",
+        "instance": "diagnostic-service:8443",
+        "job": "tomcat-diagnostic-service",
+        "service": "diagnostic-service",
+        "severity": "critical"
+      },
+      "state": "firing",
+      "value": "0e+00"
+    }
+    ```
 
 #### TASK-TM-003: Konfigurasi Direct SMTP Routing di Alertmanager untuk Alert Monitoring Mandiri
 
+- **Status:** `Completed` ✅
 - **Deskripsi:**
   Mengonfigurasi rute khusus di Alertmanager (`alertmanager.yml`) agar seluruh alert terkait kesehatan Diagnostic Service langsung dikirimkan melalui jalur email langsung (direct SMTP) ke Mailpit / kanal on-call, sepenuhnya melewati webhook Diagnostic Service.
 - **Kebutuhan Teknis:**
-  - Routing rule: Cocokkan label `alertname="DiagnosticServiceDown"` atau `alertname="DiagnosticServiceScrapeUnavailable"`.
-  - Receiver: `direct-email-emergency` (koneksi SMTP langsung ke Mailpit / relay server).
-  - Webhook bypass: Pastikan tidak ada pengiriman balik ke webhook Diagnostic Service yang sedang tidak aktif.
+  - Routing rule: Cocokkan label `alertname="DiagnosticServiceDown"`.
+  - Receiver: `direct-email-emergency` (koneksi SMTP langsung ke Mailpit `mailpit:1025`, `send_resolved: true`).
+  - Webhook bypass: Notifikasi darurat dikirim langsung via SMTP tanpa melalui webhook Diagnostic Service.
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
-  - Saat container Diagnostic Service dimatikan paksa, Alertmanager mengirimkan email alert darurat langsung ke Mailpit dengan subjek `[FIRING] DiagnosticServiceDown`.
-  - Saat container dihidupkan kembali, Alertmanager mengirimkan email `[RESOLVED] DiagnosticServiceDown`.
+  - Saat container Diagnostic Service dimatikan paksa, Alertmanager mengirimkan email alert darurat langsung ke Mailpit dengan subjek `[FIRING] [EMERGENCY] Diagnostic Service Alert: DiagnosticServiceDown`.
+  - Saat container dihidupkan kembali, Alertmanager mengirimkan email `[RESOLVED] [EMERGENCY] Diagnostic Service Alert: DiagnosticServiceDown`.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Konfigurasi [`alertmanager.yml`](file:///home/eddywiyatno/git/tomcat-monitoring/config/alertmanager/alertmanager.yml) divalidasi dengan `amtool check-config` $\rightarrow$ `SUCCESS (3 receivers)`.
+  - Mailpit API (`http://127.0.0.1:8025/api/v1/messages`) merekam penerimaan email darurat:
+    1. **Emergency Firing Email:**
+       - Subject: `[FIRING] [EMERGENCY] Diagnostic Service Alert: DiagnosticServiceDown (Instance: diagnostic-service:8443)`
+       - From: `alertmanager@tomcat-monitoring.invalid`
+       - To: `operator@tomcat-monitoring.invalid`
+       - Route: Direct SMTP to Mailpit (Bypassing Diagnostic Service Webhook)
+    2. **Emergency Resolved Email:**
+       - Subject: `[RESOLVED] [EMERGENCY] Diagnostic Service Alert: DiagnosticServiceDown (Instance: diagnostic-service:8443)`
+       - Content: `Diagnostic Service target diagnostic-service:8443 has recovered and is scrapeable again. Automated incident notification pipeline is restored.`
 
 ---
 
@@ -266,24 +310,24 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 
 ## 🛠️ Implementation Priority Matrix
 
-| Task ID | Nama Task | Prioritas | Sumber Acuan | Komponen Terdampak | Kriteria Hasil |
-| :--- | :--- | :---: | :---: | :--- | :--- |
-| **TASK-TM-001** | Scrape Target `/health` Diagnostic Service | **P0 (Blocker)** | TM-ADR-0016 | Prometheus | Metrik `up` aktif untuk Diagnostic Service |
-| **TASK-TM-002** | Alert Rule `DiagnosticServiceDown` | **P0 (Blocker)** | TM-ADR-0016 | Prometheus | Alert firing saat service mati > 1m |
-| **TASK-TM-003** | Direct SMTP Emergency Route Alertmanager | **P0 (Blocker)** | TM-ADR-0016 | Alertmanager | Email darurat ke Mailpit bypass webhook |
-| **TASK-TM-004** | Stale Lock Recovery Worker SQLite | **P1 (High)** | TM-ADR-0015 | Diagnostic Service | Re-queue otomatis event status processing |
-| **TASK-TM-005** | Housekeeping & Retention DB SQLite | **P1 (High)** | TM-ADR-0015 | Diagnostic Service | Pembersihan data lama & disk terkendali |
-| **TASK-TM-013** | Persistent Volume Mount Log Tomcat | **P1 (High)** | TN-019 / GAP-006 | Tomcat Runtime / DS | Log container live terbaca otomatis oleh DS |
-| **TASK-TM-014** | Daemonization Restricted Event Collector | **P1 (High)** | TN-016 / GAP-002 | Event Collector | Collector berjalan sebagai systemd user service |
-| **TASK-TM-015** | Enterprise SMTP Relay Configuration | **P1 (High)** | GAP-014 | Diagnostic Service | Notifikasi terkirim via relay SMTP TLS resmi |
-| **TASK-TM-016** | Live Prometheus Evidence Wire-up | **P1 (High)** | GAP-004 / TN-006 | Diagnostic Service | Metrik live otomatis terlampir di evidence |
-| **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | TM-ADR-0014 | Diagnostic Service | Log persisten tindakan manual SRE |
-| **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | TM-ADR-0017 | Diagnostic Service | Deteksi degradasi thread pra-downtime |
-| **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | TM-ADR-0017 | Diagnostic Service | Deteksi dini memory leak pra-OOM |
-| **TASK-TM-009** | Dashboard Observabilitas Grafana | **P2 (Medium)** | TN-020 | Grafana | Dashboard terpusat JVM, Tomcat, & Health |
-| **TASK-TM-010** | Standardisasi Log & Spool Cleanup | **P2 (Medium)** | TN-020 / TN-016 | Event Collector / Host | Rotasi teratur & spool cleanup atomik |
-| **TASK-TM-011** | Ansible Playbook Deployment | **P3 (Planned)** | TN-020 | Ansible / Podman | Zero-touch deployment seluruh stack |
-| **TASK-TM-012** | Integrasi TrueSight / Event Bridge | **P3 (Deferred)** | GAP-015 / TN-020 | Integration Bridge | Pengiriman event terintegrasi enterprise |
+| Task ID | Nama Task | Prioritas | Status | Sumber Acuan | Komponen Terdampak | Kriteria Hasil |
+| :--- | :--- | :---: | :---: | :---: | :--- | :--- |
+| **TASK-TM-001** | Scrape Target `/health` Diagnostic Service | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0016 | Prometheus | Metrik `up` aktif untuk Diagnostic Service |
+| **TASK-TM-002** | Alert Rule `DiagnosticServiceDown` | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0016 | Prometheus | Alert firing saat service mati > 1m |
+| **TASK-TM-003** | Direct SMTP Emergency Route Alertmanager | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0016 | Alertmanager | Email darurat ke Mailpit bypass webhook |
+| **TASK-TM-004** | Stale Lock Recovery Worker SQLite | **P1 (High)** | `Planned` 📋 | TM-ADR-0015 | Diagnostic Service | Re-queue otomatis event status processing |
+| **TASK-TM-005** | Housekeeping & Retention DB SQLite | **P1 (High)** | `Planned` 📋 | TM-ADR-0015 | Diagnostic Service | Pembersihan data lama & disk terkendali |
+| **TASK-TM-013** | Persistent Volume Mount Log Tomcat | **P1 (High)** | `Planned` 📋 | TN-019 / GAP-006 | Tomcat Runtime / DS | Log container live terbaca otomatis oleh DS |
+| **TASK-TM-014** | Daemonization Restricted Event Collector | **P1 (High)** | `Planned` 📋 | TN-016 / GAP-002 | Event Collector | Collector berjalan sebagai systemd user service |
+| **TASK-TM-015** | Enterprise SMTP Relay Configuration | **P1 (High)** | `Planned` 📋 | GAP-014 | Diagnostic Service | Notifikasi terkirim via relay SMTP TLS resmi |
+| **TASK-TM-016** | Live Prometheus Evidence Wire-up | **P1 (High)** | `Planned` 📋 | GAP-004 / TN-006 | Diagnostic Service | Metrik live otomatis terlampir di evidence |
+| **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | `Planned` 📋 | TM-ADR-0014 | Diagnostic Service | Log persisten tindakan manual SRE |
+| **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | `Planned` 📋 | TM-ADR-0017 | Diagnostic Service | Deteksi degradasi thread pra-downtime |
+| **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | `Planned` 📋 | TM-ADR-0017 | Diagnostic Service | Deteksi dini memory leak pra-OOM |
+| **TASK-TM-009** | Dashboard Observabilitas Grafana | **P2 (Medium)** | `Planned` 📋 | TN-020 | Grafana | Dashboard terpusat JVM, Tomcat, & Health |
+| **TASK-TM-010** | Standardisasi Log & Spool Cleanup | **P2 (Medium)** | `Planned` 📋 | TN-020 / TN-016 | Event Collector / Host | Rotasi teratur & spool cleanup atomik |
+| **TASK-TM-011** | Ansible Playbook Deployment | **P3 (Planned)** | `Planned` 📋 | TN-020 | Ansible / Podman | Zero-touch deployment seluruh stack |
+| **TASK-TM-012** | Integrasi TrueSight / Event Bridge | **P3 (Deferred)** | `Deferred` ⏳ | GAP-015 / TN-020 | Integration Bridge | Pengiriman event terintegrasi enterprise |
 
 ---
 
