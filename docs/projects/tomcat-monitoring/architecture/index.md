@@ -52,7 +52,7 @@ flowchart LR
         DB -->|"1. Query metrik"| PM
         PM -->|"2. HTTPS GET /metrics"| JM
         TG -->|"4. HTTP GET /health"| APP
-        PM -->|"3. Scrape health"| TG
+        PM -->|"3a. Scrape health"| TG
         PM -->|"5. Firing/Resolved"| AM
     end
 
@@ -66,6 +66,7 @@ flowchart LR
         TC -.->|"Input: Monitor Podman<br/>(exitCode, OOM, died)"| EC
         EC -->|"Tulis spool atomik<br/>(.tmp → .json)"| SPL
         AM -->|"6b. Trigger TomcatDown<br/>(HTTPS Webhook)"| DS
+        PM -->|"3b. Scrape /health<br/>(Self-Monitoring)"| DS
         DS -->|"7. Baca spool read-only"| SPL
     end
 
@@ -76,7 +77,8 @@ flowchart LR
         BR["Integration Bridge<br/>(Dinonaktifkan)"]
         TS["TrueSight<br/>(Dinonaktifkan)"]
 
-        AM -.->|"6a. Route alert standard"| BR
+        AM -->|"6a. Direct emergency SMTP<br/>(DiagnosticServiceDown / Health)"| NC
+        AM -.->|"Route alert standard"| BR
         BR -.->|"9. Transport payload"| TS
         DS -->|"8. Laporan diagnostic<br/>7-seksi (SMTP)"| NC
     end
@@ -114,7 +116,11 @@ Nomor pada diagram menunjukkan hubungan komunikasi, bukan urutan startup
 container. Garis penuh menunjukkan alur persistent lab yang sudah diverifikasi;
 garis putus-putus menunjukkan target external integration (Integration Bridge dan
 TrueSight) yang saat ini dinonaktifkan. Topology utama menempatkan Diagnostic
-Service setelah Alertmanager untuk memproses alert `TomcatDown`.
+Service setelah Alertmanager untuk memproses alert `TomcatDown`, dilengkapi
+jalur self-monitoring Prometheus terhadap `/health` dan emergency direct SMTP
+Alertmanager jika Diagnostic Service mengalami gangguan. Container runtime
+disupervisi oleh `podman-restart.service` dengan kebijakan auto-healing
+`--restart=on-failure:5` (TM-ADR-0021).
 
 ### B. Detail Alur Diagnostic
 
@@ -244,6 +250,8 @@ sequenceDiagram
         JM-->>PM: Metrics JVM dan Tomcat
         PM->>TG: Scrape metrics health HTTP
         TG-->>PM: Hasil health dan response time
+        PM->>DS: HTTPS GET /health (Self-Monitoring)
+        DS-->>PM: Status JSON {"status":"healthy"}
     end
 
     DB->>PM: Query metrics current dan historical
@@ -251,8 +259,10 @@ sequenceDiagram
 
     %% 3. Alur Insiden & Evaluasi Diagnostik
     PM->>AM: Mengirim state firing atau resolved
-    alt Alert monitoring existing — rute eksternal
-        AM->>BR: Mengirim alert standard (webhook/payload)
+    alt DiagnosticServiceDown — rute darurat langsung (TM-ADR-0016/0020)
+        AM->>NC: Mengirim direct emergency email (SMTP)
+    else Alert monitoring standard — rute standard
+        AM->>NC: Mengirim alert standard email (SMTP)
     else TomcatDown — alur diagnosis terverifikasi
         AM->>DS: Webhook firing/resolved melalui HTTPS internal
         DS->>SQ: Menyimpan event tervalidasi
@@ -337,8 +347,12 @@ Untuk mempermudah manajemen aturan deklaratif dan mempercepat eskalasi insiden k
 - Penambahan aturan deklaratif (`POST /api/v1/rules`) dilindungi oleh **5-Layer Ingestion Guard** (Auth, Schema, Collision, Size Limit 64 KiB, Safety Guard) dan immutabilitas *append-only* (penolakan mutasi `PUT`/`DELETE` dengan HTTP 405).
 - Diterapkan kebijakan **Zero Automatic Remediation** ([TM-ADR-0014](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0014.md)): Diagnostic Service beroperasi murni sebagai *read-only advisory engine* tanpa wewenang eksekusi perbaikan aktif, melindungi runtime dari ancaman eskalasi privilege dan risiko *flapping loop*.
 - Ingestion webhook menerapkan pola **Durable Acceptance** ([TM-ADR-0015](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md)): respons HTTP `202 Accepted` hanya dikirim setelah transaksi penulisan event berhasil di-commit secara persisten ke SQLite.
-- Diagnostic Service bertindak sebagai **Otoritas Tunggal Notifikasi Insiden** ([TM-ADR-0016](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md)) untuk siklus hidup `TomcatDown`, menghilangkan duplikasi dan inkonsistensi (*split alerting*).
+- Diagnostic Service bertindak sebagai **Otoritas Tunggal Notifikasi Insiden** ([TM-ADR-0016](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md)) untuk siklus hidup `TomcatDown`, menghilangkan duplikasi dan inkonsistensi (*split alerting*), serta dilengkapi mitigasi *Zero Silent Failure* (rute darurat Alertmanager jika Diagnostic Service down).
 - Seluruh arsitektur pilot dipagari oleh strategi **Vertical Slice MVP** ([TM-ADR-0017](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0017.md)), mengisolasi pembuktian nilai (*Proof of Value*) pada alert `TomcatDown` sebelum memperluas sistem ke skala enterprise.
+- Rule engine diagnosis menerapkan **Declarative Rulepack Engine** ([TM-ADR-0018](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0018.md)) dan taksonomi 8 Kategori Domain Kegagalan (*Failure Domains*) yang aman terhadap *hot-reloading* via 5-Layer Ingestion Defense.
+- Pengetahuan diagnosis diperkaya melalui **AI-Augmented Knowledge Enrichment Workflow** ([TM-ADR-0019](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0019.md)) dengan prinsip *Human-in-the-Loop Governance*.
+- Observabilitas platform menerapkan **Diagnostic Service Self-Monitoring & Emergency Fallback Routing** ([TM-ADR-0020](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0020.md)) untuk menjamin *Zero Silent Failure*.
+- Ketahanan kontainer menerapkan **Layered Resilience, Container Auto-Healing, and Monitoring Domain Separation** ([TM-ADR-0021](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md)) menggunakan bounded retry `--restart=on-failure:5` yang disupervisi oleh `systemd --user podman-restart.service`.
 
 ## Related Architecture Decisions
 
@@ -361,6 +375,24 @@ Untuk mempermudah manajemen aturan deklaratif dan mempercepat eskalasi insiden k
 | [TM-ADR-0015](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md) | Menerapkan pola asynchronous ingestion dengan durable SQLite acceptance sebelum HTTP 202. |
 | [TM-ADR-0016](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md) | Menetapkan Diagnostic Service sebagai otoritas tunggal pengiriman notifikasi siklus insiden. |
 | [TM-ADR-0017](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0017.md) | Mengadopsi strategi Vertical Slice Minimum Viable Product (MVP) untuk Diagnostic Pilot. |
+| [TM-ADR-0018](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0018.md) | Mengadopsi Declarative Rulepack Engine dengan Dynamic Loading & Hot-Reloading. |
+| [TM-ADR-0019](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0019.md) | Mengadopsi AI-Augmented Knowledge Enrichment Workflow dengan Human-in-the-Loop Governance. |
+| [TM-ADR-0020](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0020.md) | Mengadopsi Self-Monitoring Diagnostic Service dan Emergency Fallback Routing (Zero Silent Failure). |
+| [TM-ADR-0021](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md) | Mengadopsi Layered Resilience, Container Auto-Healing (`--restart=on-failure:5`), dan Pemisahan Domain Monitoring. |
+
+## Container Auto-Healing & Resilience Architecture
+
+Platform menerapkan arsitektur ketahanan berlapis (*Layered Failure Resilience*) sesuai [TM-ADR-0021](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md):
+
+1. **Auto-Healing Lokal Berbatas (`--restart=on-failure:5`)**:
+   - Seluruh container monitoring (`prometheus`, `alertmanager`, `diagnostic-service`, `tomcat-jmx-exporter`) dikonfigurasi dengan kebijakan restart berbatas 5 kali.
+   - Kebijakan ini menyembuhkan transient glitch (seperti OOM sementara atau SIGKILL acak) tanpa intervensi manusia, tetapi mencegah *unbounded CrashLoop* yang dapat merusak WAL/storage atau memboroskan CPU saat terjadi kegagalan fatal/korupsi permanen.
+2. **Supervisor Daemonless Rootless Podman**:
+   - Dikelola oleh systemd user service `podman-restart.service` (`systemctl --user enable --now podman-restart.service`).
+3. **Pemisahan Domain Monitoring & Observabilitas**:
+   - Layer Host / OS / Hardware / VM dimonitor oleh NMS/Infrastruktur Enterprise eksternal (SolarWinds/Zabbix/NOC).
+   - Layer Workload / JVM / Application dimonitor secara otonom oleh Prometheus + Alertmanager + Diagnostic Service.
+   - Kegagalan permanen container memicu alert `DiagnosticServiceDown` atau `TomcatDown` ke operator setelah batas retry habis (*exhausted*).
 
 ## Current Status
 
@@ -370,15 +402,22 @@ mengambil metrics via strict HTTPS scrape terhadap JMX Exporter dan mempertahank
 volume TSDB `prometheus_data`. Telegraf memeriksa HTTP health endpoint aplikasi
 dan Prometheus membaca series `telegraf-health`.
 
+Prometheus juga melakukan scrape rutin ke endpoint self-monitoring Diagnostic Service
+`https://diagnostic-service:8443/health`. Jika Diagnostic Service mati atau down,
+Prometheus memicu alert `DiagnosticServiceDown` yang diteruskan Alertmanager langsung
+melalui *direct emergency SMTP route* ke Mailpit, mencegah *Silent Failure* (TM-ADR-0020).
+
 Alertmanager mengelola deduplikasi dan routing alert secara persisten. Rule
-`TomcatDown` diteruskan melalui HTTPS internal ke Diagnostic Service (`0.1.3`).
+`TomcatDown` diteruskan melalui HTTPS internal ke Diagnostic Service (`0.1.4`).
 Diagnostic Service memproses webhook secara asinkron, membaca metrik Prometheus,
 spool `/tmp/diagnostic-spool`, dan log Tomcat `/tmp/tomcat-logs` secara read-only,
-mengevaluasi pohon keputusan `TD-01` s/d `TD-09`, menyimpan riwayat audit ke
+mengevaluasi pohon keputusan 18 cabang `TD-01` s/d `TD-18`, menyimpan riwayat audit ke
 SQLite `diagnostic_data`, dan mengirimkan laporan diagnosis 7-seksi ke Mailpit.
 Siklus pemulihan (*resolved*) memicu korelasi insiden otomatis dan mengirimkan
 notifikasi pemulihan.
 
+Seluruh container stack disupervisi secara persisten dengan kebijakan auto-healing
+`--restart=on-failure:5` via systemd `podman-restart.service` (TM-ADR-0021 / TN-002).
 Kapabilitas *Declarative Rulepack Engine* dan *AI Enrichment Workflow* telah
 terbukti live (TN-018 & TN-019), memungkinkan penambahan aturan diagnosis baru
 secara hot-loaded tanpa restart container. Integration Bridge dan TrueSight

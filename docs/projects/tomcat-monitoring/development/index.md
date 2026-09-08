@@ -35,7 +35,7 @@ Source project dibagi berdasarkan lifecycle dan tanggung jawab berikut:
 | `tomcat-jmx-exporter` | Menyediakan derived Tomcat image dengan embedded JMX Exporter | Current source published and local component build verified |
 | `alertmanager` | Menyediakan generic Alertmanager container image dan lifecycle runtime | Local image `1.0.0` built; Alertmanager, `amtool`, and non-root smoke test passed |
 | `tomcat-monitoring` | Menyediakan configuration, automation, dashboard, alert, dan integration | Persistent Prometheus–Alertmanager–Mailpit–Diagnostic Service end-to-end delivery verified |
-| `tomcat-diagnostic-service` | Memiliki source Diagnostic Service, dependency lock, image lifecycle, declarative rulepack engine, migration, dan component test | Available; image `0.1.3` (digest `sha256:e781b9fb1cdad484763ab17ec5c0c0004da3fd4775ba5d88eba651382099aae8`), 46 tests passed |
+| `tomcat-diagnostic-service` | Memiliki source Diagnostic Service, dependency lock, image lifecycle, declarative rulepack engine, migration, dan component test | Available; image `0.1.4` (digest `sha256:739d68e757ab50abaafe038b6bbfa1aa931e31be08792f0ca376bd111792801c`), 47 tests passed |
 | `tomcat-diagnostic-event-collector` | Memiliki source, schema, packaging, dan component test restricted rootless host collector | Available; atomic `.tmp` -> `.json` spooling, 3 component tests passed |
 
 Target allowlist diagnostic, integrasi Prometheus dan Alertmanager,
@@ -77,8 +77,9 @@ tomcat-jmx-exporter/
 | CI pipeline | Not implemented |
 | Container image publication | Local image only; registry not determined |
 | Diagnostic Service repository | Gitea `tomcat-diagnostic-service` tersedia (`main` / clean) |
-| Diagnostic Service local state | Latest commit `9b2c98e`; 46 unit/integration tests passed; version `0.1.3` (digest `sha256:e781b9fb1cda`) |
+| Diagnostic Service local state | Latest commit `07c11f7`; 47 unit/integration tests passed; version `0.1.4` (digest `sha256:739d68e757ab`) |
 | Restricted Event Collector repository | Gitea `tomcat-diagnostic-event-collector` tersedia (`main` / clean); commit `94b8723`; 3 component tests passed |
+| Container Auto-Healing Policy | `--restart=on-failure:5` terpasang di seluruh run scripts & disupervisi via `systemd --user podman-restart.service` (TM-ADR-0021) |
 
 ## Development Workflow
 
@@ -200,6 +201,7 @@ menggunakan canonical runtime name `tomcat_server`.
 - [TM-ADR-0002 — Separate Generic Runtime Images from Monitoring Integration Configuration](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0002.md)
 - [TM-ADR-0010 — Deploy One Bounded Diagnostic Service per Tomcat Host](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0010.md)
 - [TM-ADR-0013 — Use Node.js 24 ESM and Isolated Built-In SQLite for Diagnostic Service](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0013.md)
+- [TM-ADR-0021 — Adopt Layered Failure Resilience, Container Auto-Healing, and Monitoring Domain Separation](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md)
 - [Diagnostic MVP](../diagnostic-mvp/index.md)
 - [Development Environment Setup](setup.md)
 - [Architecture](../architecture/index.md)

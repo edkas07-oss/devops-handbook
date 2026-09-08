@@ -32,7 +32,8 @@ proses infrastructure yang telah ditetapkan.
 | Application health endpoint | Memberikan status aplikasi yang dapat diverifikasi Telegraf | Lab-only JSP `/health` deployed and verified; production application endpoint planned |
 | Alertmanager | Mengelola dan meneruskan alert | Persistent local image `1.0.0` runtime uses named configuration/data volumes; real Prometheus firing/resolved delivery verified |
 | Mailpit SMTP capture | Menangkap email Alertmanager pada persistent lab-only topology | Direct-upstream `v1.31.0` runs without named volume; loopback API and real firing/resolved capture verified |
-| Diagnostic Service | Menerima `TomcatDown`, mengelola state, mengumpulkan evidence terbatas, mengevaluasi rules, dan mengirim notifikasi SRE | Available; image `0.1.3` (`sha256:e781b9fb1cda`) aktif di `devops-lab` |
+| Diagnostic Service | Menerima `TomcatDown`, mengelola state, mengumpulkan evidence terbatas, mengevaluasi rules, dan mengirim notifikasi SRE | Available; image `0.1.4` (`sha256:739d68e757ab`) aktif di `devops-lab` |
+| Container auto-healing supervisor | Mensupervisi restart otomatis container monitoring dan workload saat crash/exit non-zero | Available; `systemd --user podman-restart.service` aktif dengan bounded retry `--restart=on-failure:5` (TM-ADR-0021) |
 | SQLite diagnostic state | Mempertahankan event, incident, deduplication, canonical result, custom rules, dan delivery state | Available; persistent named volume `diagnostic_data` aktif di `/var/lib/tomcat-diagnostic/diagnostic.db` |
 | Restricted Event Collector | Mengumpulkan event host dan container yang diizinkan tanpa memberi akses kontrol host kepada Diagnostic Service | Available; rootless host collector aktif dengan atomic spooling |
 | Normalized collector spool | Menyediakan record event terbatas melalui mount read-only ke Diagnostic Service | Available; bind-mount `/tmp/diagnostic-spool:/run/tomcat-diagnostic/spool:ro,z` |
@@ -90,9 +91,11 @@ configuration.
 | Prometheus to JMX Exporter | HTTPS ke port `9404`, path `/metrics` | Server-side TLS dan container-network-only access | Persistent strict TLS scrape and hostname verification passed on 2026-08-25; JMX metrics port is not published on the host |
 | Telegraf to application health endpoint | HTTP ke internal Tomcat port `8080`, path `/health` | Container-network-only access; no host port | Persistent lab integration verified on 2026-08-25 |
 | Prometheus to Telegraf | HTTP ke port internal `9273`, path `/metrics` | Container-network-only access; no host port | Persistent target `up=1` and successful health metrics verified on 2026-08-25 |
+| Prometheus to Diagnostic Service | HTTPS ke port `8443`, path `/health` | Server-side TLS (CA verification) dan container-network-only access | Persistent self-monitoring target `up=1` verified on 2026-09-08 (TN-001) |
 | Dashboard to Prometheus | HTTP ke host port `9090` pada lab | Trusted VPN lab; TLS dan authentication belum tersedia | Browser tablet verified through `http://edkas-pc1:9090` on 2026-08-24 |
 | Prometheus to Alertmanager | HTTP ke internal `alertmanager:9093` pada `devops-lab` | Container-network-only access; no Alertmanager host port | Healthy active target and real application-health firing/resolved delivery verified on 2026-08-28 |
 | Alertmanager to Mailpit | Internal `mailpit:1025` pada `devops-lab`; SMTP tidak dipublikasikan | Mailpit API/UI hanya `127.0.0.1:8025`; no external relay, credential, atau personal recipient | Persistent lab-only firing/resolved capture verified on 2026-08-28 |
+| Alertmanager to Mailpit (Emergency Direct Route) | Internal `mailpit:1025` pada `devops-lab` untuk `DiagnosticServiceDown` | Bypass Diagnostic Service saat platform service down (Zero Silent Failure) | Persistent direct emergency email verified on 2026-09-08 (TN-001) |
 | Alertmanager to Diagnostic Service | HTTPS ke `diagnostic-service:8443/api/v1/alerts/alertmanager` | Strict TLS, bearer authentication, dedicated internal network, CA dan token read-only; tanpa host port | Persistent lab webhook delivery verified on 2026-09-03 |
 | Diagnostic Service to Prometheus | Query metrics terbatas melalui Prometheus API | Target dan query berasal dari local allowlist internal | Persistent lab query metrics verified on 2026-09-03 |
 | Diagnostic Service to Mailpit | SMTP internal untuk diagnostic firing, update, failed/partial, dan resolved | Tidak menggunakan external relay atau personal recipient pada lab | Persistent lab diagnostic SRE report & resolved delivery verified on 2026-09-03 |
@@ -242,7 +245,7 @@ terpisah.
 | SQLite schema, migration, housekeeping, dan application-level data lifecycle | Repository `tomcat-diagnostic-service` |
 | Physical diagnostic volume, network, TLS/token storage, dan host resource allocation | Integration/platform owner; lab paths and modes accepted, persistent resource creation pending |
 | Integration Bridge dan TrueSight mapping | Tomcat Monitoring project dan TrueSight owner |
-| Runtime service continuity | Project owner/operator; manual start and recovery accepted for persistent lab, automatic host-boot orchestration deferred |
+| Runtime service continuity | Project owner/operator; supervisi otomatis container via `systemd --user podman-restart.service` dengan bounded auto-healing `--restart=on-failure:5` (TM-ADR-0021 / TN-002) |
 
 ## Planned Provisioning Validation
 
