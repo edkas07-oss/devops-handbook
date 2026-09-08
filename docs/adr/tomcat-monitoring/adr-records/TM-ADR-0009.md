@@ -40,7 +40,7 @@ SQLite menyediakan penyimpanan state lokal transaksional yang tahan terhadap res
 
 ## 📌 Status
 
-**Accepted — skema fisik dan implementasi ditunda (physical schema and implementation pending).**
+**Accepted — implemented and verified in devops-lab.**
 
 ## 📅 Date
 

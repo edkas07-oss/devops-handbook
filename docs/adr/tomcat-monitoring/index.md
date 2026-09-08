@@ -29,28 +29,34 @@ konsekuensi keputusan arsitektur yang memengaruhi implementasi project.
 | [**TM-ADR-0015**](adr-records/TM-ADR-0015.md){: target="_blank" } | Adopt Asynchronous Webhook Ingestion with Durable SQLite Acceptance Pattern | Tomcat Monitoring | Diagnostic Ingestion Architecture | Accepted | 2026-08-31 |
 | [**TM-ADR-0016**](adr-records/TM-ADR-0016.md){: target="_blank" } | Designate Diagnostic Service as the Canonical Incident Notification Authority | Tomcat Monitoring | Incident Notification and Alerting Architecture | Accepted | 2026-08-31 |
 | [**TM-ADR-0017**](adr-records/TM-ADR-0017.md){: target="_blank" } | Adopt Vertical Slice Minimum Viable Product (MVP) Scoping for Diagnostic Pilot | Tomcat Monitoring | Diagnostic Architecture Strategy | Accepted | 2026-08-31 |
+| [**TM-ADR-0018**](adr-records/TM-ADR-0018.md){: target="_blank" } | Adopt Strict Declarative Rulepack Engine and Append-Only Ingestion API | Tomcat Monitoring | Diagnostic Rule and Extensibility Architecture | Accepted | 2026-09-02 |
+| [**TM-ADR-0019**](adr-records/TM-ADR-0019.md){: target="_blank" } | Adopt Out-of-Band AI Forensic Enrichment Loop for Diagnostic Rule Synthesis | Tomcat Monitoring | Diagnostic AI and Continuous Learning Architecture | Accepted | 2026-09-03 |
+| [**TM-ADR-0020**](adr-records/TM-ADR-0020.md){: target="_blank" } | Enforce Bounded Incident Notification Delivery Lifecycle and Exponential Backoff Retries | Tomcat Monitoring | Incident Notification and Delivery Architecture | Accepted | 2026-09-01 |
 
 ## 🗺️ ADR Mapping
 
 | ADR ID | Title | Referenced In |
 | --- | --- | --- |
-| TM-ADR-0001 | Adopt Embedded Monitoring Instrumentation for Apache Tomcat | Runtime Monitoring Foundation TN-001 |
-| TM-ADR-0002 | Separate Generic Runtime Images from Monitoring Integration Configuration | Monitoring Integration TN-006, TN-009, TN-025, and TN-026 |
-| TM-ADR-0003 | Use Host-Managed Non-Git TLS Material for the Persistent Lab | Monitoring Integration TN-018, TN-019, and TN-020 |
-| TM-ADR-0004 | Separate Application Failure from Monitoring Signal Loss | Monitoring Integration TN-021 through TN-024 |
-| TM-ADR-0005 | Use Mailpit as the Persistent Lab Notification Verification Target | Monitoring Integration TN-030 through TN-035 |
-| TM-ADR-0006 | Use Deterministic Multi-Source Evidence for Diagnostic Assessment | Diagnostic MVP Pilot TN-001 and Diagnostic MVP contracts |
-| TM-ADR-0007 | Treat TomcatDown as a Composite Diagnostic Trigger | Diagnostic MVP Pilot TN-001 and TomcatDown rule specification |
-| TM-ADR-0008 | Use a Restricted Host Event Collector with a Normalized Evidence Spool | Diagnostic MVP Pilot TN-001 and collector contract |
-| TM-ADR-0009 | Use SQLite for Local Diagnostic State | Diagnostic MVP Pilot TN-001 and SQLite lifecycle contract |
-| TM-ADR-0010 | Deploy One Bounded Diagnostic Service per Tomcat Host | Diagnostic MVP Pilot TN-001 and non-functional contract |
-| TM-ADR-0011 | Use Per-Rule Decision Tables for Diagnostic Confidence | Diagnostic MVP Pilot TN-001 and result contract |
-| TM-ADR-0012 | Decouple TrueSight Through a Disabled Integration Bridge | Diagnostic MVP Pilot TN-001 and integration contract |
-| TM-ADR-0013 | Use Node.js 24 ESM and Isolated Built-In SQLite for Diagnostic Service | Diagnostic MVP Pilot TN-003 and Development |
-| TM-ADR-0014 | Enforce Zero Automatic Remediation for Diagnostic Service | Diagnostic MVP Pilot TN-001 and non-functional contract |
-| TM-ADR-0015 | Adopt Asynchronous Webhook Ingestion with Durable SQLite Acceptance Pattern | Diagnostic MVP Pilot TN-001 and alertmanager webhook contract |
-| TM-ADR-0016 | Designate Diagnostic Service as the Canonical Incident Notification Authority | Diagnostic MVP Pilot TN-001 and notification contract |
-| TM-ADR-0017 | Adopt Vertical Slice Minimum Viable Product (MVP) Scoping for Diagnostic Pilot | Diagnostic MVP Pilot TN-001 and architecture index |
+| TM-ADR-0001 | Adopt Embedded Monitoring Instrumentation for Apache Tomcat | Runtime Monitoring Foundation TN-001, Diagnostic Pilot TN-020 |
+| TM-ADR-0002 | Separate Generic Runtime Images from Monitoring Integration Configuration | Monitoring Integration TN-006, TN-009, TN-025, TN-026; Diagnostic Pilot TN-010, TN-020 |
+| TM-ADR-0003 | Use Host-Managed Non-Git TLS Material for the Persistent Lab | Monitoring Integration TN-018, TN-019, TN-020; Diagnostic Pilot TN-020 |
+| TM-ADR-0004 | Separate Application Failure from Monitoring Signal Loss | Monitoring Integration TN-021 through TN-024; Diagnostic Pilot TN-014, TN-020 |
+| TM-ADR-0005 | Use Mailpit as the Persistent Lab Notification Verification Target | Monitoring Integration TN-030 through TN-035; Diagnostic Pilot TN-011, TN-020 |
+| TM-ADR-0006 | Use Deterministic Multi-Source Evidence for Diagnostic Assessment | Diagnostic MVP Pilot TN-001, TN-006, TN-017, TN-019, TN-020 |
+| TM-ADR-0007 | Treat TomcatDown as a Composite Diagnostic Trigger | Diagnostic MVP Pilot TN-001, TN-006, TN-014, TN-017, TN-020 |
+| TM-ADR-0008 | Use a Restricted Host Event Collector with a Normalized Evidence Spool | Diagnostic MVP Pilot TN-001, TN-004, TN-006, TN-015, TN-017, TN-020 |
+| TM-ADR-0009 | Use SQLite for Local Diagnostic State | Diagnostic MVP Pilot TN-001, TN-002, TN-003, TN-011, TN-015, TN-017, TN-020 |
+| TM-ADR-0010 | Deploy One Bounded Diagnostic Service per Tomcat Host | Diagnostic MVP Pilot TN-001, TN-010, TN-011, TN-015, TN-017, TN-020 |
+| TM-ADR-0011 | Use Per-Rule Decision Tables for Diagnostic Confidence | Diagnostic MVP Pilot TN-001, TN-006, TN-017, TN-018, TN-020 |
+| TM-ADR-0012 | Decouple TrueSight Through a Disabled Integration Bridge | Diagnostic MVP Pilot TN-001, TN-011, TN-017, TN-020 |
+| TM-ADR-0013 | Use Node.js 24 ESM and Isolated Built-In SQLite for Diagnostic Service | Diagnostic MVP Pilot TN-003, TN-005, TN-007, TN-008, TN-009, TN-010, TN-011, TN-012, TN-013, TN-014, TN-015, TN-017, TN-018, TN-019, TN-020 |
+| TM-ADR-0014 | Enforce Zero Automatic Remediation for Diagnostic Service | Diagnostic MVP Pilot TN-001, TN-007, TN-017, TN-020 |
+| TM-ADR-0015 | Adopt Asynchronous Webhook Ingestion with Durable SQLite Acceptance Pattern | Diagnostic MVP Pilot TN-001, TN-008, TN-017, TN-020 |
+| TM-ADR-0016 | Designate Diagnostic Service as the Canonical Incident Notification Authority | Diagnostic MVP Pilot TN-001, TN-007, TN-009, TN-012, TN-017, TN-020 |
+| TM-ADR-0017 | Adopt Vertical Slice Minimum Viable Product (MVP) Scoping for Diagnostic Pilot | Diagnostic MVP Pilot TN-001, TN-007, TN-017, TN-020 |
+| TM-ADR-0018 | Adopt Strict Declarative Rulepack Engine and Append-Only Ingestion API | Diagnostic MVP Pilot TN-018, TN-019, TN-020 |
+| TM-ADR-0019 | Adopt Out-of-Band AI Forensic Enrichment Loop for Diagnostic Rule Synthesis | Diagnostic MVP Pilot TN-019, TN-020 |
+| TM-ADR-0020 | Enforce Bounded Incident Notification Delivery Lifecycle and Exponential Backoff Retries | Diagnostic MVP Pilot TN-012, TN-017, TN-020 |
 
 ## 📝 Summary
 

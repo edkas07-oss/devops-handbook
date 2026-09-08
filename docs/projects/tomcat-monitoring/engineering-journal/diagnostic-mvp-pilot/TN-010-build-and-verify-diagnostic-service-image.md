@@ -377,6 +377,8 @@ deployment dipertimbangkan.
 
 ## 🔗 Related Documentation
 
-- [TN-009](TN-009-implement-application-configuration-and-startup-lifecycle.md)
+- [TN-009 — Implement Application Configuration and Startup Lifecycle](TN-009-implement-application-configuration-and-startup-lifecycle.md)
 - [Diagnostic MVP](../../diagnostic-mvp/index.md)
-- [TM-ADR-0013](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0013.md)
+- [TM-ADR-0002 — Separate Generic Runtime Images from Monitoring Integration Configuration](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0002.md)
+- [TM-ADR-0010 — Deploy One Bounded Diagnostic Service per Tomcat Host](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0010.md)
+- [TM-ADR-0013 — Use Node.js 24 ESM and Isolated Built-In SQLite for Diagnostic Service](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0013.md)

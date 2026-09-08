@@ -41,7 +41,7 @@ Format berkas spool menghilangkan kebutuhan akan antarmuka API kueri/kontrol, me
 
 ## 📌 Status
 
-**Accepted — repositori dan runtime collector ditunda (collector repository and runtime pending).**
+**Accepted — implemented and verified in devops-lab.**
 
 ## 📅 Date
 

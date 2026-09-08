@@ -40,7 +40,7 @@ Aturan deterministik dapat diaudit (*auditable*), dapat direproduksi (*reproduci
 
 ## 📌 Status
 
-**Accepted — implementasi ditunda (implementation pending).**
+**Accepted — implemented and verified in devops-lab.**
 
 ## 📅 Date
 

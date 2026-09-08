@@ -40,7 +40,7 @@ Tabel keputusan (*decision tables*) dapat diuji secara komprehensif, mudah dipah
 
 ## 📌 Status
 
-**Accepted — engine dan fixtures ditunda (engine and fixtures pending).**
+**Accepted — implemented and verified in devops-lab.**
 
 ## 📅 Date
 

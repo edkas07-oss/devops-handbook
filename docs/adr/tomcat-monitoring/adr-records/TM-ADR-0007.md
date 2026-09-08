@@ -40,7 +40,7 @@ Pendekatan ini mempertahankan kecepatan deteksi berbasis metrik tanpa mengubah k
 
 ## 📌 Status
 
-**Accepted — implementasi rule dan diagnostik ditunda (rule and diagnostic implementation pending).**
+**Accepted — implemented and verified in devops-lab.**
 
 ## 📅 Date
 

@@ -97,7 +97,7 @@ writer, bounded workload, dan mandatory persistence tests membatasi dampaknya.
 
 ## 📌 Status
 
-**Accepted — implementation and runtime verification pending.**
+**Accepted — implemented and verified in devops-lab.**
 
 ## 📅 Date
 

@@ -346,3 +346,7 @@ TN dokumentasi-only.
 - [TN-007 — Implement Worker Canonical Result and Renderers](TN-007-implement-worker-canonical-result-and-renderers.md)
 - [Target and Evidence Contract](../../diagnostic-mvp/target-and-evidence-contract.md)
 - [TomcatDown Rule Specification](../../diagnostic-mvp/tomcat-down-rule-specification.md)
+- [TM-ADR-0006 — Use Deterministic Multi-Source Evidence for Diagnostic Assessment](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0006.md)
+- [TM-ADR-0007 — Treat TomcatDown as a Composite Diagnostic Trigger](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0007.md)
+- [TM-ADR-0008 — Use a Restricted Host Event Collector with a Normalized Evidence Spool](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0008.md)
+- [TM-ADR-0011 — Use Per-Rule Decision Tables for Diagnostic Confidence](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0011.md)

@@ -349,8 +349,11 @@ resource.
 
 ## 🔗 Related Documentation
 
-- [TN-010](TN-010-build-and-verify-diagnostic-service-image.md)
+- [TN-010 — Build and Verify Diagnostic Service Image](TN-010-build-and-verify-diagnostic-service-image.md)
 - [Kontrak Runtime](../../diagnostic-mvp/runtime-configuration-and-verification-contract.md)
 - [Diagnostic MVP](../../diagnostic-mvp/index.md)
-- [TM-ADR-0009](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0009.md)
-- [TM-ADR-0010](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0010.md)
+- [TM-ADR-0005 — Use Mailpit as the Persistent Lab Notification Verification Target](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0005.md)
+- [TM-ADR-0009 — Use SQLite for Local Diagnostic State](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0009.md)
+- [TM-ADR-0010 — Deploy One Bounded Diagnostic Service per Tomcat Host](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0010.md)
+- [TM-ADR-0012 — Decouple TrueSight Through a Disabled Integration Bridge](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0012.md)
+- [TM-ADR-0013 — Use Node.js 24 ESM and Isolated Built-In SQLite for Diagnostic Service](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0013.md)

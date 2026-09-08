@@ -59,7 +59,7 @@ Alert pemantauan *application health* existing tetap berfungsi sebagai notifikas
 11. **[Requirements Traceability](requirements-traceability.md)** untuk matriks pemetaan pemenuhan seluruh persyaratan pilot.
 12. **[Knowledge Base and AI Enrichment Architecture](knowledge-base-and-ai-enrichment-architecture.md)** untuk arsitektur 5-layer basis pengetahuan dan integrasi AI.
 13. **[Gap Register](gap-register.md)** untuk catatan penutupan seluruh kesenjangan teknis pilot.
-14. **Katalog ADR Tomcat Monitoring** ([`docs/architecture-decision-records/tomcat-monitoring/`](../../../adr/tomcat-monitoring/)) untuk dasar keputusan arsitektur formal.
+14. **Katalog ADR Tomcat Monitoring** ([`docs/adr/tomcat-monitoring/index.md`](../../../adr/tomcat-monitoring/index.md)) untuk dasar keputusan arsitektur formal.
 
 ADR yang diterima memiliki prioritas tertinggi untuk keputusan arsitektur. Kontrak teknis mengatur domain spesifiknya. Source code repositori dan bukti verifikasi live pada runtime menjadi sumber kebenaran implementasi aktual.
 

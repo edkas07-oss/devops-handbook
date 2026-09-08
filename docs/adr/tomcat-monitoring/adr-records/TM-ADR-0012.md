@@ -44,7 +44,7 @@ Batasan isolasi ini menjaga agar semantik diagnostik tetap independen dari platf
 
 ## 📌 Status
 
-**Accepted — bridge dan TrueSight dinonaktifkan (bridge and TrueSight disabled).**
+**Accepted — verified with disabled integration bridge in devops-lab.**
 
 ## 📅 Date
 

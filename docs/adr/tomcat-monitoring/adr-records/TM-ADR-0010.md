@@ -48,7 +48,7 @@ Menjalankan layanan diagnostik terpisah untuk setiap container Tomcat akan mengg
 
 ## 📌 Status
 
-**Accepted — repositori, image, dan deployment ditunda (repositories, image, and deployment pending).**
+**Accepted — implemented and verified in devops-lab.**
 
 ## 📅 Date
 
