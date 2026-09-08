@@ -34,20 +34,20 @@ Ditetapkan 4 pilar keputusan arsitektur ketahanan dan pemulihan sistem:
 
 ```mermaid
 flowchart TD
-    subgraph Layer1 [Layer 1: Instant Auto-Healing (Sub-Detik s.d. Detik)]
-        Crash[Container Crash / Panic / OOM] --> Orchestrator[Podman Engine Auto-Restart]
-        Orchestrator -->|Restart on-failure:5| Running[Container Pulih Seketika]
+    subgraph Layer1["Layer 1: Instant Auto-Healing (Sub-Detik s.d. Detik)"]
+        Crash["Container Crash / Panic / OOM"] --> Orchestrator["Podman Engine Auto-Restart"]
+        Orchestrator -->|"restart=on-failure:5"| Running["Container Pulih Seketika"]
     end
 
-    subgraph Layer2 [Layer 2: Application Health & Emergency Alerting (1 Menit)]
-        Running -.->|Gagal Pulih / Hang / CrashLoop| PromProbe[Prometheus Scrape /health up==0]
-        PromProbe -->|for: 1m| AMRoute[Alertmanager Direct SMTP Route]
-        AMRoute -->|Bypass Webhook| SREAlert[🚨 Emergency Email ke On-Call SRE]
+    subgraph Layer2["Layer 2: Application Health & Emergency Alerting (1 Menit)"]
+        Running -.->|"Gagal Pulih / Hang / CrashLoop"| PromProbe["Prometheus Scrape /health (up == 0)"]
+        PromProbe -->|"for: 1m"| AMRoute["Alertmanager Direct SMTP Route"]
+        AMRoute -->|"Bypass Webhook"| SREAlert["Emergency Email ke On-Call SRE"]
     end
 
-    subgraph Layer3 [Layer 3: External Watchdog & Host NMS (Menit)]
-        HostDown[Host / Prometheus Total Failure] -.->|Ping / Heartbeat Hilang| Watchdog[External Heartbeat / SolarWinds]
-        Watchdog -->|🚨 Emergency Alarm| NOC[NOC / Infra On-Call Escalation]
+    subgraph Layer3["Layer 3: External Watchdog & Host NMS (Menit)"]
+        HostDown["Host / Prometheus Total Failure"] -.->|"Ping / Heartbeat Hilang"| Watchdog["External Heartbeat / SolarWinds"]
+        Watchdog -->|"Emergency Alarm"| NOC["NOC / Infra On-Call Escalation"]
     end
 ```
 

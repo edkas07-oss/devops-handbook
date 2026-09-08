@@ -43,20 +43,20 @@ Setelah menyelesaikan mitigasi *Zero Silent Failure* ([TN-001](TN-001-implement-
 
 ```mermaid
 flowchart TD
-    subgraph Layer1 [Layer 1: Instant Auto-Healing (Sub-Detik s.d. Detik)]
-        Crash[Container Crash / Transient Error] --> Podman[Podman Engine Auto-Restart]
-        Podman -->|--restart=on-failure:5| Healed[Container Pulih Instan Tanpa Alarm]
+    subgraph Layer1["Layer 1: Instant Auto-Healing (Sub-Detik s.d. Detik)"]
+        Crash["Container Crash / Transient Error"] --> Podman["Podman Engine Auto-Restart"]
+        Podman -->|"--restart=on-failure:5"| Healed["Container Pulih Instan Tanpa Alarm"]
     end
 
-    subgraph Layer2 [Layer 2: Application Health & Emergency Route (1 Menit)]
-        Healed -.->|Gagal Pulih / Hang / Loop > 1m| Prom[Prometheus Probe /health up==0]
-        Prom -->|for: 1m| AM[Alertmanager Direct Emergency Route]
-        AM -->|Bypass Webhook| Email[📧 Emergency SMTP ke On-Call SRE]
+    subgraph Layer2["Layer 2: Application Health & Emergency Route (1 Menit)"]
+        Healed -.->|"Gagal Pulih / Hang / Loop > 1m"| Prom["Prometheus Probe /health (up == 0)"]
+        Prom -->|"for: 1m"| AM["Alertmanager Direct Emergency Route"]
+        AM -->|"Bypass Webhook"| Email["Emergency SMTP ke On-Call SRE"]
     end
 
-    subgraph Layer3 [Layer 3: External Watchdog & Host NMS (Menit)]
-        HostCrash[Host / Prometheus Total Outage] -.->|Ping / Heartbeat Hilang| SolarWinds[SolarWinds / External Heartbeat]
-        SolarWinds -->|🚨 Host Down Alarm| NOC[NOC & Infrastructure On-Call]
+    subgraph Layer3["Layer 3: External Watchdog & Host NMS (Menit)"]
+        HostCrash["Host / Prometheus Total Outage"] -.->|"Ping / Heartbeat Hilang"| SolarWinds["SolarWinds / External Heartbeat"]
+        SolarWinds -->|"Host Down Alarm"| NOC["NOC & Infrastructure On-Call"]
     end
 ```
 
