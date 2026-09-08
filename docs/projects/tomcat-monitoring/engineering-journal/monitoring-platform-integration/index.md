@@ -20,6 +20,16 @@ Mengintegrasikan seluruh subsistem monitoring dan diagnostik ke dalam satu kesat
 +-----------------------------------------------------------------------------+
 ```
 
+## 🛠️ Implementation Result
+
+| Component | Implementation | Status |
+| --- | --- | --- |
+| **Diagnostic Service Self-Monitoring** | Scrape target HTTPS `/health` di Prometheus dengan TLS CA verification dan Alert rule `DiagnosticServiceDown` | Completed (TN-001) |
+| **Emergency Direct SMTP Routing** | Alertmanager sub-route `direct-email-emergency` mem-bypass webhook ke Mailpit | Completed (TN-001) |
+| **Container Auto-Healing Policy** | Standarisasi flag `--restart=on-failure:5` pada seluruh skrip deployment container monitoring | Completed (TN-002) |
+| **Systemd Restart Supervisor** | Aktivasi daemon pengawas restart `podman-restart.service` pada level user session | Completed (TN-002) |
+| **Layered Failure Resilience Architecture** | Adopsi model ketahanan berlapis 3 tingkat dan pemisahan domain monitoring (TM-ADR-0021) | Completed (TN-002) |
+
 ## 📄 Technical Notes
 
 1. **[TN-001 — Implement and Verify Diagnostic Service Self-Monitoring and Direct Emergency SMTP Routing](TN-001-implement-and-verify-diagnostic-service-self-monitoring-and-emergency-smtp-routing.md)**
@@ -29,6 +39,11 @@ Mengintegrasikan seluruh subsistem monitoring dan diagnostik ke dalam satu kesat
 2. **[TN-002 — Implement Container Auto-Healing Policy and Multi-Layer Failure Resilience Architecture](TN-002-implement-container-auto-healing-and-crashloop-resilience-policy.md)**
 
     Menetapkan arsitektur ketahanan sistem berlapis (TM-ADR-0021), pemisahan domain monitoring antara host NMS (SolarWinds/NOC) dan observabilitas aplikasi (Prometheus/SRE), standarisasi container restart policy (`--restart=on-failure:5`), serta pemetaan komprehensif mitigasi 5 vektor kegagalan startup (CrashLoop Prevention).
+
+## 🎓 Lessons Learned
+
+1. **Harmonisasi Auto-Healing dan Alerting:** Auto-healing pada level runtime container menangani pemulihan gangguan sesaat (*transient blip*) dalam hitungan detik tanpa membebani operator dengan alarm palsu. Sebaliknya, alert rule dengan jeda evaluasi 1 menit (`for: 1m`) menjadi jaring pengaman utama saat terjadi kegagalan sistemik.
+2. **Pentingnya Bounded Retry pada Container:** Membatasi jumlah restart maksimum (`MaxRetries=5`) mencegah skenario *CrashLoop* yang berpotensi menghabiskan sumber daya CPU dan merusak persistensi volume data saat container mengalami kegagalan fatal.
 
 ---
 
