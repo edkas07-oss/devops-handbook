@@ -3,8 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Status | Completed |
-| Outcome | Merumuskan dan menetapkan arsitektur ketahanan sistem berlapis (TM-ADR-0021), pemisahan tegas domain monitoring antara host NMS (SolarWinds/NOC) dan observabilitas aplikasi (Prometheus/SRE), standarisasi container restart policy (`--restart=on-failure:5`), serta pemetaan komprehensif mitigasi 5 vektor kegagalan startup (CrashLoop Prevention). |
-| Activity Type | Architectural Definition and Implementation |
+| Activity Type | Implementation |
 | Record Type | Live |
 | Project | Tomcat Monitoring |
 | Phase | Monitoring Platform Integration |
@@ -12,179 +11,219 @@
 | Recorded Date | 2026-09-08 |
 | Owner | Eddy Wiyatno |
 | Working Mode | Write |
-| Authorization Status | Architecture decision (TM-ADR-0021) formulated, deployment restart policy standardized, and operational resilience guardrails approved |
+| Authorization Status | Approved |
 | Approved By | Eddy Wiyatno |
 | Approval Date | 2026-09-08 |
 
 ## 🎯 Objective
 
-1. **Merumuskan TM-ADR-0021:** Mendokumentasikan keputusan arsitektur terkait ketahanan kegagalan berlapis (*Layered Defense-in-Depth Resilience*), pemisahan domain pemantauan (*Monitoring Domain Separation*), dan kebijakan *Auto-Healing*.
-2. **Menjawab Pertanyaan SRE Krusial:**
-   - *"Bagaimana jika Prometheus/Alertmanager itu sendiri down?"* $\rightarrow$ Penerapan pola *Watchdog / Dead Man's Switch* dan pemantauan NMS eksternal.
-   - *"Bagaimana peran Auto-Healing versus Alerting?"* $\rightarrow$ Auto-healing menangani pemulihan instan crash transient, sedangkan alerting menangani kegagalan logis/persisten $> 1$ menit.
-   - *"Apa saja hal yang menyebabkan service gagal up saat restart (CrashLoop)?"* $\rightarrow$ Identifikasi dan mitigasi 5 vektor kegagalan startup.
-3. **Standarisasi Restart Policy Runtime:** Mengonfigurasi parameter restart policy yang terikat dan aman (`--restart=on-failure:5`) pada skrip deployment stack monitoring.
+Mengimplementasikan kebijakan pemulihan mandiri container (*Container Auto-Healing*) pada seluruh komponen runtime monitoring serta menetapkan arsitektur ketahanan kegagalan berlapis (*Layered Defense-in-Depth Resilience*) sesuai ketetapan [TM-ADR-0021](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md):
 
-## 🌍 Background & Context
+1. Mengonfigurasi parameter restart policy terkontrol (`--restart=on-failure:5`) pada seluruh skrip deployment container (`prometheus`, `alertmanager`, `diagnostic-service`, `tomcat-jmx-exporter`).
+2. Mengaktifkan daemon layanan systemd user untuk restart supervisor Podman (`podman-restart.service`).
+3. Melakukan re-deployment seluruh stack container monitoring di lingkungan `devops-lab`.
+4. Memverifikasi aktivasi restart policy melalui inspeksi metadata container dan pengujian simulasi terminasi proses secara live.
 
-Setelah menyelesaikan mitigasi *Zero Silent Failure* ([TN-001](TN-001-implement-and-verify-diagnostic-service-self-monitoring-and-emergency-smtp-routing.md)) pada [TM-ADR-0016](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md), diskusi arsitektural mendalam dilakukan untuk mengevaluasi keandalan menyeluruh pada seluruh komponen platform:
+## 🌍 Background
 
-1. **Siapa yang Memonitor Sistem Monitoring? (*Quis custodiet ipsos custodes?*)**
-   - Jika Prometheus crash, metrik tidak di-scrape dan alert rules tidak dievaluasi.
-   - Untuk level host fisik dan ketersediaan server secara makro, sistem enterprise NMS (seperti **SolarWinds**) memegang otoritas independen melalui probing ICMP/SNMP.
-   - Untuk level daemon observabilitas di dalam host, diperlukan kombinasi *Container Auto-Healing* dan *Heartbeat Watchdog*.
+Setelah menyelesaikan integrasi pemantauan mandiri Diagnostic Service pada [TN-001](TN-001-implement-and-verify-diagnostic-service-self-monitoring-and-emergency-smtp-routing.md), dilakukan evaluasi komprehensif terhadap keandalan sistem pemantauan secara keseluruhan (*Observability Resilience*).
 
-2. **Auto-Healing Tidak Menggantikan Observabilitas:**
-   - Auto-healing (restart policy) bekerja di level proses/container.
-   - Jika sebuah service mengalami *deadlock*, *stale database lock*, atau korupsi konfigurasi, container mungkin tetap berstatus `running` atau masuk ke siklus restart berulang (*CrashLoopBackOff*).
-   - Oleh karena itu, *health probe* Prometheus (`/health` dengan `for: 1m`) dan rute darurat Alertmanager tetap menjadi garda pengaman mutlak.
+Terdapat dua pertimbangan teknis utama yang mendasari implementasi ini:
 
-## 🏛️ 3-Layer Defense-in-Depth Model
+1. **Pencegahan Downtime Akibat Kegagalan Sesaat (*Transient Crash Recovery*):** Komponen daemon monitoring dapat mengalami terminasi mendadak akibat kehabisan memori sesaat (*OOM event*) atau kegagalan proses minor. Tanpa kebijakan restart otomatis, container akan tetap berada dalam status `exited` hingga operator melakukan intervensi manual.
+2. **Pencegahan Siklus Restart Tanpa Batas (*CrashLoop Prevention*):** Jika container mengalami kerusakan data atau kehabisan ruang disk, restart tanpa batas (*unbounded restart*) akan membebani CPU dan memperparah kerusakan penyimpanan. Oleh karena itu, diperlukan kebijakan restart yang terikat (*bounded restart policy*) dengan batas maksimal 5 kali percobaan.
 
-```mermaid
-%%{init: {
-  'theme': 'base',
-  'themeVariables': {
-    'edgeLabelBackground': 'transparent',
-    'fontSize': '12px'
-  }
-}}%%
-flowchart LR
-    %% Layer 1: Instant Auto-Healing
-    subgraph L1["Layer 1: Instant Auto-Healing<br/>(Container Runtime)"]
-        direction TB
-        Crash["Container Failure /<br/>Process Crash"]
-        Podman["Podman Engine<br/>(--restart=on-failure:5)"]
-        Healed["Container Pulih Instan<br/>(Zero Alert Noise)"]
+## 📚 Scope
 
-        Crash -->|"Exit code != 0"| Podman
-        Podman -->|"Auto-restart < 2s"| Healed
-    end
+Pekerjaan implementasi ini mencakup modifikasi pada repositori berikut:
 
-    %% Layer 2: Logical & Persistent Failure
-    subgraph L2["Layer 2: Application Observability<br/>(Prometheus & Alertmanager)"]
-        direction TB
-        Probe["Prometheus Health Probe<br/>(up == 0 for: 1m)"]
-        AM["Alertmanager Emergency Route<br/>(Bypass Webhook)"]
-        SRE["Mailpit / Emergency SMTP<br/>(On-Call SRE Notified)"]
+- **`prometheus`:**
+  - [`scripts/run.sh`](file:///home/eddywiyatno/git/prometheus/scripts/run.sh): Menambahkan parameter `--restart=on-failure:5` pada array argumen runtime Podman.
+- **`alertmanager`:**
+  - [`scripts/run.sh`](file:///home/eddywiyatno/git/alertmanager/scripts/run.sh): Menambahkan parameter `--restart=on-failure:5` pada array argumen runtime Podman.
+- **`tomcat-jmx-exporter`:**
+  - [`scripts/run.sh`](file:///home/eddywiyatno/git/tomcat-jmx-exporter/scripts/run.sh): Menambahkan parameter `--restart=on-failure:5` pada perintah pembuatan container.
+- **`tomcat-monitoring`:**
+  - [`scripts/deploy-diagnostic-service.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-diagnostic-service.sh): Mengubah parameter `--restart=no` menjadi `--restart=on-failure:5`.
+- **`devops-handbook`:**
+  - [`docs/adr/tomcat-monitoring/adr-records/TM-ADR-0021.md`](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md): Menyusun Architecture Decision Record untuk ketahanan berlapis dan auto-healing.
+  - [`docs/projects/tomcat-monitoring/engineering-journal/monitoring-platform-integration/TN-002-implement-container-auto-healing-and-crashloop-resilience-policy.md`](TN-002-implement-container-auto-healing-and-crashloop-resilience-policy.md): Mencatat jurnal teknis pelaksanaan dan bukti verifikasi live.
 
-        Probe -->|"State: FIRING"| AM
-        AM -->|"Direct Email"| SRE
-    end
+## 📋 Prerequisites
 
-    %% Layer 3: External Infrastructure
-    subgraph L3["Layer 3: External Infrastructure<br/>(Enterprise NMS)"]
-        direction TB
-        HostOutage["Host / VM Crash /<br/>Network Partition"]
-        SolarWinds["SolarWinds NMS<br/>(ICMP / SNMP / Agent)"]
-        NOC["NOC & Infra Team<br/>(Hardware / OS Escalation)"]
+| Prerequisite | State |
+| --- | --- |
+| Repositori Sumber | `prometheus`, `alertmanager`, `tomcat-jmx-exporter`, `tomcat-monitoring` bersih dan sinkron |
+| Keputusan Arsitektur | TM-ADR-0016 dan TM-ADR-0021 berstatus Accepted |
+| Lingkungan Runtime | Jaringan `devops-lab` aktif pada Podman engine |
+| Akses Layanan | `systemctl --user` tersedia pada host operasional |
 
-        HostOutage -->|"Heartbeat / Ping Loss"| SolarWinds
-        SolarWinds -->|"Host Down Alarm"| NOC
-    end
+## ⚖️ Execution Decision
 
-    %% Cross-layer escalation flows
-    Crash -.->|"Persistent Failure /<br/>CrashLoop > 1m"| Probe
-    Healed -.->|"Host Down /<br/>Kernel Panic"| HostOutage
-```
+1. **Kepatuhan [TM-ADR-0021](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md):** Menerapkan kebijakan restart terikat `--restart=on-failure:5` pada seluruh container untuk mencegah siklus *CrashLoop* yang merusak performa host.
+2. **Pemisahan Domain Pemantauan:** Menetapkan batas pemantauan fisik/host pada NMS enterprise (SolarWinds) dan batas pemantauan aplikasi/JVM pada stack Prometheus.
+3. **Harmonisasi Auto-Healing dan Alerting:** Mempertahankan jeda evaluasi alert 1 menit (`for: 1m`) pada Prometheus agar pemulihan otomatis yang berhasil dalam hitungan detik tidak memicu alarm palsu ke operator.
 
-### Karakteristik Setiap Lapisan:
-* **Layer 1 (Auto-Healing)**: Menangani pemulihan otomatis dalam hitungan detik tanpa membunyikan alarm palsu (*zero alert fatigue*).
-* **Layer 2 (Application Observability)**: Menangani kegagalan fungsional/logis di mana proses hidup tetapi tidak merespons request atau mengalami *crashloop*.
-* **Layer 3 (Infrastructure NMS)**: Menangani matinya server secara fisik atau terputusnya jaringan datacenter.
+## 🧭 Implementation Plan
 
-## 🏢 Monitoring Domain Separation
+| Tahap | Rencana |
+| --- | --- |
+| **Configure Restart Policy in Scripts** | Memperbarui skrip runtime pada seluruh repositori stack monitoring. |
+| **Enable Systemd User Restart Service** | Mengaktifkan unit layanan `podman-restart.service` pada level user systemd. |
+| **Deploy Stack with Auto-Healing** | Melakukan deployment ulang kontainer `diagnostic-service`, `prometheus`, `alertmanager`, dan `tomcat-jmx-exporter`. |
+| **Verify Container Auto-Healing** | Memeriksa metadata inspect container dan menguji kesiapan seluruh endpoint layanan. |
 
-| Domain | Otoritas Monitoring | Metrik / Sinyal Utama | Tanggung Jawab Operasional |
-| :--- | :--- | :--- | :--- |
-| **Layer 1: Host & Network** | **SolarWinds / Enterprise NMS** | ICMP Ping, SNMP, Port Availability, Hypervisor, OS Uptime, Hardware Disk/Fan/NIC | Tim NOC / Infrastructure Engineer |
-| **Layer 2: Container Engine** | **Podman / Orchestrator** | Exit code proses, memory limits, OOM events, restart counters | Platform / Container Runtime |
-| **Layer 3: Application & JVM** | **Prometheus + Alertmanager** | Heap usage, Thread starvation, GC pause times, HTTP latencies, Service health | Tim SRE & DevOps Engineer |
-| **Layer 4: Incident Triage** | **Diagnostic Service** | Multi-source evidence correlation, thread dumps, incident persistence, rich reports | Tim SRE & Application Developer |
+## ⚙️ Implementation
 
-## 🛡️ Mitigasi 5 Vektor Kegagalan Startup (CrashLoop Prevention)
+<div class="procedure" markdown>
 
-Dalam perancangan ketahanan sistem, diidentifikasi 5 akar masalah yang dapat menggagalkan proses startup saat container me-restart sendiri:
+<div class="procedure-step" markdown>
 
-| Vektor | Masalah | Dampak Jika Gagal | Strategi Mitigasi Terverifikasi |
-| :--- | :--- | :--- | :--- |
-| **1. Storage Depletion** | Disk penuh (*ENOSPC*) akibat lonjakan data TSDB atau file log. | Container panic saat inisialisasi buffer/WAL $\rightarrow$ abort seketika. | Volume data terisolasi, retensi TSDB ketat (`--storage.tsdb.retention.time=15d`), dan mekanisme pruning log/SQLite. |
-| **2. Corrupted Lock / WAL** | File lock SQLite atau segmen WAL Prometheus rusak saat crash kasar. | Engine menolak membuka database demi mencegah korupsi data lebih lanjut. | SQLite WAL mode transaksional, volume terisolasi per container, dan recovery check saat boot. |
-| **3. Port / Socket Conflict** | Socket TCP tertahan pada status `TIME_WAIT` atau ada *zombie process*. | Bind port gagal (`address already in use`) $\rightarrow$ exit code 1. | Penggunaan bridge network terisolasi (`devops-lab`) dan grace-period shutdown (`--time 10`). |
-| **4. Permission Drift** | Hak akses volume di host berubah menjadi `root:root`. | Container non-root (`nobody:nobody` / UID 1000) terkena `Permission Denied`. | Standarisasi script inisialisasi volume (`initialize-*-volumes.sh`) yang mengatur ownership & perms eksplisit (`0755`/`0444`). |
-| **5. Memory Replay OOM** | Prometheus mencoba me-replay WAL besar ke memori yang melebihi batas container. | Linux OOM Killer langsung membunuh container sebelum port dibuka. | Alokasi batas memori dengan *safety headroom* 2x dari konsumsi rata-rata. |
+### Configure Restart Policy in Scripts
 
-## 🔧 Implementasi dan Perubahan Konfigurasi
+Menambahkan parameter `--restart=on-failure:5` pada skrip peluncur container di setiap repositori komponen.
 
-1. **Pembaruan Kode Skrip `run.sh` di Semua Repositori Stack:**
-   - [`prometheus/scripts/run.sh`](file:///home/eddywiyatno/git/prometheus/scripts/run.sh): Menambahkan `--restart=on-failure:5` pada `run_args`.
-   - [`alertmanager/scripts/run.sh`](file:///home/eddywiyatno/git/alertmanager/scripts/run.sh): Menambahkan `--restart=on-failure:5` pada `run_args`.
-   - [`tomcat-jmx-exporter/scripts/run.sh`](file:///home/eddywiyatno/git/tomcat-jmx-exporter/scripts/run.sh): Menambahkan `--restart=on-failure:5` pada perintah `podman run`.
-   - [`tomcat-monitoring/scripts/deploy-diagnostic-service.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-diagnostic-service.sh): Mengganti `--restart=no` dengan `--restart=on-failure:5`.
+1. Memperbarui `run_args` pada [`prometheus/scripts/run.sh`](file:///home/eddywiyatno/git/prometheus/scripts/run.sh).
+2. Memperbarui `run_args` pada [`alertmanager/scripts/run.sh`](file:///home/eddywiyatno/git/alertmanager/scripts/run.sh).
+3. Memperbarui perintah `podman run` pada [`tomcat-jmx-exporter/scripts/run.sh`](file:///home/eddywiyatno/git/tomcat-jmx-exporter/scripts/run.sh).
+4. Memperbarui perintah `podman run` pada [`tomcat-monitoring/scripts/deploy-diagnostic-service.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-diagnostic-service.sh).
 
-2. **Aktivasi Daemon Auto-Restart Systemd User Service:**
-   ```bash
-   systemctl --user enable --now podman-restart.service
-   ```
+!!! success "Expected Result"
 
-3. **Pembaruan Dokumen Keputusan Arsitektur:**
-   - [`TM-ADR-0016`](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md): Menambahkan Addendum Mitigasi *Zero Silent Failure*.
-   - [`TM-ADR-0021`](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md): Mendokumentasikan keputusan arsitektur ketahanan berlapis dan kebijakan auto-healing.
-   - [`docs/adr/tomcat-monitoring/index.md`](../../../../adr/tomcat-monitoring/index.md): Memutakhirkan katalog ADR dan tabel pemetaan.
+    Seluruh skrip peluncur runtime mendefinisikan flag `--restart=on-failure:5` secara konsisten.
 
-## 🧪 Live Verification & Evidence
+</div>
 
-### 1. Re-deployment dan Asersi Restart Policy
-Seluruh container di-deploy ulang dan diverifikasi secara langsung di `devops-lab`:
+<div class="procedure-step" markdown>
+
+### Enable Systemd User Restart Service
+
+Mengaktifkan daemon pengawas restart container bawaan Podman pada level user session.
 
 ```bash
-$ podman inspect prometheus alertmanager diagnostic-service tomcat-jmx-exporter \
+systemctl --user enable --now podman-restart.service
+```
+
+!!! success "Expected Result"
+
+    Layanan `podman-restart.service` aktif dan siap menangani siklus hidup container saat startup maupun crash.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Deploy Stack with Auto-Healing
+
+Menjalankan ulang seluruh skrip deployment monitoring untuk menerapkan konfigurasi restart policy yang baru.
+
+```bash
+cd /home/eddywiyatno/git/tomcat-monitoring
+./scripts/deploy-diagnostic-service.sh
+./scripts/deploy-prometheus.sh
+./scripts/deploy-alertmanager.sh
+./scripts/deploy-tomcat.sh
+```
+
+!!! success "Expected Result"
+
+    Keempat container (`diagnostic-service`, `prometheus`, `alertmanager`, `tomcat-jmx-exporter`) berjalan dengan status healthy dan siap melayani trafik.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Verify Container Auto-Healing
+
+Melakukan inspeksi metadata container melalui `podman inspect` untuk memastikan kebijakan restart terkonfigurasi dengan benar.
+
+```bash
+podman inspect prometheus alertmanager diagnostic-service tomcat-jmx-exporter \
     --format '{{.Name}}: RestartPolicy={{.HostConfig.RestartPolicy.Name}}, MaxRetries={{.HostConfig.RestartPolicy.MaximumRetryCount}}, Status={{.State.Status}}'
 ```
 
-**Hasil Verifikasi:**
+!!! success "Expected Result"
+
+    Setiap container menampilkan `RestartPolicy=on-failure`, `MaxRetries=5`, dan `Status=running`.
+
+</div>
+
+</div>
+
+## ✅ Verification
+
+### 1. Asersi Metadata Restart Policy Container
+
 ```text
-prometheus: RestartPolicy=on-failure, MaxRetries=5, Status=running
-alertmanager: RestartPolicy=on-failure, MaxRetries=5, Status=running
-diagnostic-service: RestartPolicy=on-failure, MaxRetries=5, Status=running
+prometheus:          RestartPolicy=on-failure, MaxRetries=5, Status=running
+alertmanager:        RestartPolicy=on-failure, MaxRetries=5, Status=running
+diagnostic-service:  RestartPolicy=on-failure, MaxRetries=5, Status=running
 tomcat-jmx-exporter: RestartPolicy=on-failure, MaxRetries=5, Status=running
 ```
 
-### 2. Pengujian Kesiapan Endpoint Seluruh Stack
+### 2. Pengujian Kesiapan Endpoint Layanan
+
 ```bash
+# Pemeriksaan kesiapan Prometheus
 $ curl -s http://127.0.0.1:9090/-/ready
 Prometheus Server is Ready.
 
+# Pemeriksaan kesiapan Alertmanager
 $ curl -s http://127.0.0.1:9093/-/ready
 OK
 
+# Pemeriksaan endpoint health Diagnostic Service
 $ curl -k -s https://127.0.0.1:8443/health
-(HTTP 200 OK - Prometheus Exposition)
+# HELP up Diagnostic service availability metric
+# TYPE up gauge
+up 1
 
+# Pemeriksaan eksposisi metrik Tomcat JMX Exporter
 $ curl -k -s https://127.0.0.1:9404/metrics | head -n 3
 # HELP jmx_config_reload_failure_total Number of times configuration have failed to be reloaded.
 # TYPE jmx_config_reload_failure_total counter
 jmx_config_reload_failure_total 0.0
 ```
 
-### 3. Asersi Prometheus Scrape Targets
+### 3. Asersi Prometheus Active Scrape Targets
+
 ```json
 [
   {
     "job": "tomcat-diagnostic-service",
-    "health": "up"
+    "health": "up",
+    "lastScrape": "2026-09-08T12:06:04.589954011Z"
   },
   {
     "job": "tomcat-jmx-exporter",
-    "health": "up"
+    "health": "up",
+    "lastScrape": "2026-09-08T12:06:04.657553894Z"
   }
 ]
 ```
 
-## 📌 Summary & Next Actions
+## 🧾 Outcome
 
-Kebijakan auto-healing (`--restart=on-failure:5`) dan arsitektur ketahanan berlapis (**TM-ADR-0021**) telah aktif dan terverifikasi secara teknis di seluruh container stack monitoring di `devops-lab`.
+1. Kebijakan auto-healing terikat (`--restart=on-failure:5`) telah aktif dan terverifikasi pada 4 container monitoring di lingkungan `devops-lab`.
+2. Model ketahanan berlapis 3 tingkat telah dibukukan secara resmi melalui keputusan arsitektur [TM-ADR-0021](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md).
+3. Seluruh endpoint observabilitas beroperasi normal dengan status `200 OK` dan target scrape berstatus `up`.
 
-Langkah operasional selanjutnya:
-* Melanjutkan eksekusi backlog berikutnya: **Kategori 4 (Diagnostic Rulepack Expansion)** untuk penanganan degradasi performa Tomcat (**TASK-TM-007: Thread Starvation** dan **TASK-TM-008: Heap/GC Memory Pressure**).
+## 🎓 Lessons Learned
 
+1. **Arsitektur Daemonless Podman vs Systemd Supervisor:** Berbeda dengan Docker yang memiliki daemon terpusat (*dockerd*), Podman beroperasi secara *daemonless*. Pengelolaan restart otomatis pada container yang berjalan di level rootless Linux dikelola secara efisien melalui integrasi unit `podman-restart.service` pada systemd user session.
+2. **Pentingnya Bounded Retry pada Container:** Menetapkan batas retry maksimum (`MaxRetries=5`) adalah praktik terbaik SRE untuk mencegah *infinite crash loop* yang berisiko menguras alokasi CPU dan merusak persistensi volume data saat terjadi kegagalan fatal yang tidak dapat disembuhkan secara otomatis.
+
+## ⏭️ Next Steps
+
+1. Melanjutkan eksekusi Backlog Kategori 4 (Diagnostic Rulepack Expansion):
+   - **TASK-TM-007:** Pembuatan alert rule `TomcatHighThreadUsage` untuk skenario *Thread Starvation*.
+   - **TASK-TM-008:** Pembuatan alert rule `TomcatHighHeapUsage` untuk skenario *Memory / GC Pressure*.
+
+---
+
+## 🔗 Related Documentation
+
+- [Phase Index](index.md)
+- [TN-001 — Implement and Verify Diagnostic Service Self-Monitoring](TN-001-implement-and-verify-diagnostic-service-self-monitoring-and-emergency-smtp-routing.md)
+- [Follow-up Tasks Backlog](../../follow-up-tasks.md)
+- [TM-ADR-0016 — Canonical Incident Notification Authority](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md)
+- [TM-ADR-0021 — Layered Failure Resilience and Auto-Healing](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md)

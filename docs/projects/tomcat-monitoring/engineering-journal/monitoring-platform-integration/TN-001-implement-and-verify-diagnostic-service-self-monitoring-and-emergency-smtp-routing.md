@@ -376,13 +376,13 @@ cd /home/eddywiyatno/git/devops-handbook-site && git commit -m "..."
 }
 ```
 
-## 💡 Lessons Learned
+## 🎓 Lessons Learned
 
 1. **Eksplisitas Endpoint Scrape Prometheus:** Endpoint HTTP `/health` pada runtime container yang di-scrape oleh Prometheus harus mengembalikan format eksposisi metrik teks Prometheus baku (`text/plain; version=0.0.4`) atau body kosong berstatus 200 OK. Pengembalian JSON objek tanpa formatting menyebabkan parser TSDB Prometheus menghasilkan syntax parsing error.
 2. **Manajemen Truststore CA Bersama:** Saat menambahkan target scrape HTTPS baru yang menggunakan sertifikat internal (*self-signed*), certificate authority (`diagnostic-service-ca.crt`) wajib disalin ke volume truststore Prometheus (`prometheus_truststore`) sebelum container dijalankan untuk menghindari kegagalan SSL handshake.
 3. **Penyetelan `group_interval` Jalur Darurat:** Rute darurat (*emergency alert routes*) memerlukan `group_interval` yang lebih agresif (misal: `10s` - `30s`) dibandingkan rute reguler (`5m`), agar notifikasi resolusi pemulihan layanan dapat segera diterima oleh tim operasional tanpa terhambat jendela agregasi default.
 
-## 🚀 Next Steps
+## ⏭️ Next Steps
 
 1. **Eksekusi Backlog Kategori 2 (Mitigasi TM-ADR-0015):**
    - **TASK-TM-004:** Implementasi *Stale Lock Recovery* pada worker ingestion SQLite untuk menangani event yang tertahan di status `processing` saat container crash mendadak.
