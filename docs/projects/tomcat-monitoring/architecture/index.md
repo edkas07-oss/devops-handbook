@@ -290,6 +290,56 @@ hanya setelah event berhasil di-commit secara durable ke SQLite, dilanjutkan
 dengan pemrosesan worker, evaluasi rule engine, persistensi canonical result,
 dan pengiriman laporan ke Mailpit.
 
+## Operational Scenarios & Diagnostic Routing Architecture
+
+Desain arsitektur membagi penanganan insiden dan skenario operasional ke dalam
+**4 Jalur Perutean Khusus (*Specialized Handling Tracks*)** untuk memisahkan
+masalah yang membutuhkan analisis akar masalah mendalam dari masalah yang cukup
+ditangani secara langsung:
+
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'edgeLabelBackground': '#ffffff'
+  }
+}}%%
+flowchart TD
+    INCIDENT["<b>Insiden / Event Terdeteksi</b>"]
+
+    INCIDENT -->|"1. Target Scrape Mati<br/>(TomcatDown)"| TRACK_A["<b>Track A: Autonomous Diagnostic Pipeline</b><br/>• Multi-source Evidence Extraction<br/>• 18 Decision Branches (TD-01..TD-18)<br/>• 8 Failure Domains Classification<br/>• 7-Section SRE Investigation Report"]
+    
+    INCIDENT -->|"2. HTTP Health / Signal Gagal<br/>(TomcatApplicationHealthFailed,<br/>TelegrafHealthScrapeUnavailable)"| TRACK_B["<b>Track B: Standard Direct Alerting</b><br/>• Alertmanager Standard Email Template<br/>• Notifikasi Cepat Tim Aplikasi / SRE<br/>• Tanpa ekstraksi log/spool berat"]
+    
+    INCIDENT -->|"3. Platform Service Down<br/>(DiagnosticServiceDown)"| TRACK_C["<b>Track C: Emergency Fallback Route</b><br/>• Direct Emergency SMTP Bypass<br/>• Menjamin Zero Silent Failure (TM-ADR-0020)<br/>• Anti-Circular Forwarding"]
+    
+    INCIDENT -->|"4. Transient Process Glitch<br/>(Exit Code non-zero)"| TRACK_D["<b>Track D: Container Auto-Healing</b><br/>• Supervisi systemd podman-restart.service<br/>• Bounded retry --restart=on-failure:5<br/>• Pencegahan Unbounded CrashLoop"]
+
+    TRACK_A -->|"Webhook HTTPS"| DS_ENGINE["Diagnostic Service (:8443)"]
+    TRACK_B -->|"Direct Route"| NC_MAIL["Mailpit / Email Operator"]
+    TRACK_C -->|"Bypass Route"| NC_MAIL
+    TRACK_D -->|"Podman CLI"| RESTART_ACT["Restart Kontainer Otomatis"]
+    DS_ENGINE -->|"Laporan 7-Seksi"| NC_MAIL
+
+    style TRACK_A fill:#fff3e0,stroke:#e65100,stroke-width:1.5px,color:#000000
+    style TRACK_B fill:#e3f2fd,stroke:#1565c0,stroke-width:1.5px,color:#000000
+    style TRACK_C fill:#ffebee,stroke:#c62828,stroke-width:1.5px,color:#000000
+    style TRACK_D fill:#e8f5e9,stroke:#2e7d32,stroke-width:1.5px,color:#000000
+```
+
+### Matriks Pemisahan Skenario: Diagnostic vs. Non-Diagnostic
+
+| Jalur Penanganan (*Track*) | Kriteria & Alert Rules Terkait | Mengapa Memerlukan / Tidak Memerlukan Diagnostic Service? | Target Eskalasi & Output |
+| :--- | :--- | :--- | :--- |
+| **Track A: Autonomous Diagnostic Required** | `TomcatDown` (`up{job="tomcat-jmx-exporter"} == 0`) | **Memerlukan Diagnostic Service.** Kegagalan ketersediaan JVM/container memiliki banyak akar masalah ambigu (OOM killer, `hs_err` fatal crash, port conflict, lockup, clean shutdown). Memerlukan korelasi multi-sumber (log `catalina.out`, spool collector Podman, exit code, metrik time-series) dan rekomendasi SOP tindakan operator. | Laporan Investigasi Diagnostik Terstruktur 7-Seksi via SMTP ke Mailpit / On-call SRE. |
+| **Track B: Standard Direct Alerting (Non-Diagnostic)** | `TomcatApplicationHealthFailed`<br/>`TomcatApplicationHealthMetricsMissing`<br/>`TelegrafHealthScrapeUnavailable` | **TIDAK Memerlukan Diagnostic Service.** Gejala kegagalan bersifat deterministik tunggal (HTTP code bukan 200, probe timeout $> 5\text{s}$, atau agent Telegraf mati). Menjalankan engine diagnostik berat untuk kondisi ini adalah pemborosan resource. Cukup alert email standar Alertmanager. | Email Notifikasi Standar SRE berformat Enterprise ke Tim Pengembang Aplikasi / SRE. |
+| **Track C: Emergency Direct Route (Zero Silent Failure)** | `DiagnosticServiceDown` (`up{job="tomcat-diagnostic-service"} == 0`) | **TIDAK Boleh Melalui Diagnostic Service.** Engine diagnostik itu sendiri yang sedang mengalami kegagalan. Alertmanager melakukan *emergency bypass* langsung ke Mailpit untuk mencegah *silent failure* ([TM-ADR-0020](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0020.md)). | Direct Emergency Alert ke On-call SRE / Sysadmin. |
+| **Track D: Infrastructure Auto-Healing** | Transient crash / exit code non-zero | **Ditangani di Level Infrastruktur.** Kegagalan transien disembuhkan otomatis oleh `podman-restart.service` (`--restart=on-failure:5`) tanpa memicu kebisingan alert ke operator kecuali jika kuota retry habis ([TM-ADR-0021](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md)). | Restart kontainer lokal otomatis oleh Podman runtime. |
+
+> [!NOTE]
+> Laporan status operasional komprehensif dan rincian teknis 6 skenario live dapat dilihat pada dokumen:
+> 📄 **[Operational Scenarios and System Status Report](operational-scenarios-and-system-status-report.md)**.
+
 ## Architecture Components
 
 | Component | Responsibility |
