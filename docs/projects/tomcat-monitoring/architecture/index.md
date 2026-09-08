@@ -23,36 +23,91 @@ dan pengiriman laporan diagnosis terstruktur ke Mailpit telah diimplementasikan
 ### A. Topology Utama
 
 ```mermaid
-flowchart TB
-    DB["Platform Monitoring<br/>Dashboard dan Alert"]
-    PM["Platform Monitoring<br/>Container Prometheus"]
-    TG["Platform Monitoring<br/>Container Telegraf"]
-    AM["Platform Monitoring<br/>Alertmanager"]
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'edgeLabelBackground': 'transparent'
+  }
+}}%%
+flowchart LR
+    %% ================= SUBGRAPH DEFINITIONS =================
+    %% Subgraph Runtime Aplikasi
+    subgraph APP_ZONE["Container Runtime Tomcat"]
+        direction TB
+        TC["Apache Tomcat JVM"]
+        JM["JMX Exporter Agent"]
+        APP["Endpoint Health App"]
+        TC -->|"Ekspos metrik"| JM
+        TC -->|"Sedia endpoint"| APP
+    end
 
-    TC["Container Tomcat<br/>Apache Tomcat JVM"]
-    JM["Container Tomcat<br/>JMX Exporter Java Agent"]
-    APP["Container Tomcat<br/>Endpoint HTTP Health Aplikasi"]
+    %% Subgraph Metric Gathering & Alerting
+    subgraph METRIC_ZONE["Platform Monitoring — Observability Core"]
+        direction TB
+        DB["Dashboard & Alert"]
+        PM["Prometheus"]
+        TG["Telegraf"]
+        AM["Alertmanager"]
 
-    NC["Utility Verifikasi<br/>Mailpit SMTP Capture"]
-    DS["Platform Monitoring<br/>Diagnostic Service"]
-    BR["Integrasi Eksternal<br/>Integration Bridge"]
-    TS["Integrasi Eksternal<br/>TrueSight"]
+        DB -->|"1. Query metrik"| PM
+        PM -->|"2. HTTPS GET /metrics"| JM
+        TG -->|"4. HTTP GET /health"| APP
+        PM -->|"3. Scrape health"| TG
+        PM -->|"5. Firing/Resolved"| AM
+    end
 
-    DB -->|"1. Query metrics current dan historical"| PM
+    %% Subgraph Event Collector & Diagnostic
+    subgraph DIAG_ZONE["Platform Monitoring — Diagnostic Pipeline"]
+        direction TB
+        EC["Event Collector"]
+        SPL[("Direktori Spool<br/>/tmp/diagnostic-spool")]
+        DS["Diagnostic Service"]
 
-    PM -->|"2. HTTPS GET /metrics<br/>Server-side TLS"| JM
-    TC -->|"Mengekspos metrics JVM dan Tomcat"| JM
+        TC -.->|"Input: Monitor Podman<br/>(exitCode, OOM, died)"| EC
+        EC -->|"Tulis spool atomik<br/>(.tmp → .json)"| SPL
+        AM -->|"6b. Trigger TomcatDown<br/>(HTTPS Webhook)"| DS
+        DS -->|"7. Baca spool read-only"| SPL
+    end
 
-    PM -->|"3. Scrape metrics health"| TG
-    TG -->|"4. HTTP GET /health internal"| APP
-    TC -->|"Menyediakan health aplikasi"| APP
+    %% Subgraph Egress & Notifikasi
+    subgraph EGRESS_ZONE["Egress & Verification Target"]
+        direction TB
+        NC["Mailpit SMTP Capture<br/>(Lab Target)"]
+        BR["Integration Bridge<br/>(Dinonaktifkan)"]
+        TS["TrueSight<br/>(Dinonaktifkan)"]
 
-    PM -->|"5. Mengirim alert firing dan resolved"| AM
-    AM -->|"6a. Mengirim alert monitoring standard"| NC
-    AM -->|"6b. TomcatDown firing/resolved<br/>HTTPS internal — terverifikasi"| DS
-    DS -->|"7a. Email hasil diagnostic 7-seksi"| NC
-    DS -.->|"7b. Proyeksi dinonaktifkan"| BR
-    BR -.->|"8. Transport dinonaktifkan"| TS
+        AM -.->|"6a. Route alert standard"| BR
+        BR -.->|"9. Transport payload"| TS
+        DS -->|"8. Laporan diagnostic<br/>7-seksi (SMTP)"| NC
+    end
+
+    %% ================= STYLING SUBGRAPH =================
+    style APP_ZONE fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,stroke-dasharray: 5 3,color:#1b5e20
+    style METRIC_ZONE fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,stroke-dasharray: 5 3,color:#0d47a1
+    style DIAG_ZONE fill:#fff3e0,stroke:#e65100,stroke-width:2px,stroke-dasharray: 5 3,color:#e65100
+    style EGRESS_ZONE fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,stroke-dasharray: 5 3,color:#4a148c
+
+    %% ================= STYLING NODES =================
+    %% 1. Node Aplikasi (Green)
+    style TC fill:#c8e6c9,stroke:#2e7d32,stroke-width:1.5px,color:#1b5e20
+    style JM fill:#c8e6c9,stroke:#2e7d32,stroke-width:1.5px,color:#1b5e20
+    style APP fill:#c8e6c9,stroke:#2e7d32,stroke-width:1.5px,color:#1b5e20
+
+    %% 2. Node Monitoring Core (Blue)
+    style DB fill:#bbdefb,stroke:#1565c0,stroke-width:1.5px,color:#0d47a1
+    style PM fill:#90caf9,stroke:#0d47a1,stroke-width:2px,color:#0d47a1
+    style TG fill:#bbdefb,stroke:#1565c0,stroke-width:1.5px,color:#0d47a1
+    style AM fill:#90caf9,stroke:#0d47a1,stroke-width:2px,color:#0d47a1
+
+    %% 3. Node Diagnostic & Spool (Orange / Amber)
+    style EC fill:#ffe0b2,stroke:#ef6c00,stroke-width:1.5px,color:#e65100
+    style SPL fill:#ffcc80,stroke:#d84315,stroke-width:2px,color:#bf360c
+    style DS fill:#ffcc80,stroke:#e65100,stroke-width:2px,color:#e65100
+
+    %% 4. Node Egress Active (Purple) & Disabled (Gray)
+    style NC fill:#e1bee7,stroke:#6a1b9a,stroke-width:1.5px,color:#4a148c
+    style BR fill:#eeeeee,stroke:#9e9e9e,stroke-width:1px,stroke-dasharray: 3 3,color:#757575
+    style TS fill:#eeeeee,stroke:#9e9e9e,stroke-width:1px,stroke-dasharray: 3 3,color:#757575
 ```
 
 Nomor pada diagram menunjukkan hubungan komunikasi, bukan urutan startup
@@ -64,32 +119,87 @@ Service setelah Alertmanager untuk memproses alert `TomcatDown`.
 ### B. Detail Alur Diagnostic
 
 ```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'edgeLabelBackground': '#ffffff',
+    'tertiaryBorderColor': '#cccccc',
+    'lineColor': '#555555'
+  },
+  'flowchart': {
+    'nodeSpacing': 30,
+    'rankSpacing': 50
+  }
+}}%%
 flowchart LR
-    PM["Platform Monitoring<br/>Prometheus"]
-    AM["Platform Monitoring<br/>Alertmanager"]
+    %% 1. Platform Monitoring Core (Kiri)
+    subgraph CORE["Platform Monitoring"]
+        direction TB
+        PM["Prometheus"]
+        AM["Alertmanager"]
+        DS["Diagnostic Service"]
+    end
 
-    DS["Platform Monitoring<br/>Diagnostic Service"]
-    SQ[("Host Tomcat<br/>SQLite diagnostic_data")]
-    LOG["Host Tomcat<br/>Log dan crash artifact"]
-    HE["Host Tomcat<br/>Event host dan container"]
-    HC["Host Tomcat<br/>Restricted Event Collector"]
-    SP["Host Tomcat<br/>Spool event ternormalisasi"]
+    %% 2. Host Tomcat: Event, Spool, & Storage (Tengah)
+    subgraph HOST["Host Tomcat"]
+        direction TB
+        HE["Event host dan container"]
+        HC["Restricted Event Collector"]
+        SP["Spool event ternormalisasi"]
+        LOG["Log dan crash artifact"]
+        SQ[("SQLite diagnostic_data")]
+    end
 
-    NC["Utility Verifikasi<br/>Mailpit SMTP Capture"]
-    BR["Integrasi Eksternal<br/>Integration Bridge — disabled"]
-    TS["Integrasi Eksternal<br/>TrueSight — disabled"]
+    %% 3. Utility & Integrasi Eksternal (Kanan)
+    subgraph EGRESS["Egress & Target"]
+        direction TB
+        NC["Mailpit SMTP Capture"]
+        BR["Integration Bridge<br/>(Disabled)"]
+        TS["TrueSight<br/>(Disabled)"]
+    end
 
-    PM -->|"1. TomcatDown<br/>firing/resolved"| AM
-    AM -->|"2. HTTPS webhook<br/>internal"| DS
-    DS -->|"3. Event dan<br/>state"| SQ
-    DS -->|"4. Query<br/>metrics"| PM
+    %% ================= RELASI ANTAR KOMPONEN =================
+    %% Alur Trigger & Webhook
+    PM -->|"1. TomcatDown firing/resolved"| AM
+    AM -->|"2. HTTPS webhook internal"| DS
+
+    %% Alur Diagnostic Context Gathering
+    DS -->|"3. Event dan state"| SQ
+    DS -->|"4. Query metrics"| PM
     LOG -->|"5a. Read-only"| DS
-    HE -->|"5b. Input<br/>allowlist"| HC
-    HC -->|"5c. Record<br/>ternormalisasi"| SP
-    SP -->|"5d. Spool<br/>read-only"| DS
-    DS -->|"6. Email hasil<br/>canonical"| NC
-    DS -.->|"Dinonaktifkan"| BR
+
+    %% Alur Event Collector & Spool
+    HE -->|"5b. Input allowlist"| HC
+    HC -->|"5c. Record normal"| SP
+    SP -->|"5d. Spool read-only"| DS
+
+    %% Alur Egress / Notifikasi
+    DS -->|"6. Email canonical"| NC
+    AM -.->|"Route alert standard"| BR
     BR -.->|"Dinonaktifkan"| TS
+
+    %% ================= STYLING SUBGRAPH =================
+    style CORE fill:#f0f7ff,stroke:#1565c0,stroke-width:1.5px,stroke-dasharray: 4 2,color:#000000
+    style HOST fill:#fff8f0,stroke:#e65100,stroke-width:1.5px,stroke-dasharray: 4 2,color:#000000
+    style EGRESS fill:#fbf5fd,stroke:#6a1b9a,stroke-width:1.5px,color:#000000
+
+    %% ================= STYLING NODES (FONT HITAM) =================
+    %% Core Monitoring (Biru)
+    style PM fill:#90caf9,stroke:#0d47a1,stroke-width:2px,color:#000000
+    style AM fill:#90caf9,stroke:#0d47a1,stroke-width:2px,color:#000000
+    style DS fill:#ffcc80,stroke:#e65100,stroke-width:2px,color:#000000
+
+    %% Host Tomcat (Oranye / Amber)
+    style SQ fill:#ffe0b2,stroke:#ef6c00,stroke-width:1.5px,color:#000000
+    style LOG fill:#ffe0b2,stroke:#ef6c00,stroke-width:1.5px,color:#000000
+    style HE fill:#ffe0b2,stroke:#ef6c00,stroke-width:1.5px,color:#000000
+    style HC fill:#ffe0b2,stroke:#ef6c00,stroke-width:1.5px,color:#000000
+    style SP fill:#ffe0b2,stroke:#ef6c00,stroke-width:1.5px,color:#000000
+
+    %% Egress (Ungu & Abu-abu Disabled)
+    style NC fill:#e1bee7,stroke:#6a1b9a,stroke-width:1.5px,color:#000000
+    style BR fill:#eeeeee,stroke:#9e9e9e,stroke-width:1px,stroke-dasharray: 3 3,color:#000000
+    style TS fill:#eeeeee,stroke:#9e9e9e,stroke-width:1px,stroke-dasharray: 3 3,color:#000000
 ```
 
 Seluruh alur pada topology detail telah diimplementasikan dan terverifikasi secara
@@ -103,17 +213,27 @@ berada pada monitoring routing Alertmanager standard.
 ```mermaid
 sequenceDiagram
     autonumber
+    participant TC as Container Tomcat
     participant APP as Aplikasi Tomcat
     participant TG as Telegraf
     participant JM as JMX Exporter
+    participant EC as Event Collector
+    participant SPL as Direktori Spool (/tmp)
     participant PM as Prometheus
     participant DB as Dashboard dan Alert
     participant AM as Alertmanager
     participant DS as Diagnostic Service
     participant SQ as SQLite
     participant EV as Evidence hanya-baca
+    participant BR as Integration Bridge
     participant NC as Mailpit
 
+    %% 1. Lifecycle Event Monitoring Podman (Background / Asynchronous)
+    Note over TC,SPL: Alur Observabilitas Event Lifecycle Podman
+    TC-)EC: Mengamati lifecycle Podman (died, stop, exitCode, OOMKilled)
+    EC->>SPL: Menulis spool JSON atomik (.tmp → .json)
+
+    %% 2. Siklus Monitoring Rutin (Metrics & Health)
     loop Interval health aplikasi lokal
         TG->>APP: HTTP GET /health
         APP-->>TG: Status code, response body, dan response time
@@ -129,21 +249,26 @@ sequenceDiagram
     DB->>PM: Query metrics current dan historical
     PM-->>DB: Data time-series
 
+    %% 3. Alur Insiden & Evaluasi Diagnostik
     PM->>AM: Mengirim state firing atau resolved
-    alt Alert monitoring existing — saat ini dan terverifikasi
-        AM->>NC: Mengirim email untuk capture lokal
+    alt Alert monitoring existing — rute eksternal
+        AM->>BR: Mengirim alert standard (webhook/payload)
     else TomcatDown — alur diagnosis terverifikasi
         AM->>DS: Webhook firing/resolved melalui HTTPS internal
         DS->>SQ: Menyimpan event tervalidasi
         SQ-->>DS: Commit durable
         DS-->>AM: HTTP 202 setelah commit
+        
         par Pengumpulan evidence terbatas
             DS->>PM: Query metrics
         and Evidence host-local
-            DS->>EV: Membaca log, artifact, dan spool collector
+            DS->>EV: Membaca log dan crash artifact
+        and Evaluasi Root Cause dari Spool
+            DS->>SPL: Membaca berkas spool JSON (read-only)
         end
+        
         DS->>SQ: Menyimpan canonical result dan delivery state
-        DS->>NC: Mengirim email diagnostic 7-seksi atau resolved
+        DS->>NC: Mengirim email diagnostic 7-seksi atau resolved (SMTP)
     end
 ```
 
