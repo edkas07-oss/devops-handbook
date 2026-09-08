@@ -345,9 +345,13 @@ jmx_config_reload_failure_total 0.0
 
 ## ⏭️ Next Steps
 
-1. **Eksekusi Backlog Kategori 4 (Diagnostic Rulepack Expansion):**
-   - **TASK-TM-007:** Pembuatan alert rule `TomcatHighThreadUsage` untuk mendeteksi skenario *Thread Starvation* saat thread pool sibuk $\ge 80\%$ dan memicu snapshot thread dump otomatis.
-   - **TASK-TM-008:** Pembuatan alert rule `TomcatHighHeapUsage` untuk mendeteksi skenario *Memory / GC Pressure* saat pemakaian memory $\ge 85\%$ dan memicu snapshot ringkasan heap.
+1. **Konsolidasi Skenario Operasional & Penetapan Metrik Evaluasi ([TN-003](TN-003-consolidate-operational-scenarios-and-system-status-matrix.md)):**
+   - Mendokumentasikan taksonomi 4 jalur perutean skenario operasional (Track A s.d. Track D).
+   - Menetapkan keputusan arsitektur [TM-ADR-0022](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0022.md) untuk menolak ambang batas statis mentah (`Heap > 80%`, `Threads > 80%`) dan mengadopsi Sinyal Emas GC serta Kejenuhan Konkurensi.
+   - Mengonsolidasikan dokumen Arsitektur, Development, Infrastructure, dan README repositori ekosistem.
+2. **Implementasi Alert Rules JVM & Concurrency Saturation (Backlog Kategori 4):**
+   - **TASK-TM-007 (Revised):** Perumusan alert rule `TomcatThreadPoolSaturated` berbasis durasi kejenuhan 100% berkelanjutan (`for: 5m`) dan penolakan task (`RejectedExecutionException`).
+   - **TASK-TM-008 (Revised):** Perumusan alert rules `TomcatGCPauseHigh`, `TomcatGCOverheadHigh`, dan `TomcatOldGenMemoryPressure` berbasis Sinyal Emas GC.
 
 ---
 
@@ -355,6 +359,8 @@ jmx_config_reload_failure_total 0.0
 
 - [Phase Index](index.md)
 - [TN-001 — Implement and Verify Diagnostic Service Self-Monitoring](TN-001-implement-and-verify-diagnostic-service-self-monitoring-and-emergency-smtp-routing.md)
+- [TN-003 — Consolidate Operational Scenarios and Metric Evaluation Baseline](TN-003-consolidate-operational-scenarios-and-system-status-matrix.md)
 - [Follow-up Tasks Backlog](../../follow-up-tasks.md)
 - [TM-ADR-0016 — Canonical Incident Notification Authority](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md)
 - [TM-ADR-0021 — Layered Failure Resilience and Auto-Healing](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md)
+- [TM-ADR-0022 — Adopt JVM Garbage Collection and Concurrency Saturation Signals over Static Raw Thresholds](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0022.md)
