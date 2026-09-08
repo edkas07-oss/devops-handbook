@@ -88,17 +88,75 @@ Dalam perancangan ketahanan sistem, diidentifikasi 5 akar masalah yang dapat men
 
 ## 🔧 Implementasi dan Perubahan Konfigurasi
 
-1. **Pembaruan Dokumen Keputusan Arsitektur:**
+1. **Pembaruan Kode Skrip `run.sh` di Semua Repositori Stack:**
+   - [`prometheus/scripts/run.sh`](file:///home/eddywiyatno/git/prometheus/scripts/run.sh): Menambahkan `--restart=on-failure:5` pada `run_args`.
+   - [`alertmanager/scripts/run.sh`](file:///home/eddywiyatno/git/alertmanager/scripts/run.sh): Menambahkan `--restart=on-failure:5` pada `run_args`.
+   - [`tomcat-jmx-exporter/scripts/run.sh`](file:///home/eddywiyatno/git/tomcat-jmx-exporter/scripts/run.sh): Menambahkan `--restart=on-failure:5` pada perintah `podman run`.
+   - [`tomcat-monitoring/scripts/deploy-diagnostic-service.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-diagnostic-service.sh): Mengganti `--restart=no` dengan `--restart=on-failure:5`.
+
+2. **Aktivasi Daemon Auto-Restart Systemd User Service:**
+   ```bash
+   systemctl --user enable --now podman-restart.service
+   ```
+
+3. **Pembaruan Dokumen Keputusan Arsitektur:**
    - [`TM-ADR-0016`](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md): Menambahkan Addendum Mitigasi *Zero Silent Failure*.
    - [`TM-ADR-0021`](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md): Mendokumentasikan keputusan arsitektur ketahanan berlapis dan kebijakan auto-healing.
    - [`docs/adr/tomcat-monitoring/index.md`](../../../../adr/tomcat-monitoring/index.md): Memutakhirkan katalog ADR dan tabel pemetaan.
 
-2. **Pembaruan Skrip Deployment:**
-   - [`deploy-diagnostic-service.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-diagnostic-service.sh): Mengganti `--restart=no` dengan `--restart=on-failure:5`.
+## 🧪 Live Verification & Evidence
+
+### 1. Re-deployment dan Asersi Restart Policy
+Seluruh container di-deploy ulang dan diverifikasi secara langsung di `devops-lab`:
+
+```bash
+$ podman inspect prometheus alertmanager diagnostic-service tomcat-jmx-exporter \
+    --format '{{.Name}}: RestartPolicy={{.HostConfig.RestartPolicy.Name}}, MaxRetries={{.HostConfig.RestartPolicy.MaximumRetryCount}}, Status={{.State.Status}}'
+```
+
+**Hasil Verifikasi:**
+```text
+prometheus: RestartPolicy=on-failure, MaxRetries=5, Status=running
+alertmanager: RestartPolicy=on-failure, MaxRetries=5, Status=running
+diagnostic-service: RestartPolicy=on-failure, MaxRetries=5, Status=running
+tomcat-jmx-exporter: RestartPolicy=on-failure, MaxRetries=5, Status=running
+```
+
+### 2. Pengujian Kesiapan Endpoint Seluruh Stack
+```bash
+$ curl -s http://127.0.0.1:9090/-/ready
+Prometheus Server is Ready.
+
+$ curl -s http://127.0.0.1:9093/-/ready
+OK
+
+$ curl -k -s https://127.0.0.1:8443/health
+(HTTP 200 OK - Prometheus Exposition)
+
+$ curl -k -s https://127.0.0.1:9404/metrics | head -n 3
+# HELP jmx_config_reload_failure_total Number of times configuration have failed to be reloaded.
+# TYPE jmx_config_reload_failure_total counter
+jmx_config_reload_failure_total 0.0
+```
+
+### 3. Asersi Prometheus Scrape Targets
+```json
+[
+  {
+    "job": "tomcat-diagnostic-service",
+    "health": "up"
+  },
+  {
+    "job": "tomcat-jmx-exporter",
+    "health": "up"
+  }
+]
+```
 
 ## 📌 Summary & Next Actions
 
-Keputusan arsitektur ketahanan berlapis (**TM-ADR-0021**) telah resmi diadopsi dan didokumentasikan. Seluruh aspek ketahanan dari level proses hingga pemisahan domain monitoring telah terdefinisi secara jelas dan terukur.
+Kebijakan auto-healing (`--restart=on-failure:5`) dan arsitektur ketahanan berlapis (**TM-ADR-0021**) telah aktif dan terverifikasi secara teknis di seluruh container stack monitoring di `devops-lab`.
 
-Langkah operasional selanjutnya pada siklus engineering:
-* Melanjutkan eksekusi backlog berikutnya: **Kategori 4 (Diagnostic Rulepack Expansion)** untuk menangani degradasi performa Tomcat (*Thread Starvation* dan *Memory / GC Pressure*).
+Langkah operasional selanjutnya:
+* Melanjutkan eksekusi backlog berikutnya: **Kategori 4 (Diagnostic Rulepack Expansion)** untuk penanganan degradasi performa Tomcat (**TASK-TM-007: Thread Starvation** dan **TASK-TM-008: Heap/GC Memory Pressure**).
+
