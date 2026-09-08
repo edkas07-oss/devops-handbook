@@ -192,25 +192,37 @@ Sesuai strategi bertahap pada **TM-ADR-0017** (*Adopt Vertical Slice Minimum Via
 
 #### TASK-TM-007: Perumusan Rulepack Skenario Degradasi Thread Starvation
 
+- **Status:** `Completed` ✅ (TN-004)
 - **Deskripsi:**
-  Menyusun paket aturan deklaratif (*declarative rulepack*) untuk mendeteksi kondisi penumpukan thread pada Tomcat Connector sebelum aplikasi berhenti merespons.
+  Menyusun aturan Prometheus `TomcatThreadPoolSaturated` untuk mendeteksi kejenuhan penuh 100% pada Tomcat Connector Thread Pool (`tomcat_threads_busy_threads / tomcat_threads_current_threads >= 1.0` selama `for: 5m`) sesuai TM-ADR-0022.
 - **Kebutuhan Teknis:**
-  - Pemicu: Alert Prometheus `TomcatHighThreadUsage` (rasio thread aktif terhadap kapasitas maksimal > 85%).
-  - Korelasi bukti: Metrik MBean `tomcat_thread_pool_current_threads_busy` dan thread dump Java.
-  - Aturan evaluasi: Klasifikasi insiden ke domain `RUNTIME_RESOURCE` dengan rekomendasi eskalasi kapasitas atau identifikasi thread macet (*deadlock/hung threads*).
+  - Pemicu: Alert Prometheus `TomcatThreadPoolSaturated` (rasio thread sibuk terhadap kapasitas thread aktif = 100% berkelanjutan 5m).
+  - Korelasi bukti: Metrik MBean `tomcat_threads_busy_threads` dan `tomcat_threads_current_threads`.
+  - Aturan evaluasi: Klasifikasi insiden degradasi konkurensi sebelum terjadi kegagalan fatal (*task rejection*).
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
-  - Rulepack lulus validasi 5-Layer Guard dan dapat diuji melalui simulasi beban thread tinggi.
+  - Rulepack lulus validasi unit test promtool dan aktif dievaluasi di Prometheus runtime.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Didefinisikan pada [`jvm-workload-performance.yml`](file:///home/eddywiyatno/git/tomcat-monitoring/config/prometheus/rules/jvm-workload-performance.yml).
+  - Diuji pada [`jvm-workload-performance.test.yml`](file:///home/eddywiyatno/git/tomcat-monitoring/config/prometheus/tests/jvm-workload-performance.test.yml) $\rightarrow$ `SUCCESS`.
+  - Dibukukan pada [TN-004](engineering-journal/monitoring-platform-integration/TN-004-implement-jvm-gc-and-concurrency-saturation-alert-rules.md).
 
 #### TASK-TM-008: Perumusan Rulepack Skenario Memory Pressure & GC Thrashing
 
+- **Status:** `Completed` ✅ (TN-004)
 - **Deskripsi:**
-  Menyusun aturan diagnosis pra-OOM untuk mendeteksi kebocoran memori (*memory leak*) atau aktivitas Garbage Collection berlebih yang menurunkan throughput aplikasi secara drastis.
+  Menyusun aturan Prometheus untuk Sinyal Emas GC JVM (`TomcatGCPauseHigh`, `TomcatGCOverheadHigh`, `TomcatOldGenMemoryPressure`) untuk mendeteksi latensi STW, inefisiensi CPU akibat GC thrashing, dan retensi Old Gen pasca-GC sesuai TM-ADR-0022.
 - **Kebutuhan Teknis:**
-  - Pemicu: Alert Prometheus `TomcatHighHeapUsage` (heap > 90% selama > 5 menit berturut-turut).
-  - Korelasi bukti: Metrik `jvm_gc_collection_seconds_sum`, frekuensi GC minor/major, dan log garbage collection.
-  - Aturan evaluasi: Menghasilkan tingkat keyakinan (*confidence level*) tinggi untuk indikasi *Memory Leak* sebelum proses JVM terbunuh oleh OS cgroup OOM Killer.
+  - Pemicu:
+    - `TomcatGCPauseHigh`: Jeda STW $> 1.5\text{s}$ (`for: 1m`).
+    - `TomcatGCOverheadHigh`: GC CPU overhead `(rate(jvm_gc_pause_seconds_sum[5m]) * 100) > 15` (`for: 5m`).
+    - `TomcatOldGenMemoryPressure`: Retensi memori Old Gen `(used / max) * 100 > 90` (`for: 10m`).
+  - Aturan evaluasi: Menghasilkan peringatan proaktif sebelum proses JVM dimatikan oleh cgroup OOM Killer kernel.
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
-  - Laporan diagnostik terkirim sebelum crash terjadi, memberikan jendela waktu bagi operator untuk melakukan heap dump dan mitigasi terencana.
+  - Rulepack lulus validasi unit test promtool dan aktif dievaluasi di Prometheus runtime.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Didefinisikan pada [`jvm-workload-performance.yml`](file:///home/eddywiyatno/git/tomcat-monitoring/config/prometheus/rules/jvm-workload-performance.yml).
+  - Diuji pada [`jvm-workload-performance.test.yml`](file:///home/eddywiyatno/git/tomcat-monitoring/config/prometheus/tests/jvm-workload-performance.test.yml) $\rightarrow$ `SUCCESS`.
+  - Dibukukan pada [TN-004](engineering-journal/monitoring-platform-integration/TN-004-implement-jvm-gc-and-concurrency-saturation-alert-rules.md).
 
 ---
 
@@ -322,8 +334,8 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-015** | Enterprise SMTP Relay Configuration | **P1 (High)** | `Planned` 📋 | GAP-014 | Diagnostic Service | Notifikasi terkirim via relay SMTP TLS resmi |
 | **TASK-TM-016** | Live Prometheus Evidence Wire-up | **P1 (High)** | `Planned` 📋 | GAP-004 / TN-006 | Diagnostic Service | Metrik live otomatis terlampir di evidence |
 | **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | `Planned` 📋 | TM-ADR-0014 | Diagnostic Service | Log persisten tindakan manual SRE |
-| **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | `Planned` 📋 | TM-ADR-0017 | Diagnostic Service | Deteksi degradasi thread pra-downtime |
-| **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | `Planned` 📋 | TM-ADR-0017 | Diagnostic Service | Deteksi dini memory leak pra-OOM |
+| **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Rule saturasi thread pool 100% (TN-004) |
+| **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Sinyal Emas GC Pause, Overhead, Old Gen (TN-004) |
 | **TASK-TM-009** | Dashboard Observabilitas Grafana | **P2 (Medium)** | `Planned` 📋 | TN-020 | Grafana | Dashboard terpusat JVM, Tomcat, & Health |
 | **TASK-TM-010** | Standardisasi Log & Spool Cleanup | **P2 (Medium)** | `Planned` 📋 | TN-020 / TN-016 | Event Collector / Host | Rotasi teratur & spool cleanup atomik |
 | **TASK-TM-011** | Ansible Playbook Deployment | **P3 (Planned)** | `Planned` 📋 | TN-020 | Ansible / Podman | Zero-touch deployment seluruh stack |

@@ -30,6 +30,7 @@ Mengintegrasikan seluruh subsistem monitoring dan diagnostik ke dalam satu kesat
 | **Systemd Restart Supervisor** | Aktivasi daemon pengawas restart `podman-restart.service` pada level user session | Completed (TN-002) |
 | **Layered Failure Resilience Architecture** | Adopsi model ketahanan berlapis 3 tingkat dan pemisahan domain monitoring (TM-ADR-0021) | Completed (TN-002) |
 | **Operational Scenarios & Metric Baseline** | Klasifikasi taksonomi 4 jalur perutean (Track A s.d. D), adopsi Sinyal Emas GC & Kejenuhan Konkurensi (TM-ADR-0022), dan konsolidasi dokumentasi | Completed (TN-003) |
+| **JVM GC & Concurrency Alert Rules** | Implementasi Sinyal Emas GC (Pause, Overhead, Old Gen) & saturasi konkurensi (TM-ADR-0022) | Completed (TN-004) |
 
 ## 📄 Technical Notes
 
@@ -44,6 +45,10 @@ Mengintegrasikan seluruh subsistem monitoring dan diagnostik ke dalam satu kesat
 3. **[TN-003 — Consolidate Operational Scenarios, Diagnostic Routing Architecture, and Metric Evaluation Baseline](TN-003-consolidate-operational-scenarios-and-system-status-matrix.md)**
 
     Mendokumentasikan klasifikasi taksonomi 4 jalur perutean (Track A s.d. Track D), menetapkan keputusan arsitektur TM-ADR-0022 (adopsi Sinyal Emas GC dan Kejenuhan Konkurensi menggantikan ambang batas naif), mengonsolidasikan dokumen arsitektur, development, infrastructure, dan 5 README repositori, serta menerbitkan laporan status operasional dedikasi.
+
+4. **[TN-004 — Implement JVM Garbage Collection and Concurrency Saturation Alert Rules](TN-004-implement-jvm-gc-and-concurrency-saturation-alert-rules.md)**
+
+    Mengimplementasikan 4 alert rules baru di Prometheus untuk memantau Sinyal Emas GC (durasi STW pause, GC overhead/thrashing, retensi Old Gen) dan kejenuhan konektor thread pool 100% persisten, menyusun promtool unit test suite (100% passed), serta memverifikasi 9 rules aktif secara live di `devops-lab`.
 
 ## 🎓 Lessons Learned
 
