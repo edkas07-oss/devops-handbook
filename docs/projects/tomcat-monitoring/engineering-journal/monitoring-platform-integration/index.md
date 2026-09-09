@@ -31,6 +31,7 @@ Mengintegrasikan seluruh subsistem monitoring dan diagnostik ke dalam satu kesat
 | **Layered Failure Resilience Architecture** | Adopsi model ketahanan berlapis 3 tingkat dan pemisahan domain monitoring (TM-ADR-0021) | Completed (TN-002) |
 | **Operational Scenarios & Metric Baseline** | Klasifikasi taksonomi 4 jalur perutean (Track A s.d. D), adopsi Sinyal Emas GC & Kejenuhan Konkurensi (TM-ADR-0022), dan konsolidasi dokumentasi | Completed (TN-003) |
 | **JVM GC & Concurrency Alert Rules** | Implementasi Sinyal Emas GC (Pause, Overhead, Old Gen) & saturasi konkurensi (TM-ADR-0022) | Completed (TN-004) |
+| **JVM GC & Concurrency Live Verification** | Verifikasi empiris live runtime (firing & resolved lifecycle) dan pengiriman email Mailpit | Completed (TN-005) |
 
 ## 📄 Technical Notes
 
@@ -49,6 +50,10 @@ Mengintegrasikan seluruh subsistem monitoring dan diagnostik ke dalam satu kesat
 4. **[TN-004 — Implement JVM Garbage Collection and Concurrency Saturation Alert Rules](TN-004-implement-jvm-gc-and-concurrency-saturation-alert-rules.md)**
 
     Mengimplementasikan 4 alert rules baru di Prometheus untuk memantau Sinyal Emas GC (durasi STW pause, GC overhead/thrashing, retensi Old Gen) dan kejenuhan konektor thread pool 100% persisten, menyusun promtool unit test suite (100% passed), serta memverifikasi 9 rules aktif secara live di `devops-lab`.
+
+5. **[TN-005 — Verify JVM Garbage Collection and Concurrency Saturation Alert Rules in Live Runtime](TN-005-verify-jvm-gc-and-concurrency-saturation-alert-rules-in-live-runtime.md)**
+
+    Melakukan pengujian live, simulasi beban dinamis profil GC dan saturasi konektor, memvalidasi transisi siklus hidup lengkap alert (`inactive` $\rightarrow$ `pending` $\rightarrow$ `firing` $\rightarrow$ `resolved`) di Prometheus API, serta membuktikan pengiriman email peringatan dan pemulihan di Alertmanager dan Mailpit.
 
 ## 🎓 Lessons Learned
 

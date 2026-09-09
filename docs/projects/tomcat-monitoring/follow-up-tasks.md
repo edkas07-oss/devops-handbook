@@ -203,12 +203,12 @@ Sesuai strategi bertahap pada **TM-ADR-0017** (*Adopt Vertical Slice Minimum Via
   - Rulepack lulus validasi unit test promtool dan aktif dievaluasi di Prometheus runtime.
 - **Bukti Verifikasi (*Verification Evidence*):**
   - Didefinisikan pada [`jvm-workload-performance.yml`](file:///home/eddywiyatno/git/tomcat-monitoring/config/prometheus/rules/jvm-workload-performance.yml).
-  - Diuji pada [`jvm-workload-performance.test.yml`](file:///home/eddywiyatno/git/tomcat-monitoring/config/prometheus/tests/jvm-workload-performance.test.yml) $\rightarrow$ `SUCCESS`.
-  - Dibukukan pada [TN-004](engineering-journal/monitoring-platform-integration/TN-004-implement-jvm-gc-and-concurrency-saturation-alert-rules.md).
+  - Diuji unit pada [`jvm-workload-performance.test.yml`](file:///home/eddywiyatno/git/tomcat-monitoring/config/prometheus/tests/jvm-workload-performance.test.yml) $\rightarrow$ `SUCCESS`.
+  - Dibukukan pada [TN-004](engineering-journal/monitoring-platform-integration/TN-004-implement-jvm-gc-and-concurrency-saturation-alert-rules.md) dan diverifikasi live pada [TN-005](engineering-journal/monitoring-platform-integration/TN-005-verify-jvm-gc-and-concurrency-saturation-alert-rules-in-live-runtime.md).
 
 #### TASK-TM-008: Perumusan Rulepack Skenario Memory Pressure & GC Thrashing
 
-- **Status:** `Completed` ✅ (TN-004)
+- **Status:** `Completed` ✅ (TN-004 / TN-005)
 - **Deskripsi:**
   Menyusun aturan Prometheus untuk Sinyal Emas GC JVM (`TomcatGCPauseHigh`, `TomcatGCOverheadHigh`, `TomcatOldGenMemoryPressure`) untuk mendeteksi latensi STW, inefisiensi CPU akibat GC thrashing, dan retensi Old Gen pasca-GC sesuai TM-ADR-0022.
 - **Kebutuhan Teknis:**
@@ -221,8 +221,8 @@ Sesuai strategi bertahap pada **TM-ADR-0017** (*Adopt Vertical Slice Minimum Via
   - Rulepack lulus validasi unit test promtool dan aktif dievaluasi di Prometheus runtime.
 - **Bukti Verifikasi (*Verification Evidence*):**
   - Didefinisikan pada [`jvm-workload-performance.yml`](file:///home/eddywiyatno/git/tomcat-monitoring/config/prometheus/rules/jvm-workload-performance.yml).
-  - Diuji pada [`jvm-workload-performance.test.yml`](file:///home/eddywiyatno/git/tomcat-monitoring/config/prometheus/tests/jvm-workload-performance.test.yml) $\rightarrow$ `SUCCESS`.
-  - Dibukukan pada [TN-004](engineering-journal/monitoring-platform-integration/TN-004-implement-jvm-gc-and-concurrency-saturation-alert-rules.md).
+  - Diuji unit pada [`jvm-workload-performance.test.yml`](file:///home/eddywiyatno/git/tomcat-monitoring/config/prometheus/tests/jvm-workload-performance.test.yml) $\rightarrow$ `SUCCESS`.
+  - Dibukukan pada [TN-004](engineering-journal/monitoring-platform-integration/TN-004-implement-jvm-gc-and-concurrency-saturation-alert-rules.md) dan diverifikasi live pada [TN-005](engineering-journal/monitoring-platform-integration/TN-005-verify-jvm-gc-and-concurrency-saturation-alert-rules-in-live-runtime.md).
 
 ---
 

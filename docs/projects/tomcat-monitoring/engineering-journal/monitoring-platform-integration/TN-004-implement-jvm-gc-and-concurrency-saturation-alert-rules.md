@@ -536,12 +536,15 @@ Empat aturan alert Prometheus untuk Sinyal Emas GC JVM (`TomcatGCPauseHigh`, `To
 
 ## ⏭️ Next Steps
 
-1. **Implementasi State Resilience & Stale Lock Recovery ([TN-005](TN-005-implement-stale-lock-recovery-for-diagnostic-service-sqlite-worker.md) / TASK-TM-004):**
+1. **Verifikasi Empiris Live Runtime Rulepack Performa JVM & Konkurensi ([TN-005](TN-005-verify-jvm-gc-and-concurrency-saturation-alert-rules-in-live-runtime.md)):**
+   - Melakukan simulasi beban dan injeksi telemetri di `devops-lab` untuk menguji eskalasi alert firing dan auto-recovery.
+   - Memverifikasi pengiriman email peringatan dan pemulihan di Mailpit via Alertmanager Track B.
+2. **Implementasi State Resilience & Stale Lock Recovery (TN-006 / TASK-TM-004):**
    - Membangun mekanisme deteksi dan pemulihan otomatis untuk event insiden yang tertahan di status `processing` akibat restart kontainer mendadak.
    - Menambahkan kolom `lease_expires_at` dan counter `retry_count` pada skema database SQLite `alert_events`.
-2. **Penjadwalan Housekeeping & Retention Database SQLite (TASK-TM-005):**
+3. **Penjadwalan Housekeeping & Retention Database SQLite (TASK-TM-005):**
    - Mengimplementasikan rutinitas pembersihan otomatis record insiden dan VACUUM berkala untuk membatasi ukuran volume disk persisten.
-3. **Penyediaan Dashboard Visualisasi Grafana Terpusat (TASK-TM-009):**
+4. **Penyediaan Dashboard Visualisasi Grafana Terpusat (TASK-TM-009):**
    - Membangun dashboard Grafana untuk visualisasi metrik Sinyal Emas GC JVM (durasi pause, GC overhead), Tomcat Connector (active threads, request rate), dan health status stack monitoring.
 
 ## 🔗 References
