@@ -8,9 +8,9 @@ Mailpit merupakan satu-satunya target pengiriman notifikasi aktif pada fase Diag
 
 ## ✉️ Pengiriman Notifikasi Mailpit
 
-Alertmanager mengarahkan alert `TomcatDown` secara eksklusif ke Diagnostic Service dengan pengiriman status resolved aktif. Alertmanager tidak lagi mengirimkan alert `TomcatDown` mentah secara langsung ke Mailpit. Diagnostic Service mengirimkan email Plain Text dan HTML yang telah disanitasi melalui koneksi internal `mailpit:1025` menggunakan identitas pengirim dan penerima domain `.invalid`.
+Alertmanager mengarahkan **seluruh alert monitoring Tomcat** (termasuk `TomcatDown`, degradasi JVM GC & Concurrency, serta Application Health) secara eksklusif ke Diagnostic Service melalui webhook HTTPS internal dengan pengiriman status resolved aktif. Alertmanager tidak lagi mengirimkan alert mentah secara langsung ke Mailpit. 
 
-Alert pemantauan *application health* yang telah ada tetap menggunakan rute langsung ke Mailpit. Alert tersebut merupakan notifikasi monitoring standar, bukan hasil analisis Diagnostic MVP.
+Diagnostic Service bertindak sebagai otoritas tunggal yang memproses, mengevaluasi bukti, dan menerbitkan email laporan berformat 7-seksi SRE (Plain Text dan HTML) yang telah disanitasi melalui koneksi internal `mailpit:1025` menggunakan identitas pengirim dan penerima domain `.invalid`. Jalur direct email dari Alertmanager murni direservasi sebagai *Emergency Bypass* ketika container Diagnostic Service sendiri tidak dapat dihubungi (`DiagnosticServiceDown`).
 
 ---
 

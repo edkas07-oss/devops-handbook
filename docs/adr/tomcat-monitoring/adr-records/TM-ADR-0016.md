@@ -13,56 +13,57 @@
 
 ## 🔍 Overview
 
-Diagnostic Service ditetapkan sebagai satu-satunya sumber pengirim notifikasi (*Single Source of Truth*) untuk seluruh siklus insiden `TomcatDown` (mulai dari kondisi *firing*, pembaruan bukti, hingga *resolved*). Pengiriman email langsung dari Alertmanager untuk alert `TomcatDown` dinonaktifkan guna menghindari duplikasi notifikasi ke tim operasional.
+Diagnostic Service ditetapkan sebagai satu-satunya sumber pengirim notifikasi resmi (*Single Source of Truth & Canonical Incident Notification Authority*) untuk **seluruh siklus alert pemantauan Tomcat** (termasuk insiden `TomcatDown`, degradasi memori & GC `TomcatGCPauseHigh`/`TomcatOldGenMemoryPressure`, kejenuhan thread `TomcatThreadPoolSaturated`, hingga kegagalan aplikasi `TomcatApplicationHealthFailed`). 
+
+Pengiriman email insiden langsung dari Alertmanager ke tim operasional dinonaktifkan secara universal; Alertmanager murni bertindak sebagai agregator dan dispatcher webhook menuju Diagnostic Service. Satu-satunya pengecualian jalur email langsung dari Alertmanager adalah kondisi darurat ketika Diagnostic Service sendiri tidak dapat dihubungi (*Emergency Bypass: `DiagnosticServiceDown`*).
 
 ## 🌍 Context
 
-Dalam arsitektur pemantauan pada umumnya, Alertmanager langsung mengirimkan email ke tim operasional segera setelah menerima sinyal *firing* atau *resolved* dari Prometheus.
+Dalam arsitektur pemantauan konvensional, Alertmanager langsung mengirimkan email ke tim operasional segera setelah menerima sinyal *firing* atau *resolved* dari Prometheus.
 
-Namun, pada alur diagnostik otomatis, pola pengiriman langsung ini menimbulkan sejumlah masalah operasional:
+Namun, pengiriman langsung dari Alertmanager menimbulkan fragmentasi operasional yang serius:
 
-1. **Notifikasi Ganda yang Membingungkan (*Split Alerting*):** Jika Alertmanager mengirim email pemicu awal, lalu beberapa detik kemudian Diagnostic Service mengirimkan email hasil analisis lengkap, operator on-call menerima rentetan email terpisah dengan informasi berbeda yang menimbulkan kebingungan mengenai status mana yang harus dipercaya.
-2. **Ketiadaan Konteks Penyebab (*Unverified Trigger Alert*):** Sinyal awal `up{job="tomcat-jmx-exporter"} == 0` dari Alertmanager hanyalah gejala kegagalan *scrape*, bukan bukti mutlak bahwa proses Tomcat mati. Mengirimkan email kepanikan sebelum bukti diperiksa meningkatkan risiko alarm palsu (*false alarm*) dan kelelahan alert (*alert fatigue*).
-3. **Status Pemulihan Tidak Terintegrasi (*Resolved Inconsistency*):** Saat sinyal metrik kembali pulih, aplikasi belum tentu langsung siap melayani trafik secara sehat. Notifikasi pemulihan (*resolved*) perlu mengonfirmasi data diagnostik secara akurat serta mencatat durasi total insiden dari awal hingga tuntas.
+1. **Inkonsistensi Format & Ketiadaan Konteks Bukti (*Unverified Raw Alerting*):** Email bawaan Alertmanager hanya memuat ekspresi metrik mentah tanpa bukti log aplikasi (`catalina.out`), status container cgroup/exit code, maupun korelasi data forensik. Hal ini memaksa operator melakukan investigasi manual dari nol.
+2. **Notifikasi Ganda yang Membingungkan (*Split Alerting*):** Jika sebagian alert dikirim oleh Alertmanager dan sebagian lainnya dikirim oleh Diagnostic Service, tim operasional menerima format email yang berbeda-beda tanpa standardisasi SOP mitigasi.
+3. **Pentingnya Format Standar 7-Seksi Enterprise SRE:** Seluruh insiden degradasi maupun kegagalan sistem wajib disajikan dalam struktur terpadu 7-seksi (Ringkasan, Asesmen Diagnostik, Snapshot Metrik, Bukti Log, Bukti yang Hilang/Bertentangan, Rekomendasi SOP Mitigasi Bahasa Indonesia, dan Keterlacakan Aturan).
 
 ## ⚖️ Decision
 
-Ditetapkan kebijakan **Pemberi Notifikasi Tunggal (*Canonical Incident Notification Authority*)**:
+Ditetapkan kebijakan **Pemberi Notifikasi Tunggal Universal (*Universal Canonical Notification Authority*)**:
 
-1. **Routing Khusus di Alertmanager:**
-   Alertmanager dikonfigurasi untuk meneruskan alert `alertname="TomcatDown"` secara eksklusif ke webhook Diagnostic Service. Jalur email langsung dari Alertmanager ke operator untuk jenis alert ini dinonaktifkan sepenuhnya.
-2. **Wewenang Penuh Diagnostic Service:**
-   Diagnostic Service menjadi satu-satunya pihak yang berwenang mengirimkan email insiden `TomcatDown` ke Mailpit, yang mencakup:
-    - Laporan awal insiden (*Initial Incident Report*) segera setelah pengumpulan dan evaluasi bukti selesai.
-    - Laporan pembaruan jika ditemukan temuan baru atau eskalasi status.
-    - Laporan pemulihan (*Incident Resolved*) saat status pulih telah terverifikasi.
-3. **Format Laporan Standar:**
-   Semua notifikasi email wajib disusun dari satu data terpadu (*canonical result version 1*) menggunakan template standar Enterprise SRE (memuat ringkasan insiden, domain kegagalan, tingkat keyakinan, bukti pendukung, dan rekomendasi tindakan).
-4. **Alert Lain Tetap Standar:**
-   Alert monitoring di luar cakupan diagnostik (seperti alert *Telegraf Health Scrape*) tetap dikirimkan langsung oleh Alertmanager melalui jalur email standar.
+1. **Universal Webhook Routing di Alertmanager:**
+   Alertmanager dikonfigurasi dengan *default root route* yang mengarahkan **seluruh alert monitoring** secara eksklusif ke webhook HTTPS Diagnostic Service (`lab-diagnostic-service`). Pengiriman email langsung dari Alertmanager untuk seluruh alert insiden dinonaktifkan sepenuhnya.
+2. **Wewenang Notifikasi Penuh Diagnostic Service:**
+   Diagnostic Service menjadi satu-satunya entitas yang berwenang mengirimkan email laporan insiden ke Mailpit / kanal operasional on-call:
+    - Melakukan evaluasi terhadap basis aturan deklaratif (*Rulepack Engine*) atau asesmen diagnostik umum jika rule belum dipetakan.
+    - Menyajikan data forensik runtime (log, metrik, cgroup, dan spool) secara lengkap.
+    - Menerbitkan laporan awal (*Initial Firing*), pembaruan materiil (*Material Update* maks 1x), dan konfirmasi pemulihan (*Resolved*).
+3. **Format Standar Wajib 7-Seksi SRE:**
+   Semua notifikasi email wajib disusun menggunakan format standar 7-seksi Enterprise SRE multipart (HTML responsif dan Plain Text fallback).
+4. **Emergency Direct SMTP Bypass (Khusus `DiagnosticServiceDown`):**
+   Satu-satunya jalur pengiriman email langsung dari Alertmanager yang diizinkan adalah sub-rute darurat `DiagnosticServiceDown` guna mencegah kegagalan tanpa pemberitahuan (*zero silent failure*).
 
 ## 🏛️ Architecture
 
 ```text
                                  Prometheus
+                         (Seluruh Aturan Alert Tomcat)
                                      |
                                      v
                                 Alertmanager
                                      |
                   +------------------+------------------+
-                  |                                     |
-            (TomcatDown)                        (Alert Lainnya)
-                  |                                     |
+                  | (Seluruh Alert Normal)              | (Khusus Emergency)
+                  | (TomcatDown, GC, Threads, Health)   | (DiagnosticServiceDown)
                   v                                     v
-       [Webhook HTTPS Internal]               [Direct SMTP Delivery]
+       [Webhook HTTPS Internal :8443]         [Direct SMTP Emergency Bypass]
                   |                                     |
                   v                                     |
           Diagnostic Service                            |
-                  |                                     |
-        (Evaluasi & Laporan)                            |
+        (Evidence Engine & 7-Section)                   |
                   |                                     |
                   v                                     |
-         [Pengirim Tunggal SMTP]                        |
+       [Pengirim Tunggal SMTP Laporan]                  |
                   |                                     |
                   +------------------+------------------+
                                      |
@@ -73,27 +74,27 @@ Ditetapkan kebijakan **Pemberi Notifikasi Tunggal (*Canonical Incident Notificat
 
 ## 💡 Rationale
 
-- **Informasi yang Jelas dan Konsisten (*Single Source of Truth*):** Operator hanya menerima satu jenis email per insiden yang sudah terverifikasi dan memuat analisis mendalam, sehingga memudahkan proses penanganan insiden.
-- **Mengurangi Beban Operator (*Alert Fatigue*):** Menghindarkan tim dari banjir email mentah saat terjadi gangguan metrik sesaat (*transient scrape blip*).
-- **Laporan Siklus Hidup yang Lengkap:** Diagnostic Service dapat menyajikan laporan *resolved* yang menampilkan perbandingan kondisi saat insiden terjadi versus saat pulih beserta durasi total gangguan dari database SQLite.
+- **Standarisasi Menyeluruh (*Universal Single Source of Truth*):** Operator on-call menerima format laporan yang konsisten dan kaya konteks forensik untuk semua jenis insiden.
+- **Pemberian Rekomendasi SOP Otomatis:** Setiap email insiden selalu dilengkapi langkah mitigasi manual terstruktur sesuai prinsip *Zero Automatic Remediation* (TM-ADR-0014).
+- **Mengeliminasi Email Mentah Alertmanager:** Menghindarkan tim SRE dari kelelahan alert (*alert fatigue*) akibat email teks mentah yang tidak terverifikasi.
 
 ## ⚠️ Consequences
 
 - **Kelebihan:**
-  - Notifikasi insiden tersaji rapi, akurat, profesional, dan langsung dapat ditindaklanjuti oleh tim SRE.
-  - Beban kognitif operator berkurang drastis karena tidak ada email duplikat atau status yang saling bertolak belakang.
+  - Seluruh notifikasi pemantauan Tomcat tersaji seragam, profesional, dan dapat langsung dieksekusi oleh tim SRE.
+  - Semua bukti insiden (metrik, log, container lifecycle) terekam secara otomatis ke database SQLite lokal `diagnostic.db` untuk audit dan AI enrichment.
 - **Keterbatasan dan Mitigasi (Addendum 2026-09-08):**
-  - **Risiko Awal:** Ketersediaan notifikasi insiden `TomcatDown` bergantung pada keaktifan Diagnostic Service. Jika container Diagnostic Service mati, terjadi risiko *Silent Failure* di mana notifikasi insiden tidak terkirim via jalur utama.
+  - **Risiko Ketergantungan:** Alur notifikasi bergantung pada kesehatan container Diagnostic Service.
   - **Mitigasi Terverifikasi (*Zero Silent Failure Safeguard*):**
-    1. **Health Scrape Mandiri:** Prometheus mengikis endpoint `https://diagnostic-service:8443/health` secara berkala dengan verifikasi TLS CA (`diagnostic-service-ca.crt`).
-    2. **Alert Rule `DiagnosticServiceDown`:** Ditetapkan alert kritis (`up{job="tomcat-diagnostic-service"} == 0`, `for: 1m`, `severity: critical`).
-    3. **Emergency Direct SMTP Bypass Route:** Alertmanager mengonfigurasi sub-rute darurat (`matchers: [alertname = "DiagnosticServiceDown"]`) yang secara langsung mengirimkan email peringatan ke operator (`mailpit:1025`) dengan mem-bypass webhook Diagnostic Service. Hal ini menjamin ketiadaan titik kegagalan tunggal (*zero single point of silent failure*).
+    1. **Health Scrape Mandiri:** Prometheus mengikis endpoint `/health` Diagnostic Service setiap 15 detik.
+    2. **Alert Rule `DiagnosticServiceDown`:** Evaluasi `up{job="tomcat-diagnostic-service"} == 0` (for: 1m, severity: critical).
+    3. **Emergency Bypass Route:** Alertmanager meneruskan alert `DiagnosticServiceDown` secara langsung via Direct SMTP ke Mailpit, melewati webhook yang mati.
 
 ## 📌 Status
 
-**Accepted — implemented, mitigated, and verified in devops-lab.**
+**Accepted — Policy expanded to Universal Diagnostic Ingestion.**
 
 ## 📅 Date
 
-**2026-08-31** *(Mitigation Addendum: 2026-09-08)*
+**2026-08-31** *(Universal Ingestion Addendum: 2026-09-08)*
 

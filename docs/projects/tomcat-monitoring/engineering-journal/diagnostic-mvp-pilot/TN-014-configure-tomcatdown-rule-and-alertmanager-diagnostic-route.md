@@ -514,6 +514,10 @@ rm -rf -- "${temporary_root}"
 
 Target isolasi rute notifikasi tercapai, aturan Prometheus `TomcatDown` beserta sub-route Alertmanager `lab-diagnostic-service` berhasil dikonfigurasi dan divalidasi secara statis dan runtime. Verifikasi disposable runtime mengonfirmasi bahwa webhook payload Alertmanager dapat diterima dengan status HTTP `202 Accepted` dan diproses oleh Diagnostic Service (probe SQLite membuktikan tercatatnya event `firing` dan `resolved` dengan `sqlite_events=2`). Seluruh sumber daya sementara telah dibersihkan secara terotorisasi.
 
+> [!NOTE]
+> **Catatan Evolusi Kebijakan Arsitektur (*Architectural Policy Addendum*):**
+> Sub-route `TomcatDown` yang dikonfigurasi pada TN-014 ini merupakan langkah awal pembuktian (*vertical slice pilot*) rute webhook ke Diagnostic Service. Sesuai penetapan arsitektur lanjutan pada [TM-ADR-0016](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md) (*Single Canonical Incident Notification Authority*), pola sub-route ini dievolusikan menjadi **Universal Ingestion**: seluruh alert monitoring operasional diarahkan ke Diagnostic Service sebagai default root receiver, dan Alertmanager tidak lagi mengirim email notifikasi insiden langsung ke Mailpit kecuali untuk jalur darurat `DiagnosticServiceDown` (dimigrasikan melalui [TASK-TM-017](../../follow-up-tasks.md)).
+
 ## ⏭️ Next Steps
 
 Implementasi dan verifikasi source selesai. Lakukan handoff dokumentasi dengan melakukan commit pada repositori `tomcat-monitoring` dan `devops-handbook`. Deploy konfigurasi yang persisten ke Prometheus dan Alertmanager environment akan menjadi tanggung jawab [TN-015 — Deploy Persistent Monitoring Runtime](TN-015-deploy-persistent-monitoring-runtime.md).

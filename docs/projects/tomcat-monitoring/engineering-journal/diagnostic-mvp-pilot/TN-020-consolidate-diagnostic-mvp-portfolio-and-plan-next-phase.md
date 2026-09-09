@@ -201,7 +201,7 @@ flowchart TD
 | [`docs/projects/tomcat-monitoring/diagnostic-mvp/index.md`](../../diagnostic-mvp/index.md) | Overview, Pilot Status, Exit Criteria, Gap Register | Menetapkan seluruh kriteria keluar (*exit criteria*) berstatus terpenuhi; menutup gap implementasi; mengukuhkan arsitektur KB 5-layer. |
 | [`docs/projects/tomcat-monitoring/engineering-journal/index.md`](../index.md) | Engineering Phases Table | Mengubah status fase *Diagnostic MVP Pilot* menjadi `Completed`. |
 | [`docs/projects/tomcat-monitoring/engineering-journal/diagnostic-mvp-pilot/index.md`](index.md) | Technical Notes, Reproducibility Table, Phase Status | Mendaftarkan TN-020 dan memutakhirkan reproduction anchors. |
-| [`docs/projects/tomcat-monitoring/follow-up-tasks.md`](../../follow-up-tasks.md) | Overview, Objectives, Task List | Memetakan seluruh kewajiban desain arsitektur dan backlog teknis (TASK-TM-001 s.d. TASK-TM-011) untuk mitigasi TM-ADR-0014 s.d. TM-ADR-0017. |
+| [`docs/projects/tomcat-monitoring/follow-up-tasks.md`](../../follow-up-tasks.md) | Overview, Objectives, Task List | Memetakan seluruh kewajiban desain arsitektur dan backlog teknis (TASK-TM-001 s.d. TASK-TM-017) untuk mitigasi TM-ADR-0014 s.d. TM-ADR-0017. |
 
 ---
 
@@ -327,7 +327,7 @@ Tabel di bawah mengelompokkan berkas berdasarkan peran teknis dan lapisan (*laye
 | `docs/projects/tomcat-monitoring/development/index.md` | Standar Pengembangan | Modifikasi | Memutakhirkan tanggung jawab repositori, status rilis image, dan matriks pengujian otomatis. |
 | `docs/projects/tomcat-monitoring/infrastructure/index.md` | Infrastruktur Runtime | Modifikasi | Memutakhirkan komponen infrastruktur, named volume persisten, dan konfigurasi jaringan TLS. |
 | `docs/projects/tomcat-monitoring/diagnostic-mvp/index.md` | Spesifikasi MVP | Modifikasi | Menutup Gap Register dan menetapkan status seluruh Exit Criteria menjadi 100% Terpenuhi. |
-| `docs/projects/tomcat-monitoring/follow-up-tasks.md` | Backlog Lanjutan | Modifikasi | Memetakan kewajiban arsitektur dan backlog teknis kelanjutan (TASK-TM-001 s.d. TASK-TM-011). |
+| `docs/projects/tomcat-monitoring/follow-up-tasks.md` | Backlog Lanjutan | Modifikasi | Memetakan kewajiban arsitektur dan backlog teknis kelanjutan (TASK-TM-001 s.d. TASK-TM-017). |
 | `docs/projects/tomcat-monitoring/engineering-journal/index.md` | Indeks Jurnal | Modifikasi | Mengubah status fase Diagnostic MVP Pilot menjadi Completed pada tabel tahapan rekayasa. |
 | `docs/projects/tomcat-monitoring/engineering-journal/diagnostic-mvp-pilot/TN-020-consolidate-diagnostic-mvp-portfolio-and-plan-next-phase.md` | Jurnal Penutup | Modifikasi | Mencatat live engineering journal konsolidasi portofolio dan perencanaan fase lanjutan. |
 
@@ -359,7 +359,7 @@ flowchart TD
     end
 
     subgraph FUTURE_ROADMAP["Roadmap & Backlog Masa Depan"]
-        BACKLOG["follow-up-tasks.md<br/>(TASK-TM-001 s.d. TASK-TM-011)"]
+        BACKLOG["follow-up-tasks.md<br/>(TASK-TM-001 s.d. TASK-TM-017)"]
         PHASE_NEXT["Monitoring Platform Integration Phase<br/>(Grafana, Log Management, CI/CD)"]
         
         TN020 -->|"Formalize Backlog"| BACKLOG

@@ -210,9 +210,14 @@ flowchart LR
 
 Seluruh alur pada topology detail telah diimplementasikan dan terverifikasi secara
 live pada lingkungan persisten `devops-lab`. Satu Diagnostic Service dan satu local
-state volume (`diagnostic_data`) beroperasi per host Tomcat. Target `TomcatDown`
-masuk ke diagnostic routing, sedangkan application-health dan high-heap alert tetap
-berada pada monitoring routing Alertmanager standard.
+state volume (`diagnostic_data`) beroperasi per host Tomcat. Sesuai prinsip **Universal Diagnostic Ingestion** yang ditetapkan pada
+[TM-ADR-0016](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md), seluruh alert
+monitoring operasional (baik insiden fatal `TomcatDown`, kegagalan HTTP `TomcatApplicationHealthFailed`,
+degradasi beban kerja JVM GC/Thread, maupun kehilangan sinyal `TelegrafHealthScrapeUnavailable`)
+dialirkan ke Diagnostic Service. Diagnostic Service bertindak sebagai **Otoritas Tunggal Notifikasi Insiden**,
+menyusun bukti multi-sumber, dan menerbitkan laporan investigasi 7-seksi SRE yang terstandarisasi.
+Alertmanager tidak lagi mengirimkan email insiden langsung ke Mailpit, kecuali pada jalur darurat
+ketika Diagnostic Service sendiri mati (`DiagnosticServiceDown` emergency bypass).
 
 ## Monitoring and Diagnostic Flow
 
@@ -259,11 +264,9 @@ sequenceDiagram
 
     %% 3. Alur Insiden & Evaluasi Diagnostik
     PM->>AM: Mengirim state firing atau resolved
-    alt DiagnosticServiceDown — rute darurat langsung (TM-ADR-0016/0020)
+    alt DiagnosticServiceDown — rute darurat langsung (TM-ADR-0016)
         AM->>NC: Mengirim direct emergency email (SMTP)
-    else Alert monitoring standard — rute standard
-        AM->>NC: Mengirim alert standard email (SMTP)
-    else TomcatDown — alur diagnosis terverifikasi
+    else Seluruh Alert Monitoring Tomcat (TomcatDown, GC, Threads, Health) — Alur Diagnostik
         AM->>DS: Webhook firing/resolved melalui HTTPS internal
         DS->>SQ: Menyimpan event tervalidasi
         SQ-->>DS: Commit durable
@@ -292,10 +295,7 @@ dan pengiriman laporan ke Mailpit.
 
 ## Operational Scenarios & Diagnostic Routing Architecture
 
-Desain arsitektur membagi penanganan insiden dan skenario operasional ke dalam
-**4 Jalur Perutean Khusus (*Specialized Handling Tracks*)** untuk memisahkan
-masalah yang membutuhkan analisis akar masalah mendalam dari masalah yang cukup
-ditangani secara langsung:
+Desain arsitektur menegakkan prinsip **Universal Diagnostic Ingestion & Single Canonical Notification Authority** ([TM-ADR-0016](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md)). Seluruh alert monitoring operasional dialirkan ke Diagnostic Service guna memastikan standardisasi laporan investigasi:
 
 ```mermaid
 %%{init: {
@@ -307,33 +307,28 @@ ditangani secara langsung:
 flowchart TD
     INCIDENT["<b>Insiden / Event Terdeteksi</b>"]
 
-    INCIDENT -->|"1. Target Scrape Mati<br/>(TomcatDown)"| TRACK_A["<b>Track A: Autonomous Diagnostic Pipeline</b><br/>• Multi-source Evidence Extraction<br/>• 18 Decision Branches (TD-01..TD-18)<br/>• 8 Failure Domains Classification<br/>• 7-Section SRE Investigation Report"]
+    INCIDENT -->|"1. Seluruh Alert Monitoring<br/>(TomcatDown, AppHealth,<br/>JVM GC/Thread, Telegraf)"| TRACK_A["<b>Track A: Universal Diagnostic Pipeline</b><br/>• Multi-source Evidence Extraction<br/>• Decision Engine (TD-01..TD-18)<br/>• Failure Domains Classification<br/>• 7-Section SRE Investigation Report"]
     
-    INCIDENT -->|"2. HTTP Health / Signal Gagal<br/>(TomcatApplicationHealthFailed,<br/>TelegrafHealthScrapeUnavailable)"| TRACK_B["<b>Track B: Standard Direct Alerting</b><br/>• Alertmanager Standard Email Template<br/>• Notifikasi Cepat Tim Aplikasi / SRE<br/>• Tanpa ekstraksi log/spool berat"]
+    INCIDENT -->|"2. Platform Service Down<br/>(DiagnosticServiceDown)"| TRACK_C["<b>Track C: Emergency Fallback Route</b><br/>• Direct Emergency SMTP Bypass<br/>• Menjamin Zero Silent Failure (TM-ADR-0016/TM-ADR-0020)<br/>• Anti-Circular Forwarding"]
     
-    INCIDENT -->|"3. Platform Service Down<br/>(DiagnosticServiceDown)"| TRACK_C["<b>Track C: Emergency Fallback Route</b><br/>• Direct Emergency SMTP Bypass<br/>• Menjamin Zero Silent Failure (TM-ADR-0020)<br/>• Anti-Circular Forwarding"]
-    
-    INCIDENT -->|"4. Transient Process Glitch<br/>(Exit Code non-zero)"| TRACK_D["<b>Track D: Container Auto-Healing</b><br/>• Supervisi systemd podman-restart.service<br/>• Bounded retry --restart=on-failure:5<br/>• Pencegahan Unbounded CrashLoop"]
+    INCIDENT -->|"3. Transient Process Glitch<br/>(Exit Code non-zero)"| TRACK_D["<b>Track D: Container Auto-Healing</b><br/>• Supervisi systemd podman-restart.service<br/>• Bounded retry --restart=on-failure:5<br/>• Pencegahan Unbounded CrashLoop"]
 
     TRACK_A -->|"Webhook HTTPS"| DS_ENGINE["Diagnostic Service (:8443)"]
-    TRACK_B -->|"Direct Route"| NC_MAIL["Mailpit / Email Operator"]
-    TRACK_C -->|"Bypass Route"| NC_MAIL
+    TRACK_C -->|"Emergency Bypass"| NC_MAIL["Mailpit / Email Operator"]
     TRACK_D -->|"Podman CLI"| RESTART_ACT["Restart Kontainer Otomatis"]
-    DS_ENGINE -->|"Laporan 7-Seksi"| NC_MAIL
+    DS_ENGINE -->|"Laporan Kanonikal 7-Seksi"| NC_MAIL
 
     style TRACK_A fill:#fff3e0,stroke:#e65100,stroke-width:1.5px,color:#000000
-    style TRACK_B fill:#e3f2fd,stroke:#1565c0,stroke-width:1.5px,color:#000000
     style TRACK_C fill:#ffebee,stroke:#c62828,stroke-width:1.5px,color:#000000
     style TRACK_D fill:#e8f5e9,stroke:#2e7d32,stroke-width:1.5px,color:#000000
 ```
 
-### Matriks Pemisahan Skenario: Diagnostic vs. Non-Diagnostic
+### Matriks Pemisahan Skenario: Universal Diagnostic vs. Emergency Fallback
 
 | Jalur Penanganan (*Track*) | Kriteria & Alert Rules Terkait | Mengapa Memerlukan / Tidak Memerlukan Diagnostic Service? | Target Eskalasi & Output |
 | :--- | :--- | :--- | :--- |
-| **Track A: Autonomous Diagnostic Required** | `TomcatDown` (`up{job="tomcat-jmx-exporter"} == 0`) | **Memerlukan Diagnostic Service.** Kegagalan ketersediaan JVM/container memiliki banyak akar masalah ambigu (OOM killer, `hs_err` fatal crash, port conflict, lockup, clean shutdown). Memerlukan korelasi multi-sumber (log `catalina.out`, spool collector Podman, exit code, metrik time-series) dan rekomendasi SOP tindakan operator. | Laporan Investigasi Diagnostik Terstruktur 7-Seksi via SMTP ke Mailpit / On-call SRE. |
-| **Track B: Standard Direct Alerting (Non-Diagnostic)** | `TomcatApplicationHealthFailed`<br/>`TomcatApplicationHealthMetricsMissing`<br/>`TelegrafHealthScrapeUnavailable` | **TIDAK Memerlukan Diagnostic Service.** Gejala kegagalan bersifat deterministik tunggal (HTTP code bukan 200, probe timeout $> 5\text{s}$, atau agent Telegraf mati). Menjalankan engine diagnostik berat untuk kondisi ini adalah pemborosan resource. Cukup alert email standar Alertmanager. | Email Notifikasi Standar SRE berformat Enterprise ke Tim Pengembang Aplikasi / SRE. |
-| **Track C: Emergency Direct Route (Zero Silent Failure)** | `DiagnosticServiceDown` (`up{job="tomcat-diagnostic-service"} == 0`) | **TIDAK Boleh Melalui Diagnostic Service.** Engine diagnostik itu sendiri yang sedang mengalami kegagalan. Alertmanager melakukan *emergency bypass* langsung ke Mailpit untuk mencegah *silent failure* ([TM-ADR-0020](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0020.md)). | Direct Emergency Alert ke On-call SRE / Sysadmin. |
+| **Track A: Universal Diagnostic Pipeline (Canonical Authority)** | `TomcatDown`<br/>`TomcatApplicationHealthFailed`<br/>`TomcatApplicationHealthMetricsMissing`<br/>`TelegrafHealthScrapeUnavailable`<br/>`TomcatGCPauseHigh`<br/>`TomcatThreadPoolSaturated`<br/>`TomcatGCOverheadHigh`<br/>`TomcatOldGenMemoryPressure` | **Wajib Melalui Diagnostic Service.** Sesuai TM-ADR-0016, seluruh alert monitoring (ketersediaan runtime, degradasi performa JVM, kesehatan servlet aplikasi, hingga sinyal agent pemantau) wajib dianalisis secara terpadu oleh Diagnostic Service guna menyajikan bukti terkorelasi, klasifikasi domain, dan format laporan 7-seksi SRE yang seragam bagi operator. | Laporan Investigasi Diagnostik Terstruktur 7-Seksi via SMTP ke Mailpit / On-call SRE. |
+| **Track C: Emergency Direct Route (Zero Silent Failure)** | `DiagnosticServiceDown` (`up{job="tomcat-diagnostic-service"} == 0`) | **TIDAK Boleh Melalui Diagnostic Service.** Engine diagnostik itu sendiri yang sedang mengalami kegagalan. Alertmanager melakukan *emergency bypass* langsung via SMTP ke Mailpit untuk mencegah *silent failure* ([TM-ADR-0016](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md) / [TM-ADR-0020](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0020.md)). | Direct Emergency Alert ke On-call SRE / Sysadmin. |
 | **Track D: Infrastructure Auto-Healing** | Transient crash / exit code non-zero | **Ditangani di Level Infrastruktur.** Kegagalan transien disembuhkan otomatis oleh `podman-restart.service` (`--restart=on-failure:5`) tanpa memicu kebisingan alert ke operator kecuali jika kuota retry habis ([TM-ADR-0021](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md)). | Restart kontainer lokal otomatis oleh Podman runtime. |
 
 ### Detail Spesifikasi Desain 6 Skenario Operasional
@@ -346,17 +341,17 @@ flowchart TD
   ```
 * **Alur Eksekusi Arsitektural:**
   1. Prometheus mengirimkan alert `TomcatDown` berstatus *firing* ke Alertmanager.
-  2. Alertmanager mencocokkan matcher `alertname = "TomcatDown"` dan merutekan webhook HTTPS ke Diagnostic Service (`:8443/api/v1/alerts/alertmanager`).
+  2. Alertmanager meneruskan webhook HTTPS ke Diagnostic Service (`:8443/api/v1/alerts/alertmanager`).
   3. Ingestion Guard memvalidasi token dan skema JSON v4, menyimpan event secara persisten ke SQLite `events` (transaksi ACID), lalu mengembalikan `HTTP 202 Accepted` ([TM-ADR-0015](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md)).
-  4. Worker tunggal mengambil event dari antrean berkapasitas 50, mengumpulkan bukti terkorelasi dari mount hanya-baca:
+  4. Worker mengambil event dari antrean berkapasitas 50, mengumpulkan bukti terkorelasi dari mount hanya-baca:
      * Cuplikan log `catalina.out` (maks 500 baris / 512 KiB dengan sensor data rahasia).
      * Spool record Podman dari Restricted Collector (`exitCode`, `oomKilled`, timestamp crash).
      * Metrik Prometheus terkini dan health probe.
-  5. Engine mengevaluasi 18 cabang keputusan deterministik (`TD-01` s/d `TD-18`), memetakan ke 8 Failure Domains, menghitung *Confidence Score*, dan menyusun rekomendasi SOP operator (*Zero Automatic Remediation*, [TM-ADR-0014](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0014.md)).
+  5. Engine mengevaluasi cabang keputusan deterministik (`TD-01` s/d `TD-18`), memetakan ke Failure Domains, menghitung *Confidence Score*, dan menyusun rekomendasi SOP operator (*Zero Automatic Remediation*, [TM-ADR-0014](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0014.md)).
   6. Menerbitkan **Laporan Diagnosis 7-Seksi** via SMTP ke Mailpit / Email On-call.
   7. Ketika Tomcat hidup kembali (`up == 1`), event *resolved* masuk ke pipeline, dikorelasikan dengan insiden awal, dan menerbitkan email *Incident Resolved* otomatis ([TM-ADR-0016](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md)).
 
-#### 🟠 Skenario 2 (Track B): HTTP Application Health Check Gagal (`TomcatApplicationHealthFailed` — Direct Alerting)
+#### 🟠 Skenario 2 (Track A): HTTP Application Health Check Gagal (`TomcatApplicationHealthFailed` — Diagnostic Ingestion)
 * **Kondisi Pemicu (*Trigger*):** Aplikasi Tomcat mengalami kegagalan internal servlet, unhandled exception, mengembalikan HTTP status `500`/`503`, response JSON bukan `{"status":"UP"}`, atau response timeout $> 5\text{s}$, sementara container Tomcat dan JVM-nya sendiri masih berjalan normal.
 * **Deteksi Telemetri:** Telegraf probe gagal memeriksa `:8080/health`, menghasilkan metrik yang di-scrape Prometheus:
   ```promql
@@ -364,11 +359,11 @@ flowchart TD
   ```
 * **Alur Eksekusi Arsitektural:**
   1. Prometheus mendeteksi `result_code != 0` dan mengirimkan alert `TomcatApplicationHealthFailed` ke Alertmanager.
-  2. Alertmanager mencocokkan rute default (Track B) dan langsung merender template email Enterprise SRE standar (`[CRITICAL] [LAB] Tomcat Service: TomcatApplicationHealthFailed`).
-  3. Email dikirim langsung ke Mailpit/Operator tanpa memicu Diagnostic Service, karena gejalanya sudah deterministik dan tidak membutuhkan investigasi log/spool yang berat.
-  4. Saat health probe aplikasi kembali mengembalikan HTTP `200` dan body `{"status":"UP"}`, Alertmanager mengirimkan email pemulihan `[RESOLVED] [LAB] Tomcat Service: TomcatApplicationHealthNormal`.
+  2. Alertmanager merutekan webhook HTTPS ke Diagnostic Service sesuai kewenangan notifikasi tunggal (TM-ADR-0016).
+  3. Diagnostic Service mengumpulkan bukti respon HTTP Telegraf dan log servlet `catalina.out`, mengevaluasi status kesehatan aplikasi, dan menerbitkan laporan investigasi 7-seksi ke Mailpit/SRE.
+  4. Saat health probe aplikasi kembali mengembalikan HTTP `200` dan body `{"status":"UP"}`, Diagnostic Service menerima event resolved dan mengirimkan notifikasi pemulihan kanonikal.
 
-#### 🟡 Skenario 3 (Track B): Kehilangan Sinyal Monitoring Telegraf (`TelegrafHealthScrapeUnavailable` / `MetricsMissing`)
+#### 🟡 Skenario 3 (Track A): Kehilangan Sinyal Monitoring Telegraf (`TelegrafHealthScrapeUnavailable` / `MetricsMissing`)
 * **Kondisi Pemicu (*Trigger*):** Container Telegraf mati, konfigurasi network terputus, atau plugin Telegraf tidak menghasilkan metrik.
 * **Deteksi Telemetri:** Prometheus mendeteksi target Telegraf tidak dapat diakses:
   ```promql
@@ -376,8 +371,8 @@ flowchart TD
   ```
 * **Alur Eksekusi Arsitektural:**
   1. Prometheus mengirimkan alert `TelegrafHealthScrapeUnavailable` ke Alertmanager.
-  2. Alertmanager merutekan notifikasi peringatan bahwa **sinyal observabilitas kesehatan aplikasi terputus**.
-  3. Pola ini memisahkan secara tegas antara "kegagalan aplikasi" vs "kegagalan alat pemantau" sesuai prinsip [TM-ADR-0004](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0004.md).
+  2. Alertmanager merutekan webhook ke Diagnostic Service.
+  3. Diagnostic Service mencatat anomali telemetri dan menerbitkan laporan diagnostik bahwa **sinyal observabilitas kesehatan aplikasi terputus**, memisahkan secara tegas antara "kegagalan aplikasi" vs "kegagalan alat pemantau" sesuai prinsip [TM-ADR-0004](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0004.md).
 
 #### 🚨 Skenario 4 (Track C): Diagnostic Service Down / Self-Monitoring Outage (`DiagnosticServiceDown` — Emergency Fallback)
 * **Kondisi Pemicu (*Trigger*):** Container Diagnostic Service mati, crash, atau SQLite terkunci.
@@ -387,7 +382,7 @@ flowchart TD
   ```
 * **Alur Eksekusi Arsitektural (*Zero Silent Failure*):**
   1. Prometheus mengirimkan alert `DiagnosticServiceDown` ke Alertmanager.
-  2. Sub-route khusus Alertmanager mencocokkan `alertname = "DiagnosticServiceDown"` dan mengeksekusi **Direct Emergency SMTP Bypass** langsung ke Mailpit/Operator ([TM-ADR-0020](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0020.md)).
+  2. Sub-route khusus Alertmanager mencocokkan `alertname = "DiagnosticServiceDown"` dan mengeksekusi **Direct Emergency SMTP Bypass** langsung ke Mailpit/Operator ([TM-ADR-0016](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md) / [TM-ADR-0020](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0020.md)).
   3. Jalur ini memotong perutean webhook ke Diagnostic Service untuk mencegah ketergantungan melingkar (*circular routing*) dan menjamin operator segera tahu bahwa sistem diagnosis otomatis sedang tidak beroperasi.
 
 #### 🛡️ Skenario 5 (Track D): Auto-Healing Kontainer dari Transient Crash

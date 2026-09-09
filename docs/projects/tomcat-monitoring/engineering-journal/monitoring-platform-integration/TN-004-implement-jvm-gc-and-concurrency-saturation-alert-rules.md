@@ -528,6 +528,10 @@ Reproduksi pengujian dan deployment memerlukan:
 
 Empat aturan alert Prometheus untuk Sinyal Emas GC JVM (`TomcatGCPauseHigh`, `TomcatGCOverheadHigh`, `TomcatOldGenMemoryPressure`) dan Kejenuhan Konkurensi (`TomcatThreadPoolSaturated`) telah berhasil diimplementasikan sesuai standar SRE tinggi pada [TM-ADR-0022](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0022.md). Pengujian unit deklaratif promtool lulus $100\%$ untuk 5 skenario komprehensif, named volume persisten telah disinkronkan, kontainer Prometheus berhasil dideploy ulang, dan live API mengonfirmasi 9 rules aktif dengan seluruh scrape target berstatus `up`. Backlog **TASK-TM-007** dan **TASK-TM-008** resmi diselesaikan.
 
+> [!NOTE]
+> **Catatan Penyelarasan Kebijakan Arsitektur (*Architectural Alignment Addendum*):**
+> Seluruh alert degradasi performa beban kerja ini wajib diproses melalui alur **Universal Diagnostic Ingestion** ke Diagnostic Service (TM-ADR-0016). Alertmanager tidak bertindak sebagai pengirim email notifikasi langsung; Diagnostic Service yang memegang kewenangan tunggal pengiriman laporan investigasi terstruktur 7-seksi SRE bagi seluruh insiden operasional.
+
 ## 🎓 Lessons Learned
 
 1. **Karakteristik Matematis PromQL `rate()`:** Fungsi `rate(v[d])` selalu menghitung laju kenaikan per detik (*per-second rate*). Mengalikan langsung dengan 100 menghasilkan persentase waktu CPU yang dihabiskan untuk GC tanpa perlu membagi durasi jendela.
@@ -538,7 +542,7 @@ Empat aturan alert Prometheus untuk Sinyal Emas GC JVM (`TomcatGCPauseHigh`, `To
 
 1. **Verifikasi Empiris Live Runtime Rulepack Performa JVM & Konkurensi ([TN-005](TN-005-verify-jvm-gc-and-concurrency-saturation-alert-rules-in-live-runtime.md)):**
    - Melakukan simulasi beban dan injeksi telemetri di `devops-lab` untuk menguji eskalasi alert firing dan auto-recovery.
-   - Memverifikasi pengiriman email peringatan dan pemulihan di Mailpit via Alertmanager Track B.
+   - Menguji transisi siklus alert dan menyelaraskan perutean menuju Diagnostic Service Universal Ingestion ([TASK-TM-017](../../follow-up-tasks.md)).
 2. **Implementasi State Resilience & Stale Lock Recovery (TN-006 / TASK-TM-004):**
    - Membangun mekanisme deteksi dan pemulihan otomatis untuk event insiden yang tertahan di status `processing` akibat restart kontainer mendadak.
    - Menambahkan kolom `lease_expires_at` dan counter `retry_count` pada skema database SQLite `alert_events`.

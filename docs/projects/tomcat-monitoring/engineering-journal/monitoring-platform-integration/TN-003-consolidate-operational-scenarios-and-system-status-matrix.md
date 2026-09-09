@@ -481,6 +481,10 @@ Reproduksi verifikasi konsolidasi memerlukan:
 
 Seluruh 6 skenario operasional insiden live, taksonomi perutean 4 jalur (*Track A s.d. Track D*), penolakan ambang batas naif mentah demi Sinyal Emas GC dan Kejenuhan Konkurensi ([TM-ADR-0022](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0022.md)), serta konsolidasi spesifikasi status terkini pada dokumen Arsitektur, Development, Infrastructure, dan 5 README repositori ekosistem telah dibukukan secara menyeluruh dan terverifikasi sukses dengan HTTP 200 di `devops-lab`.
 
+> [!NOTE]
+> **Catatan Penyelarasan Kebijakan Arsitektur (*Architectural Alignment Addendum*):**
+> Taksonomi perutean 4 jalur pada TN-003 ini merupakan catatan historis saat perumusan awal skenario operasional. Sesuai penetapan tata kelola notifikasi [TM-ADR-0016](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md) (*Single Canonical Incident Notification Authority*), seluruh alert monitoring operasional disatukan di bawah **Universal Diagnostic Ingestion** ke Diagnostic Service (dimigrasikan via [TASK-TM-017](../../follow-up-tasks.md)). Alertmanager murni meneruskan webhook dan tidak mengirimkan email insiden langsung ke Mailpit, kecuali jalur bypass darurat `DiagnosticServiceDown` ([TM-ADR-0020](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0020.md)).
+
 ## 🎓 Lessons Learned
 
 1. **Sinyal Observabilitas Bernilai Tinggi (*High-Value Signals*):** Ambang batas statis mentah pada memori dan thread pool di lingkungan JVM merupakan anti-pattern yang merusak efektivitas SRE. Mengukur *dampak nyata* (GC Pause duration yang menyebabkan latency, CPU thrashing akibat GC berulang, dan task rejection) memberikan tingkat kepastian insiden yang jauh lebih akurat (*high signal-to-noise ratio*).

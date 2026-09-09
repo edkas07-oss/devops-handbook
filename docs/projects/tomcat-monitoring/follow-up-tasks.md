@@ -137,6 +137,20 @@ Kategori ini merupakan prioritas utama (*Critical*) untuk mengantisipasi keterba
        - Subject: `[RESOLVED] [EMERGENCY] Diagnostic Service Alert: DiagnosticServiceDown (Instance: diagnostic-service:8443)`
        - Content: `Diagnostic Service target diagnostic-service:8443 has recovered and is scrapeable again. Automated incident notification pipeline is restored.`
 
+#### TASK-TM-017: Migrasi Universal Ingestion Alertmanager ke Diagnostic Service
+
+- **Status:** `Planned` 📋
+- **Deskripsi:**
+  Mengubah konfigurasi root route dan receiver pada Alertmanager (`alertmanager.yml`) sehingga seluruh alert monitoring tanpa terkecuali (ketersediaan runtime `TomcatDown`, kesehatan aplikasi `TomcatApplicationHealthFailed`, sinyal emas JVM `TomcatGCPauseHigh`/`TomcatThreadPoolSaturated`, dan kehilangan sinyal `TelegrafHealthScrapeUnavailable`) dialirkan langsung ke Diagnostic Service melalui webhook HTTPS internal.
+- **Kebutuhan Teknis:**
+  - Ubah default receiver root: `route: receiver: lab-diagnostic-service`.
+  - Hapus atau nonaktifkan receiver direct email `lab-mailpit` untuk notifikasi insiden operasional.
+  - Pertahankan satu-satunya sub-route darurat: matcher `alertname="DiagnosticServiceDown"` mengarah ke `direct-email-emergency` (direct SMTP bypass).
+  - Pastikan Diagnostic Service menangani payload seluruh alert dengan format laporan investigasi 7-seksi SRE standar.
+- **Kriteria Penerimaan (*Acceptance Criteria*):**
+  - Tidak ada alert insiden atau degradasi performa yang mengirimkan email mentah Alertmanager langsung ke Mailpit.
+  - Seluruh notifikasi insiden dipublikasikan secara seragam oleh Diagnostic Service melalui format kanonikal 7-seksi SRE.
+
 ---
 
 ### Kategori 2: Ketahanan Mesin Status & Penyimpanan Persisten (Mitigasi TM-ADR-0015)
@@ -327,6 +341,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-001** | Scrape Target `/health` Diagnostic Service | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0016 | Prometheus | Metrik `up` aktif untuk Diagnostic Service |
 | **TASK-TM-002** | Alert Rule `DiagnosticServiceDown` | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0016 | Prometheus | Alert firing saat service mati > 1m |
 | **TASK-TM-003** | Direct SMTP Emergency Route Alertmanager | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0016 | Alertmanager | Email darurat ke Mailpit bypass webhook |
+| **TASK-TM-017** | Migrasi Universal Ingestion Alertmanager | **P0 (Blocker)** | `Planned` 📋 | TM-ADR-0016 | Alertmanager / DS | Seluruh alert diarahkan ke Diagnostic Service |
 | **TASK-TM-004** | Stale Lock Recovery Worker SQLite | **P1 (High)** | `Planned` 📋 | TM-ADR-0015 | Diagnostic Service | Re-queue otomatis event status processing |
 | **TASK-TM-005** | Housekeeping & Retention DB SQLite | **P1 (High)** | `Planned` 📋 | TM-ADR-0015 | Diagnostic Service | Pembersihan data lama & disk terkendali |
 | **TASK-TM-013** | Persistent Volume Mount Log Tomcat | **P1 (High)** | `Planned` 📋 | TN-019 / GAP-006 | Tomcat Runtime / DS | Log container live terbaca otomatis oleh DS |

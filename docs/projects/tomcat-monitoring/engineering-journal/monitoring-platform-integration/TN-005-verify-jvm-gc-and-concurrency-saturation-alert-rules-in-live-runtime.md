@@ -540,7 +540,11 @@ Reproduksi pengujian live memerlukan:
 
 ## 🧾 Outcome
 
-Empat aturan peringatan Sinyal Emas GC JVM (`TomcatGCPauseHigh`, `TomcatGCOverheadHigh`, `TomcatOldGenMemoryPressure`) dan Kejenuhan Konkurensi (`TomcatThreadPoolSaturated`) telah berhasil diverifikasi secara komprehensif pada live runtime `devops-lab`. Seluruh siklus transisi status alert (`inactive` $\rightarrow$ `pending` $\rightarrow$ `firing` $\rightarrow$ `resolved`) terbukti berfungsi secara deterministik dan akurat sesuai ambang batas waktu evaluasi masing-masing ($1\text{m}$, $5\text{m}$, $10\text{m}$). Jalur perutean Alertmanager (*Track B Direct Delivery*) terbukti sukses mengirimkan email berformat HTML resmi ke Mailpit, dan runtime kontainer Tomcat asli telah dipulihkan ke kondisi stabil dengan seluruh target telemetri berstatus `up`.
+Empat aturan peringatan Sinyal Emas GC JVM (`TomcatGCPauseHigh`, `TomcatGCOverheadHigh`, `TomcatOldGenMemoryPressure`) dan Kejenuhan Konkurensi (`TomcatThreadPoolSaturated`) telah berhasil diverifikasi secara komprehensif pada live runtime `devops-lab`. Seluruh siklus transisi status alert (`inactive` $\rightarrow$ `pending` $\rightarrow$ `firing` $\rightarrow$ `resolved`) terbukti berfungsi secara deterministik dan akurat sesuai ambang batas waktu evaluasi masing-masing ($1\text{m}$, $5\text{m}$, $10\text{m}$). Pengiriman email alert dan recovery terbukti diterima di Mailpit, dan runtime kontainer Tomcat asli telah dipulihkan ke kondisi stabil dengan seluruh target telemetri berstatus `up`.
+
+> [!NOTE]
+> **Catatan Penyelarasan Kebijakan Arsitektur (*Architectural Alignment Addendum*):**
+> Pengiriman email langsung dari Alertmanager ke Mailpit yang diamati pada verifikasi live TN-005 ini terjadi karena rute default Alertmanager (`lab-mailpit`) masih aktif sebelum migrasi universal. Sesuai penetapan tata kelola notifikasi [TM-ADR-0016](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md) (*Single Canonical Incident Notification Authority*), seluruh alert performa dan beban kerja JVM ini wajib dialirkan melalui **Universal Diagnostic Ingestion** ke Diagnostic Service untuk menerbitkan format laporan 7-seksi Enterprise SRE standar, yang ditindaklanjuti melalui backlog [TASK-TM-017](../../follow-up-tasks.md).
 
 ## 🎓 Lessons Learned
 
@@ -550,12 +554,15 @@ Empat aturan peringatan Sinyal Emas GC JVM (`TomcatGCPauseHigh`, `TomcatGCOverhe
 
 ## ⏭️ Next Steps
 
-1. **Implementasi State Resilience & Stale Lock Recovery (TN-006 / TASK-TM-004):**
+1. **Migrasi Universal Ingestion Alertmanager ke Diagnostic Service (TASK-TM-017):**
+   - Mengubah default root receiver di `alertmanager.yml` menjadi `lab-diagnostic-service`.
+   - Memastikan seluruh alert performa JVM diteruskan ke Diagnostic Service dan dirender dalam format 7-seksi SRE.
+2. **Implementasi State Resilience & Stale Lock Recovery (TN-006 / TASK-TM-004):**
    - Membangun mekanisme pemulihan otomatis untuk event insiden yang tertahan di status `processing` akibat restart kontainer mendadak.
    - Menambahkan kolom `lease_expires_at` dan counter `retry_count` pada skema database SQLite `alert_events`.
-2. **Penjadwalan Housekeeping & Retention Database SQLite (TASK-TM-005):**
+3. **Penjadwalan Housekeeping & Retention Database SQLite (TASK-TM-005):**
    - Mengimplementasikan rutinitas pembersihan otomatis record insiden dan VACUUM berkala untuk membatasi ukuran volume disk persisten.
-3. **Penyediaan Dashboard Visualisasi Grafana Terpusat (TASK-TM-009):**
+4. **Penyediaan Dashboard Visualisasi Grafana Terpusat (TASK-TM-009):**
    - Membangun dashboard Grafana untuk visualisasi metrik Sinyal Emas GC JVM (durasi pause, GC overhead), Tomcat Connector (active threads, request rate), dan health status stack monitoring.
 
 ## 🔗 References
