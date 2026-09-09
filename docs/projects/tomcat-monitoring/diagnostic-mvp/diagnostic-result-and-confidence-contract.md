@@ -73,5 +73,5 @@ Recommended action bersifat instruksi operator dan tidak pernah dieksekusi.
 
 ## 📌 Status
 
-**Implemented & Verified in Runtime (`tomcat-diagnostic-service` v0.1.4).**
-Mekanisme validasi skema canonical result, evaluasi aturan dinamis terkurasi (`TD-01` s/d `TD-18`), serta pertahanan ingest 5-layer telah teruji 100% pada lingkungan *DevOps Lab*.
+**Implemented & Verified in Runtime (`tomcat-diagnostic-service` v0.1.5).**
+Mekanisme validasi skema canonical result, arsitektur Multi-Domain Diagnostic Dispatcher dengan 20 decision branches built-in (`TD`, `AH`, `GC`, `TH` sesuai [TM-ADR-0023](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0023.md)), evaluasi aturan dinamis terkurasi (`TD-09` s/d `TD-18`), serta pertahanan ingest 5-layer telah teruji 100% pada lingkungan *DevOps Lab*.

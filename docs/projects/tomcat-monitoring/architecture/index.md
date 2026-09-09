@@ -416,7 +416,7 @@ flowchart TD
 | Dashboard and Alert | Melakukan query ke Prometheus serta menampilkan metrics dan status alert |
 | Alertmanager | Mengelompokkan, melakukan deduplication, dan meneruskan alert |
 | Mailpit | Menangkap email firing, diagnostic report, dan resolved pada topology persistent lab |
-| Diagnostic Service | Menerima alert `TomcatDown`, memvalidasi skema payload, mengumpulkan evidence terbatas, mengevaluasi rule engine 18 cabang (TD-01..TD-18), mengelompokkan kategori domain, menghasilkan canonical result, dan bertindak sebagai otoritas tunggal pengirim notifikasi insiden (TM-ADR-0016); beroperasi murni sebagai read-only advisory engine tanpa wewenang auto-remediation (TM-ADR-0014); image `0.1.4` terverifikasi live di `devops-lab` |
+| Diagnostic Service | Menerima seluruh alert operasional Tomcat melalui webhook HTTPS, memvalidasi skema payload, mengumpulkan evidence terbatas, mendistribusikan evaluasi melalui Multi-Domain Diagnostic Dispatcher dengan 20 built-in decision branches (TD, AH, GC, TH) serta custom rules (TD-09..TD-18), mengelompokkan kategori domain, menghasilkan canonical result, dan bertindak sebagai otoritas tunggal pengirim notifikasi insiden (TM-ADR-0016, TM-ADR-0023); beroperasi murni sebagai read-only advisory engine tanpa wewenang auto-remediation (TM-ADR-0014); image `0.1.5` terverifikasi live di `devops-lab` |
 | SQLite | Menyimpan event secara durable sebelum membalas HTTP 202 (TM-ADR-0015), menyimpan incident, deduplication, canonical result, custom rules (dengan kolom category), dan delivery state lokal pada volume persisten `diagnostic_data` (TM-ADR-0009) |
 | Restricted Event Collector | Mengumpulkan event host dan status container yang telah dinormalisasi ke spool terbatas (`/tmp/diagnostic-spool`) dengan penulisan atomik `.tmp` -> `.json` (TM-ADR-0008) |
 | Integration Bridge | Mengubah webhook menjadi event yang diterima TrueSight (dinonaktifkan pada lab; TM-ADR-0012) |
@@ -524,11 +524,11 @@ Prometheus juga melakukan scrape rutin ke endpoint self-monitoring Diagnostic Se
 Prometheus memicu alert `DiagnosticServiceDown` yang diteruskan Alertmanager langsung
 melalui *direct emergency SMTP route* ke Mailpit, mencegah *Silent Failure* (TM-ADR-0020).
 
-Alertmanager mengelola deduplikasi dan routing alert secara persisten. Rule
-`TomcatDown` diteruskan melalui HTTPS internal ke Diagnostic Service (`0.1.4`).
+Alertmanager mengelola deduplikasi dan routing alert secara persisten (`group_wait: 10s`, `group_interval: 15s`). Seluruh
+alert operasional Tomcat diteruskan melalui HTTPS internal ke Diagnostic Service (`0.1.5`).
 Diagnostic Service memproses webhook secara asinkron, membaca metrik Prometheus,
 spool `/tmp/diagnostic-spool`, dan log Tomcat `/tmp/tomcat-logs` secara read-only,
-mengevaluasi pohon keputusan 18 cabang `TD-01` s/d `TD-18`, menyimpan riwayat audit ke
+mengevaluasi pohon keputusan multi-domain (20 built-in branches `TD`, `AH`, `GC`, `TH` dan curated custom branches `TD-09` s/d `TD-18`), menyimpan riwayat audit ke
 SQLite `diagnostic_data`, dan mengirimkan laporan diagnosis 7-seksi ke Mailpit.
 Siklus pemulihan (*resolved*) memicu korelasi insiden otomatis dan mengirimkan
 notifikasi pemulihan.
