@@ -139,17 +139,25 @@ Kategori ini merupakan prioritas utama (*Critical*) untuk mengantisipasi keterba
 
 #### TASK-TM-017: Migrasi Universal Ingestion Alertmanager ke Diagnostic Service
 
-- **Status:** `Planned` 📋
+- **Status:** `Completed` ✅
 - **Deskripsi:**
-  Mengubah konfigurasi root route dan receiver pada Alertmanager (`alertmanager.yml`) sehingga seluruh alert monitoring tanpa terkecuali (ketersediaan runtime `TomcatDown`, kesehatan aplikasi `TomcatApplicationHealthFailed`, sinyal emas JVM `TomcatGCPauseHigh`/`TomcatThreadPoolSaturated`, dan kehilangan sinyal `TelegrafHealthScrapeUnavailable`) dialirkan langsung ke Diagnostic Service melalui webhook HTTPS internal.
+  Mengubah konfigurasi root route dan receiver pada Alertmanager (`alertmanager.yml`) sehingga seluruh alert monitoring tanpa terkecuali (ketersediaan runtime `TomcatDown`, kesehatan aplikasi `TomcatApplicationHealthFailed`, sinyal emas JVM `TomcatGCPauseHigh`/`TomcatThreadPoolSaturated`/`TomcatGCOverheadHigh`/`TomcatOldGenMemoryPressure`, dan kehilangan sinyal `TelegrafHealthScrapeUnavailable`) dialirkan langsung ke Diagnostic Service melalui webhook HTTPS internal.
 - **Kebutuhan Teknis:**
   - Ubah default receiver root: `route: receiver: lab-diagnostic-service`.
-  - Hapus atau nonaktifkan receiver direct email `lab-mailpit` untuk notifikasi insiden operasional.
+  - Hapus receiver direct email `lab-mailpit` untuk notifikasi insiden operasional guna menegakkan prinsip *Single Canonical Notification Authority*.
   - Pertahankan satu-satunya sub-route darurat: matcher `alertname="DiagnosticServiceDown"` mengarah ke `direct-email-emergency` (direct SMTP bypass).
-  - Pastikan Diagnostic Service menangani payload seluruh alert dengan format laporan investigasi 7-seksi SRE standar.
+  - Skema JSON Webhook v4 di Diagnostic Service (`alertmanager-webhook-v4.schema.json`) digeneralisasi untuk menerima seluruh jenis alert dengan label identitas target wajib (`environment`, `host`, `tomcat_instance`, `job`, `instance`, `service`, `check`).
+  - Label identitas `tomcat_instance: default` disematkan pada seluruh rule Prometheus di `jvm-workload-performance.yml` dan `application-health.yml`.
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
   - Tidak ada alert insiden atau degradasi performa yang mengirimkan email mentah Alertmanager langsung ke Mailpit.
-  - Seluruh notifikasi insiden dipublikasikan secara seragam oleh Diagnostic Service melalui format kanonikal 7-seksi SRE.
+  - Seluruh notifikasi insiden dipublikasikan secara seragam oleh Diagnostic Service melalui format kanonikal Laporan Investigasi 7-Seksi SRE.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Skema webhook digeneralisasi dan diverifikasi melalui unit test `normalize-webhook.test.js` (48 passing).
+  - Image Diagnostic Service `localhost/tomcat-diagnostic-service:0.1.4` (digest `sha256:1fea49330dc36e05dd65920a0b40da3742ac0046b7b9d6d9a0821f2479ca89f7`) berhasil dibangun dan lulus smoke test image.
+  - Validasi Promtool dan Alertmanager config: `promtool test rules` $\rightarrow$ `SUCCESS`, `amtool check-config` $\rightarrow$ `SUCCESS (2 receivers)`.
+  - Verifikasi isolasi rute webhook di disposable container (`verify-alertmanager-diagnostic-service.sh`) $\rightarrow$ `sqlite_events=2 (firing=1, resolved=1)`, `sqlite_probe=passed`.
+  - Verifikasi live runtime insiden (`verify-jvm-workload-live.sh`) membuktikan transisi 4 alert JVM (`TomcatGCPauseHigh`, `TomcatThreadPoolSaturated`, `TomcatGCOverheadHigh`, `TomcatOldGenMemoryPressure`) hingga status firing dan recovery.
+  - SQLite database Diagnostic Service merekam seluruh 30 event alert secara persisten, dan Mailpit merekam Laporan Investigasi 7-Seksi SRE resmi dari pengirim `diagnostic@tomcat-monitoring.invalid`.
 
 ---
 
@@ -341,7 +349,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-001** | Scrape Target `/health` Diagnostic Service | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0016 | Prometheus | Metrik `up` aktif untuk Diagnostic Service |
 | **TASK-TM-002** | Alert Rule `DiagnosticServiceDown` | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0016 | Prometheus | Alert firing saat service mati > 1m |
 | **TASK-TM-003** | Direct SMTP Emergency Route Alertmanager | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0016 | Alertmanager | Email darurat ke Mailpit bypass webhook |
-| **TASK-TM-017** | Migrasi Universal Ingestion Alertmanager | **P0 (Blocker)** | `Planned` 📋 | TM-ADR-0016 | Alertmanager / DS | Seluruh alert diarahkan ke Diagnostic Service |
+| **TASK-TM-017** | Migrasi Universal Ingestion Alertmanager | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0016 | Alertmanager / DS | Seluruh alert diarahkan ke Diagnostic Service |
 | **TASK-TM-004** | Stale Lock Recovery Worker SQLite | **P1 (High)** | `Planned` 📋 | TM-ADR-0015 | Diagnostic Service | Re-queue otomatis event status processing |
 | **TASK-TM-005** | Housekeeping & Retention DB SQLite | **P1 (High)** | `Planned` 📋 | TM-ADR-0015 | Diagnostic Service | Pembersihan data lama & disk terkendali |
 | **TASK-TM-013** | Persistent Volume Mount Log Tomcat | **P1 (High)** | `Planned` 📋 | TN-019 / GAP-006 | Tomcat Runtime / DS | Log container live terbaca otomatis oleh DS |
