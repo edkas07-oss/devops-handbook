@@ -116,9 +116,10 @@ Nomor pada diagram menunjukkan hubungan komunikasi, bukan urutan startup
 container. Garis penuh menunjukkan alur persistent lab yang sudah diverifikasi;
 garis putus-putus menunjukkan target external integration (Integration Bridge dan
 TrueSight) yang saat ini dinonaktifkan. Topology utama menempatkan Diagnostic
-Service setelah Alertmanager untuk memproses alert `TomcatDown`, dilengkapi
-jalur self-monitoring Prometheus terhadap `/health` dan emergency direct SMTP
-Alertmanager jika Diagnostic Service mengalami gangguan. Container runtime
+Service setelah Alertmanager untuk memproses seluruh alert monitoring secara
+universal melalui **Multi-Domain Diagnostic Dispatcher** (TM-ADR-0016, TM-ADR-0023),
+dilengkapi jalur self-monitoring Prometheus terhadap `/health` dan emergency direct
+SMTP Alertmanager jika Diagnostic Service mengalami gangguan. Container runtime
 disupervisi oleh `podman-restart.service` dengan kebijakan auto-healing
 `--restart=on-failure:5` (TM-ADR-0021).
 

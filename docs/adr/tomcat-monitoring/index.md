@@ -34,6 +34,7 @@ konsekuensi keputusan arsitektur yang memengaruhi implementasi project.
 | [**TM-ADR-0020**](adr-records/TM-ADR-0020.md){: target="_blank" } | Enforce Bounded Incident Notification Delivery Lifecycle and Exponential Backoff Retries | Tomcat Monitoring | Incident Notification and Delivery Architecture | Accepted | 2026-09-01 |
 | [**TM-ADR-0021**](adr-records/TM-ADR-0021.md){: target="_blank" } | Adopt Layered Failure Resilience, Container Auto-Healing, and Monitoring Domain Separation | Tomcat Monitoring | Infrastructure Resilience and Fault-Tolerance Architecture | Accepted | 2026-09-08 |
 | [**TM-ADR-0022**](adr-records/TM-ADR-0022.md){: target="_blank" } | Adopt JVM Garbage Collection and Concurrency Saturation Signals over Static Raw Thresholds | Tomcat Monitoring | Observability, Alerting Strategy, and Workload Health Architecture | Accepted | 2026-09-08 |
+| [**TM-ADR-0023**](adr-records/TM-ADR-0023.md){: target="_blank" } | Adopt Multi-Domain Diagnostic Dispatcher and Mandatory Per-Alert Decision Engine Governance | Tomcat Monitoring | Diagnostic Rule, Decision Engine, and Observability Governance Architecture | Accepted | 2026-09-09 |
 
 ## 🗺️ ADR Mapping
 
@@ -54,13 +55,14 @@ konsekuensi keputusan arsitektur yang memengaruhi implementasi project.
 | TM-ADR-0013 | Use Node.js 24 ESM and Isolated Built-Built-In SQLite for Diagnostic Service | Diagnostic MVP Pilot TN-003, TN-005, TN-007, TN-008, TN-009, TN-010, TN-011, TN-012, TN-013, TN-014, TN-015, TN-017, TN-018, TN-019, TN-020 |
 | TM-ADR-0014 | Enforce Zero Automatic Remediation for Diagnostic Service | Diagnostic MVP Pilot TN-001, TN-007, TN-017, TN-020 |
 | TM-ADR-0015 | Adopt Asynchronous Webhook Ingestion with Durable SQLite Acceptance Pattern | Diagnostic MVP Pilot TN-001, TN-008, TN-017, TN-020 |
-| TM-ADR-0016 | Designate Diagnostic Service as the Canonical Incident Notification Authority | Diagnostic MVP Pilot TN-001, TN-007, TN-009, TN-012, TN-017, TN-020; Monitoring Integration TN-001 |
+| TM-ADR-0016 | Designate Diagnostic Service as the Canonical Incident Notification Authority | Diagnostic MVP Pilot TN-001, TN-007, TN-009, TN-012, TN-017, TN-020; Monitoring Integration TN-001, TN-004, TN-005, TN-006 |
 | TM-ADR-0017 | Adopt Vertical Slice Minimum Viable Product (MVP) Scoping for Diagnostic Pilot | Diagnostic MVP Pilot TN-001, TN-007, TN-017, TN-020 |
 | TM-ADR-0018 | Adopt Strict Declarative Rulepack Engine and Append-Only Ingestion API | Diagnostic MVP Pilot TN-018, TN-019, TN-020 |
 | TM-ADR-0019 | Adopt Out-of-Band AI Forensic Enrichment Loop for Diagnostic Rule Synthesis | Diagnostic MVP Pilot TN-019, TN-020 |
 | TM-ADR-0020 | Enforce Bounded Incident Notification Delivery Lifecycle and Exponential Backoff Retries | Diagnostic MVP Pilot TN-012, TN-017, TN-020 |
 | TM-ADR-0021 | Adopt Layered Failure Resilience, Container Auto-Healing, and Monitoring Domain Separation | Monitoring Integration TN-002 |
-| TM-ADR-0022 | Adopt JVM Garbage Collection and Concurrency Saturation Signals over Static Raw Thresholds | Monitoring Integration TN-003 |
+| TM-ADR-0022 | Adopt JVM Garbage Collection and Concurrency Saturation Signals over Static Raw Thresholds | Monitoring Integration TN-003, TN-004, TN-005 |
+| TM-ADR-0023 | Adopt Multi-Domain Diagnostic Dispatcher and Mandatory Per-Alert Decision Engine Governance | Monitoring Integration TN-006 |
 
 
 ## 📝 Summary

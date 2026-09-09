@@ -116,10 +116,50 @@ Sistem menegakkan prinsip **Universal Diagnostic Ingestion** ([TM-ADR-0016](../.
 
 ---
 
-## 🎯 5. Roadmap Observabilitas Selanjutnya (JVM Golden Signals)
+### ⚡ Skenario 7: Degradasi Performa Memori & Garbage Collection JVM (`TomcatGCPauseHigh` / `TomcatGCOverheadHigh` / `TomcatOldGenMemoryPressure`)
+* **Pemicu:** JVM mengalami jeda Stop-The-World ekstrem ($> 1.5\text{s}$), waktu CPU terbuang untuk GC ($> 15\%$), atau retensi memori Tenured/Old Gen tetap tinggi ($> 90\%$) secara persisten selama 10 menit (indikasi kebocoran memori).
+* **Deteksi:** Prometheus mengevaluasi aturan di `jvm-workload-performance.yml` ([TM-ADR-0022](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0022.md)).
+* **Alur Eksekusi:**
+  1. Prometheus mengirimkan alert JVM ke Alertmanager.
+  2. Alertmanager merutekan alert secara universal ke Diagnostic Service (TM-ADR-0016).
+  3. Diagnostic Service melalui **Multi-Domain Diagnostic Dispatcher** ([TM-ADR-0023](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0023.md)) merutekan event ke **JVM Memory & GC Engine** (Cabang `GC-01` s/d `GC-04`).
+  4. Laporan investigasi 7-seksi SRE diterbitkan ke Mailpit dengan subjek spesifik `[WARNING] [LAB] Tomcat Service: <AlertName>` dan rekomendasi mitigasi memori/GC (misal: analisis heap dump, tuning parameter GC `-XX:+UseG1GC`, atau peningkatan kapasitas Xmx).
+  5. Saat metrik GC/memori kembali normal, Diagnostic Service menerbitkan laporan pemulihan *RESOLVED*.
 
-Berdasarkan kesepakatan arsitektur untuk menghindari *false positive* dari *static raw threshold* (seperti `Heap > 80%` atau `Threads > 80%`), pengembangan alert rules berbasis JMX Exporter berikutnya akan difokuskan pada:
+### 🚦 Skenario 8: Saturasi Konkurensi & Antrean Thread Pool (`TomcatThreadPoolSaturated`)
+* **Pemicu:** Seluruh worker thread pada connector HTTP Tomcat (`http-nio-8080`) berada dalam kondisi sibuk 100% secara terus-menerus selama 5 menit, berisiko menyebabkan penolakan koneksi (*request starvation*).
+* **Deteksi:** Rasio `tomcat_threads_busy_threads / tomcat_threads_current_threads >= 1.0` bertahan selama `5m`.
+* **Alur Eksekusi:**
+  1. Prometheus mengirim alert `TomcatThreadPoolSaturated` ke Alertmanager.
+  2. Diagnostic Dispatcher merutekan event ke **Concurrency Saturation Engine** (Cabang `TH-01` s/d `TH-03`).
+  3. Laporan diagnostik diterbitkan ke Mailpit dengan rekomendasi audit thread dump, identifikasi slow query/external dependency bottleneck, atau penyesuaian `maxThreads` pada `server.xml`.
+  4. Saat beban koneksi mereda, notifikasi *RESOLVED* diterbitkan secara otomatis.
 
-1. **`TomcatGCPauseHigh` / `TomcatGCOverheadHigh`:** Memantau durasi Stop-The-World (STW > 1.5s) atau inefisiensi CPU akibat GC thrashing (> 15% waktu CPU habis untuk GC).
-2. **`TomcatOldGenMemoryPressure`:** Memantau retensi memori di Old Generation yang tidak turun setelah Full GC (indikasi kuat *memory leak* sebelum terjadinya crash OOM).
-3. **`TomcatThreadPoolExhausted`:** Memantau kondisi thread pool 100% penuh selama durasi tertentu (`for: 5m`) atau terjadinya task rejection (`RejectedExecutionException`).
+---
+
+## 🌲 5. Matriks Lengkap Pohon Keputusan Multi-Domain (Decision Trees)
+
+Sesuai kebijakan tata kelola **Zero Undecided Alerts** ([TM-ADR-0023](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0023.md)), seluruh alert dipetakan ke pohon keputusan resmi berikut:
+
+| Domain Insiden | Alert Rules | Branch ID | Klasifikasi & Confidence | Asesmen Diagnosis Utama | Rekomendasi Tindakan Operator (SOP) |
+| :--- | :--- | :---: | :---: | :--- | :--- |
+| **Runtime Availability** | `TomcatDown` | `TD-01` | `probable_cause` (Medium) | JMX Exporter / TLS scrape path gagal, proses Tomcat tetap berjalan | Periksa port 9404, validitas sertifikat TLS JMX, dan jaringan scraper. |
+| | | `TD-02` | `confirmed_cause` (High) | Kontainer dimatikan paksa oleh Linux cgroup OOM Killer | Periksa log kernel `dmesg`, batas cgroup container, dan heap dump JVM. |
+| | | `TD-03` | `confirmed_cause` (High) | JVM mengalami fatal crash tak terduga | Analisis berkas crash dump `hs_err_pid.log` di direktori kerja Tomcat. |
+| | | `TD-04` | `confirmed_cause` (High) | Kegagalan startup akibat konflik port binding | Periksa port collision pada `server.xml` (port 8080/8443/8005). |
+| | | `TD-05` | `confirmed_cause` (High) | Penghentian layanan terencana (*orderly shutdown*) | Konfirmasi apakah pemeliharaan atau deploy berkala sedang berlangsung. |
+| | | `TD-06` | `undetermined` (null) | Kontainer keluar dengan status tidak diketahui | Periksa exit code Podman dan log konsol `catalina.out`. |
+| | | `TD-07` | `possible_cause` (Medium) | Proses tidak responsif / mengalami freeze panjang | Periksa STW GC pause atau thread deadlock pada JVM. |
+| | | `TD-08` | `undetermined` (null) | Bukti forensik tidak mencukupi / saling bertentangan | Lakukan inspeksi manual menyeluruh terhadap host dan kontainer. |
+| **Application Health** | `TomcatApplicationHealthFailed` | `AH-01` | `confirmed_cause` (High) | Endpoint HTTP `/health` merespons status tidak sehat (HTTP 5xx) | Periksa log servlet aplikasi, connection pool database, dan status backend. |
+| | | `AH-02` | `probable_cause` (Medium) | Endpoint HTTP `/health` mengalami timeout (> 5 detik) | Analisis latensi I/O backend dan thread contention pada servlet. |
+| | `TomcatApplicationHealthMetricsMissing` | `AH-03` | `probable_cause` (Medium) | Metrik `http_response` Telegraf hilang dari serial eksposur | Periksa konfigurasi input plugin Telegraf dan URL probe `/health`. |
+| | `TelegrafHealthScrapeUnavailable` | `AH-04` | `confirmed_cause` (High) | Daemon kolektor Telegraf tidak dapat di-scrape / mati | Periksa container Telegraf dan jaringan internal `devops-lab`. |
+| | | `AH-05` | `undetermined` (null) | Status kesehatan aplikasi tidak dapat ditentukan | Lakukan verifikasi curl manual ke endpoint `:8080/health`. |
+| **JVM Memory & GC** | `TomcatGCPauseHigh` | `GC-01` | `confirmed_cause` (High) | Jeda Stop-The-World GC ekstrem (> 1.5s) menyebabkan freeze | Tuning parameter GC JVM (misal: `-XX:MaxGCPauseMillis=200`, `-XX:+UseG1GC`). |
+| | `TomcatGCOverheadHigh` | `GC-02` | `confirmed_cause` (High) | CPU Thrashing: > 15% waktu komputasi habis untuk Garbage Collection | Alokasikan heap `-Xmx` lebih besar atau reduksi laju alokasi objek pendek. |
+| | `TomcatOldGenMemoryPressure` | `GC-03` | `probable_cause` (High) | Retensi memori Old Generation > 90% persisten (Indikasi Memory Leak) | Lakukan capture heap dump (`jmap`) dan profiling memori untuk mencari leak. |
+| | | `GC-04` | `undetermined` (null) | Sinyal telemetri GC/memori tidak konklusif | Analisis log GC interaktif (`-Xlog:gc*`). |
+| **Concurrency Saturation** | `TomcatThreadPoolSaturated` | `TH-01` | `confirmed_cause` (High) | Thread pool HTTP Connector 100% jenuh secara persisten (> 5m) | Naikkan `maxThreads` pada `server.xml` atau optimasi waktu eksekusi handler. |
+| | | `TH-02` | `probable_cause` (Medium) | Antrean request penuh berisiko penolakan koneksi (*starvation*) | Periksa `acceptCount` connector dan bottleneck downstream. |
+| | | `TH-03` | `undetermined` (null) | Sinyal konkurensi tidak konklusif | Lakukan thread dump (`jstack`) untuk mengidentifikasi thread locks. |

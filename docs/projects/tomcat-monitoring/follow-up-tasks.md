@@ -159,6 +159,23 @@ Kategori ini merupakan prioritas utama (*Critical*) untuk mengantisipasi keterba
   - Verifikasi live runtime insiden (`verify-jvm-workload-live.sh`) membuktikan transisi 4 alert JVM (`TomcatGCPauseHigh`, `TomcatThreadPoolSaturated`, `TomcatGCOverheadHigh`, `TomcatOldGenMemoryPressure`) hingga status firing dan recovery.
   - SQLite database Diagnostic Service merekam seluruh 30 event alert secara persisten, dan Mailpit merekam Laporan Investigasi 7-Seksi SRE resmi dari pengirim `diagnostic@tomcat-monitoring.invalid`.
 
+#### TASK-TM-018: Implementasi Multi-Domain Diagnostic Dispatcher & Built-in Decision Engines
+
+- **Status:** `In Progress` 🟡
+- **Deskripsi:**
+  Mengembangkan arsitektur Dispatcher modular di `tomcat-diagnostic-service` untuk mendistribusikan evaluasi alert berdasarkan `event.labels.alertname` ke 4 sub-engine domain resmi (`TD-xx`, `AH-xx`, `GC-xx`, `TH-xx`) serta mempreservasi identitas `ruleId` pada subjek notifikasi email dan laporan 7-seksi SRE sesuai **TM-ADR-0023** (*Zero Undecided Alerts*).
+- **Kebutuhan Teknis:**
+  - Implementasi `src/domain/application-health-engine.js` (Cabang `AH-01` s/d `AH-05`).
+  - Implementasi `src/domain/jvm-workload-engine.js` (Cabang `GC-01` s/d `GC-04`).
+  - Implementasi `src/domain/concurrency-engine.js` (Cabang `TH-01` s/d `TH-03`).
+  - Implementasi `src/domain/diagnostic-dispatcher.js` yang merutekan Layer 2 Dynamic Custom Rules dan Layer 1 Built-in Domain Engines.
+  - Penyesuaian `diagnostic-worker.js`, `canonical-result.js`, dan `result-renderer.js` untuk preservasi nama alert dinamis.
+  - Pembangunan image baru `localhost/tomcat-diagnostic-service:0.1.5` dan verifikasi live runtime beban kerja JVM.
+- **Kriteria Penerimaan (*Acceptance Criteria*):**
+  - Setiap alert yang masuk diproses oleh sub-engine domain yang tepat.
+  - Subjek email di Mailpit secara akurat menampilkan nama alert asli (`TomcatGCPauseHigh`, `TomcatThreadPoolSaturated`, dll) bukan hardcoded `TomcatDown`.
+  - Seluruh unit test domain engine dan dispatcher lulus 100%.
+
 ---
 
 ### Kategori 2: Ketahanan Mesin Status & Penyimpanan Persisten (Mitigasi TM-ADR-0015)
@@ -350,6 +367,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-002** | Alert Rule `DiagnosticServiceDown` | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0016 | Prometheus | Alert firing saat service mati > 1m |
 | **TASK-TM-003** | Direct SMTP Emergency Route Alertmanager | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0016 | Alertmanager | Email darurat ke Mailpit bypass webhook |
 | **TASK-TM-017** | Migrasi Universal Ingestion Alertmanager | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0016 | Alertmanager / DS | Seluruh alert diarahkan ke Diagnostic Service |
+| **TASK-TM-018** | Multi-Domain Diagnostic Dispatcher | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0023 | Diagnostic Service | Dispatcher modular 4 domain engine & fidelity alertname |
 | **TASK-TM-004** | Stale Lock Recovery Worker SQLite | **P1 (High)** | `Planned` 📋 | TM-ADR-0015 | Diagnostic Service | Re-queue otomatis event status processing |
 | **TASK-TM-005** | Housekeeping & Retention DB SQLite | **P1 (High)** | `Planned` 📋 | TM-ADR-0015 | Diagnostic Service | Pembersihan data lama & disk terkendali |
 | **TASK-TM-013** | Persistent Volume Mount Log Tomcat | **P1 (High)** | `Planned` 📋 | TN-019 / GAP-006 | Tomcat Runtime / DS | Log container live terbaca otomatis oleh DS |
