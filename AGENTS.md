@@ -69,6 +69,11 @@ project yang didokumentasikan.
 - Nyatakan `Completed` atau `Verified` hanya jika expected result, actual result,
   dan evidence yang diwajibkan dapat dibedakan dan seluruhnya mendukung klaim.
 
+## Site Build and Deployment
+
+- Untuk membangun dokumentasi dan menyinkronkan ke web server publik (`devops-handbook-site`), SELALU jalankan `./scripts/build-and-sync-site.sh`.
+- Dilarang keras menjalankan perintah `rsync` manual ke direktori deployment root (`~/git/devops-handbook-site/`) karena berisiko merusak struktur mount `/site` dan mematikan kontainer web server NGINX.
+
 ## Git and External State
 
 - Jangan menjalankan `git commit`, `git push`, membuat tag atau release, atau
