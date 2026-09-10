@@ -48,47 +48,47 @@ Namun, muncul keterbatasan struktural:
 
 Oleh karena itu, `TASK-TM-004` dan `TASK-TM-005` dirumuskan sebagai langkah wajib sebelum sistem observabilitas dihubungkan dengan pengumpul bukti live yang lebih kompleks.
 
-## 💡 Konsep Inti: Mengapa Self-Management SQLite Ini Diperlukan?
+## 💡 Core Concept: Why Is Self-Managed SQLite Required?
 
-Diagnostic Service didesain menggunakan **Embedded SQLite** ([TM-ADR-0013](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0013.md)) yang berjalan langsung di dalam kontainer tanpa bantuan server database eksternal (seperti PostgreSQL atau MySQL) dan tanpa peran tim administrator database (DBA) khusus.
+Diagnostic Service is designed with **Embedded SQLite** ([TM-ADR-0013](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0013.md)) running directly within the container without an external database server (such as PostgreSQL or MySQL) and without dedicated Database Administrator (DBA) oversight.
 
-Konsekuensinya, Diagnostic Service **wajib memiliki kemampuan mengelola dan memelihara database SQLite-nya sendiri (*self-managed / autonomous engine*)**, yang mencakup **3 pilar utama**:
+Consequently, Diagnostic Service **must possess autonomous capabilities to manage, maintain, and recover its own SQLite database (*self-managed / autonomous engine*)**, built upon **3 core pillars**:
 
 ```text
 +-----------------------------------------------------------------------------+
 |               Self-Managed SQLite Lifecycle in Diagnostic Service           |
 +-----------------------------------------------------------------------------+
 | 1. Self-Healing State Recovery (TASK-TM-004):                                |
-|    Mendeteksi & memulihkan antrean macet (stale processing lock) pasca-crash|
-|    secara otomatis tanpa intervensi manual operator / DBA.                  |
+|    Detect & recover stuck queues (stale processing locks) post-crash        |
+|    automatically without manual operator or DBA intervention.               |
 +-----------------------------------------------------------------------------+
 | 2. Automated Storage Housekeeping & Pruning (TASK-TM-005):                  |
-|    Memangkas event/log lama (> 30 hari) secara teratur & menjalankan        |
-|    PRAGMA incremental_vacuum untuk mencegah kebocoran disk (bounded storage).|
+|    Prune stale events/logs (> 30 days) regularly and run                    |
+|    PRAGMA incremental_vacuum to prevent disk leaks (bounded storage).       |
 +-----------------------------------------------------------------------------+
 | 3. Autonomous Storage Telemetry & Quota Guard:                              |
-|    Memantau ukuran file fisik database (diagnostic_db_size_bytes) dan       |
-|    mengeksposnya ke Prometheus untuk pemantauan kapasitas host.             |
+|    Monitor physical database file size (diagnostic_db_size_bytes) and       |
+|    expose it to Prometheus for host capacity monitoring.                    |
 +-----------------------------------------------------------------------------+
 ```
 
 ---
 
-### 🎯 3 Aspek Self-Manage yang Telah Terpasang di v0.1.6:
+### 🎯 3 Self-Management Aspects Implemented in v0.1.6:
 
 1. **Self-Healing State & Crash Resilience ([TASK-TM-004](../../follow-up-tasks.md#task-tm-004-implementasi-stale-lock-recovery-pada-worker-ingestion)):**
-   - Jika kontainer mati mendadak saat worker sedang menganalisis insiden, event tidak akan menjadi *"zombie"* yang tertinggal selamanya di status `processing`.
-   - Saat aplikasi hidup kembali, metode [`sqlite-repository.js:166-194`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/adapters/sqlite-repository.js#L166-L194) secara mandiri mengembalikan tugas ke status `queued` dengan counter `retry_count`, sehingga analisis otomatis dilanjutkan tanpa intervensi manusia.
-   - Jika suatu tugas berulang kali memicu crash hingga melampaui batas maksimum (`maxRetries = 3`), statusnya diubah menjadi `failed` untuk mencegah *infinite crash loop*.
+   - If the container abruptly terminates while the worker is actively analyzing an incident, the event will not become an orphaned *"zombie"* permanently trapped in the `processing` state.
+   - When the service restarts, the [`sqlite-repository.js:166-194`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/adapters/sqlite-repository.js#L166-L194) method autonomously returns the task to the `queued` state with an incremented `retry_count`, enabling automated analysis resumption without human intervention.
+   - If a recurring task repeatedly triggers crashes exceeding the maximum limit (`maxRetries = 3`), its state is transitioned to `failed` to prevent an *infinite crash loop*.
 
 2. **Automated Data Lifecycle & Disk Guard ([TASK-TM-005](../../follow-up-tasks.md#task-tm-005-penjadwalan-housekeeping--pruning-database-sqlite)):**
-   - Tanpa cron job eksternal, aplikasi menjalankan metode [`sqlite-repository.js:196-235`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/adapters/sqlite-repository.js#L196-L235) pada startup dan secara berkala di worker loop.
-   - Record lama yang melewati batas retensi (> 30 hari) dihapus secara terurut (*Foreign-Key Safe*: `evidence_summaries` $\rightarrow$ `notification_attempts` $\rightarrow$ `canonical_results` $\rightarrow$ `work_queue` $\rightarrow$ `events` $\rightarrow$ `requests` $\rightarrow$ resolved `incidents`).
-   - Ruang disk kosong dikembalikan ke OS melalui `PRAGMA incremental_vacuum;` agar ukuran file database tetap berbatas (*bounded storage*).
+   - Without requiring an external OS cron job, the application executes [`sqlite-repository.js:196-235`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/adapters/sqlite-repository.js#L196-L235) during startup and periodically within the worker idle loop.
+   - Historical records exceeding the retention window (> 30 days) are pruned in strict referential *Foreign Key* dependency order: `evidence_summaries` $\rightarrow$ `notification_attempts` $\rightarrow$ `canonical_results` $\rightarrow$ `work_queue` $\rightarrow$ `events` $\rightarrow$ `requests` $\rightarrow$ resolved `incidents`.
+   - Free disk space is reclaimed back to the host filesystem via `PRAGMA incremental_vacuum;` to guarantee *bounded storage* growth.
 
 3. **Self-Monitoring Metrics (Autonomous Telemetry):**
-   - Aplikasi secara mandiri mengukur ukuran aktual berkas database pada disk (`page_count * page_size`) via [`sqlite-repository.js:237-244`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/adapters/sqlite-repository.js#L237-L244).
-   - Metrik `diagnostic_db_size_bytes` dan `diagnostic_housekeeping_runs_total` diekspos langsung ke Prometheus, memastikan tim SRE memiliki visibilitas penuh terhadap kesehatan storage lokal tanpa perlu login manual ke server.
+   - The application autonomously measures actual physical database size on disk (`page_count * page_size`) via [`sqlite-repository.js:237-244`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/adapters/sqlite-repository.js#L237-L244).
+   - Metrics `diagnostic_db_size_bytes` and `diagnostic_housekeeping_runs_total` are exposed directly to Prometheus, ensuring SRE teams have full visibility into local storage health without needing manual server logins.
 
 ---
 
