@@ -161,20 +161,24 @@ Kategori ini merupakan prioritas utama (*Critical*) untuk mengantisipasi keterba
 
 #### TASK-TM-018: Implementasi Multi-Domain Diagnostic Dispatcher & Built-in Decision Engines
 
-- **Status:** `In Progress` 🟡
+- **Status:** `Completed` ✅
 - **Deskripsi:**
   Mengembangkan arsitektur Dispatcher modular di `tomcat-diagnostic-service` untuk mendistribusikan evaluasi alert berdasarkan `event.labels.alertname` ke 4 sub-engine domain resmi (`TD-xx`, `AH-xx`, `GC-xx`, `TH-xx`) serta mempreservasi identitas `ruleId` pada subjek notifikasi email dan laporan 7-seksi SRE sesuai **TM-ADR-0023** (*Zero Undecided Alerts*).
 - **Kebutuhan Teknis:**
   - Implementasi `src/domain/application-health-engine.js` (Cabang `AH-01` s/d `AH-05`).
   - Implementasi `src/domain/jvm-workload-engine.js` (Cabang `GC-01` s/d `GC-04`).
   - Implementasi `src/domain/concurrency-engine.js` (Cabang `TH-01` s/d `TH-03`).
-  - Implementasi `src/domain/diagnostic-dispatcher.js` yang merutekan Layer 2 Dynamic Custom Rules dan Layer 1 Built-in Domain Engines.
+  - Implementasi `src/domain/rulepack-loader.js` yang merutekan Layer 2 Dynamic Custom Rules dan Layer 1 Built-in Domain Engines.
   - Penyesuaian `diagnostic-worker.js`, `canonical-result.js`, dan `result-renderer.js` untuk preservasi nama alert dinamis.
   - Pembangunan image baru `localhost/tomcat-diagnostic-service:0.1.5` dan verifikasi live runtime beban kerja JVM.
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
   - Setiap alert yang masuk diproses oleh sub-engine domain yang tepat.
   - Subjek email di Mailpit secara akurat menampilkan nama alert asli (`TomcatGCPauseHigh`, `TomcatThreadPoolSaturated`, dll) bukan hardcoded `TomcatDown`.
   - Seluruh unit test domain engine dan dispatcher lulus 100%.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Lulus 54 unit test domain engines dan dispatcher pada `test/unit/domain-engines.test.js`.
+  - Image `localhost/tomcat-diagnostic-service:0.1.5` diverifikasi live melalui `verify-jvm-workload-live.sh`.
+  - Didokumentasikan secara lengkap pada [TN-006](engineering-journal/monitoring-platform-integration/TN-006-implement-multi-domain-diagnostic-dispatcher-and-decision-engines.md) dan [TM-ADR-0023](../../adr/tomcat-monitoring/adr-records/TM-ADR-0023.md).
 
 ---
 
@@ -184,27 +188,42 @@ Kategori ini menindaklanjuti konsekuensi teknis pada **TM-ADR-0015** (*Adopt Asy
 
 #### TASK-TM-004: Implementasi Stale Lock Recovery pada Worker Ingestion
 
+- **Status:** `Completed` ✅
 - **Deskripsi:**
-  Membangun mekanisme pemulihan otomatis untuk event alert yang tertahan di status `processing` akibat container Diagnostic Service restart mendadak di tengah proses analisis.
+  Membangun mekanisme pemulihan otomatis untuk event alert yang tertahan di status `processing` akibat container Diagnostic Service restart mendadak di tengah proses analisis (*zero orphaned processing events*).
 - **Kebutuhan Teknis:**
-  - Penambahan kolom `lease_expires_at` atau audit `updated_at` pada tabel `alert_events`.
-  - Saat worker inisialisasi pada startup:
-    1. Cari event dengan status `processing` yang memiliki usia lock lebih lama dari ambang batas toleransi (misal: > 300 detik).
-    2. Kembalikan status event menjadi `pending` disertai penambahan counter `retry_count` dan pencatatan log interupsi crash.
-    3. Jika `retry_count` telah melampaui batas maksimum (misal: 3 kali), tandai sebagai `failed` dan buat alert diagnostik khusus agar tidak terjadi perulangan tanpa henti (*infinite crash loop*).
+  - Penambahan kolom `retry_count` dan `lease_expires_at` pada tabel `work_queue` melalui migrasi `007-stale-lock-recovery-and-retention.sql`.
+  - Pada `SqliteRepository.claimNext()`: sematkan batas waktu sewa `lease_expires_at = now + timeoutMs`.
+  - Metode `recoverStaleLocks({ timeoutMs, maxRetries })`:
+    1. Cari event dengan status `processing` yang memiliki usia lock kadaluwarsa (`started_at <= cutoff` atau `lease_expires_at <= now`).
+    2. Jika `retry_count < maxRetries`: kembalikan status event menjadi `queued`, kosongkan lease, dan lakukan increment `retry_count`.
+    3. Jika `retry_count >= maxRetries`: tandai sebagai `failed` untuk mencegah *infinite crash loop*.
+  - Eksekusi pemulihan otomatis saat startup `DiagnosticApplication.start()` dan periodik pada worker loop.
+  - Metrik Prometheus: `diagnostic_stale_locks_recovered_total` dan `diagnostic_stale_locks_exhausted_total`.
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
-  - Event yang sengaja diinterupsi dengan `kill -9` saat berstatus `processing` dapat dipulihkan secara otomatis dan diselesaikan hingga berstatus `completed` setelah container aktif kembali.
+  - Event yang terinterupsi saat berstatus `processing` secara otomatis dipulihkan ke `queued` dan dieksekusi hingga `completed` setelah container di-restart.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Unit test `test/unit/stale-lock-and-retention.test.js` membuktikan pemulihan status, kenaikan retry counter, dan transisi ke `failed` saat limit tercapai.
+  - Injeksi event stale live (`event_id = 39`) pada container `diagnostic-service` diverifikasi sukses pulih pasca-restart: status `processing` $\rightarrow$ `completed` (`retry_count = 1`), metrik `diagnostic_stale_locks_recovered_total = 1`, dan email laporan terkirim ke Mailpit.
+  - Didokumentasikan pada [TN-007](engineering-journal/monitoring-platform-integration/TN-007-implement-stale-lock-recovery-and-sqlite-state-resilience.md).
 
 #### TASK-TM-005: Penjadwalan Housekeeping & Pruning Database SQLite
 
+- **Status:** `Completed` ✅
 - **Deskripsi:**
   Mengimplementasikan rutinitas pembersihan otomatis (*retention cleanup*) pada database SQLite untuk membatasi ukuran disk persisten sesuai Service Level Objective (SLO).
 - **Kebutuhan Teknis:**
-  - Hapus rekam data `alert_events`, `canonical_results`, dan `delivery_attempts` yang berusia lebih dari kebijakan retensi (misal: 30 hari).
-  - Jalankan perintah SQLite `PRAGMA incremental_vacuum` atau `VACUUM` terjadwal di luar jam sibuk.
-  - Tambahkan metrik Prometheus kustom untuk memantau ukuran file SQLite (`diagnostic_db_size_bytes`) dan jumlah record aktif.
+  - Metode atomik `pruneHistoricalRecords({ retentionDays })` pada `SqliteRepository`:
+    - Hapus rekam data kadaluwarsa dalam urutan relasi *Foreign Key* (`evidence_summaries`, `notification_attempts`, `canonical_results`, `work_queue`, `events`, `requests`, dan resolved `incidents`).
+    - Jalankan perintah SQLite `PRAGMA incremental_vacuum`.
+  - Tambahkan gauge metrik Prometheus `diagnostic_db_size_bytes` dan counter `diagnostic_housekeeping_runs_total`.
+  - Eksekusi pada startup aplikasi dan loop berkala.
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
-  - Database SQLite tidak melampaui alokasi volume maksimum dan data yang kedaluwarsa dibersihkan secara konsisten tanpa mengunci transaksi aktif.
+  - Data historis yang melewati batas retensi dibersihkan secara konsisten tanpa melanggar *Foreign Key constraints* dan ukuran file database terpantau via metrik.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Unit test `test/unit/stale-lock-and-retention.test.js` memvalidasi penghapusan terurut dan preservasi insiden aktif.
+  - Metrik live pada endpoint `/metrics` mengekspos `diagnostic_housekeeping_runs_total 1` dan `diagnostic_db_size_bytes 303104`.
+  - Didokumentasikan pada [TN-007](engineering-journal/monitoring-platform-integration/TN-007-implement-stale-lock-recovery-and-sqlite-state-resilience.md).
 
 ---
 
@@ -368,8 +387,8 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-003** | Direct SMTP Emergency Route Alertmanager | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0016 | Alertmanager | Email darurat ke Mailpit bypass webhook |
 | **TASK-TM-017** | Migrasi Universal Ingestion Alertmanager | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0016 | Alertmanager / DS | Seluruh alert diarahkan ke Diagnostic Service |
 | **TASK-TM-018** | Multi-Domain Diagnostic Dispatcher | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0023 | Diagnostic Service | Dispatcher modular 4 domain engine & fidelity alertname |
-| **TASK-TM-004** | Stale Lock Recovery Worker SQLite | **P1 (High)** | `Planned` 📋 | TM-ADR-0015 | Diagnostic Service | Re-queue otomatis event status processing |
-| **TASK-TM-005** | Housekeeping & Retention DB SQLite | **P1 (High)** | `Planned` 📋 | TM-ADR-0015 | Diagnostic Service | Pembersihan data lama & disk terkendali |
+| **TASK-TM-004** | Stale Lock Recovery Worker SQLite | **P1 (High)** | `Completed` ✅ | TM-ADR-0015 | Diagnostic Service | Re-queue otomatis event status processing (TN-007) |
+| **TASK-TM-005** | Housekeeping & Retention DB SQLite | **P1 (High)** | `Completed` ✅ | TM-ADR-0015 | Diagnostic Service | Pembersihan data lama & disk terkendali (TN-007) |
 | **TASK-TM-013** | Persistent Volume Mount Log Tomcat | **P1 (High)** | `Planned` 📋 | TN-019 / GAP-006 | Tomcat Runtime / DS | Log container live terbaca otomatis oleh DS |
 | **TASK-TM-014** | Daemonization Restricted Event Collector | **P1 (High)** | `Planned` 📋 | TN-016 / GAP-002 | Event Collector | Collector berjalan sebagai systemd user service |
 | **TASK-TM-015** | Enterprise SMTP Relay Configuration | **P1 (High)** | `Planned` 📋 | GAP-014 | Diagnostic Service | Notifikasi terkirim via relay SMTP TLS resmi |
