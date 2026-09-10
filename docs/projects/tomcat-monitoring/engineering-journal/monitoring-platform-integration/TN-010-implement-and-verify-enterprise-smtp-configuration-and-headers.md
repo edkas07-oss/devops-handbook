@@ -113,13 +113,24 @@ Implementasi ini menegakkan keputusan arsitektur platform:
 ## 🔄 Technical Architecture & Configuration Layout
 
 ```mermaid
-flowchart LR
-    AM["Alertmanager<br/>(Webhook v4)"] -->|HTTPS POST :8443| DS["Diagnostic Service v0.1.8<br/>(diagnostic-service)"]
-    DS -->|1. Evaluasi Bukti & Rule Engine| DB[("SQLite Database<br/>(diagnostic_data)")]
-    DS -->|2. Format Laporan SRE + RFC Headers| SA["SmtpAdapter<br/>(requireTLS: true)"]
-    SA -->|3. Port 587: STARTTLS + SASL PLAIN| PR["Enterprise Relay Bridge<br/>(postfix-relay:587)"]
-    PR -->|4. Downstream Relay :1025| MP["Mailpit Container<br/>(mailpit:1025)"]
-    MP -->|5. SRE Inspection :8025| SRE["SRE Operations Viewer<br/>(http://localhost:8025)"]
+%%{init: {themeVariables: { fontSize: 12px }}}%%
+flowchart TD
+    subgraph INGEST["1. Alert Ingestion & Analysis"]
+        AM["Alertmanager Webhook<br/>(:8443)"] --> DS["Diagnostic Service v0.1.8<br/>(Rulepack Engine)"]
+        DS <--> DB[("SQLite Database<br/>(diagnostic_data)")]
+    end
+
+    subgraph RELAY["2. Enterprise Secure SMTP Relay"]
+        SA["SmtpAdapter<br/>(requireTLS: true)"] -->|Port 587: STARTTLS<br/>+ SASL PLAIN| PR["Enterprise Relay Bridge<br/>(postfix-relay:587)"]
+        PR -->|Downstream Relay<br/>Port 1025| MP["Mailpit Container<br/>(mailpit:1025)"]
+    end
+
+    subgraph AUDIT["3. Inspection & Verification"]
+        SRE["SRE Operations Viewer<br/>(Mailpit UI :8025)"]
+    end
+
+    DS -->|Laporan 7-Seksi & RFC Headers| SA
+    MP -->|Pemeriksaan RFC Headers & Delivery| SRE
 ```
 
 ### 1. Peta Lokasi Berkas Konfigurasi & Secrets
