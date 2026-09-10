@@ -354,16 +354,21 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 
 #### TASK-TM-013: Integrasi Shared Persistent Volume Mount untuk Log Runtime Tomcat (Kesiapan Produksi TN-019)
 
+- **Status:** `Completed` ✅ (TN-008)
 - **Deskripsi:**
-  Mengonfigurasi volume mount persisten antara container runtime Tomcat (`tomcat-jmx-exporter`) dan host/Diagnostic Service agar log aplikasi real-time (`catalina.out`) dapat dibaca langsung oleh Diagnostic Service tanpa bergantung pada injeksi manual atau mock fixture pengujian.
+  Mengonfigurasi volume mount persisten antara container runtime Tomcat (`tomcat-jmx-exporter`) dan host/Diagnostic Service agar log aplikasi real-time (`catalina.out` dan `catalina.YYYY-MM-DD.log`) dapat dibaca langsung oleh Diagnostic Service tanpa bergantung pada injeksi manual atau mock fixture pengujian.
 - **Kebutuhan Teknis:**
   - Perbarui skrip peluncuran container Tomcat ([`scripts/run.sh`](file:///home/eddywiyatno/git/tomcat-jmx-exporter/scripts/run.sh) & [`scripts/deploy-tomcat.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-tomcat.sh)) untuk menyertakan volume mount:
-    `--volume "/tmp/tomcat-logs:/usr/local/tomcat/logs:z"` (atau volume persisten terstandarisasi).
+    `--volume "/tmp/tomcat-logs:/usr/local/tomcat/logs:z"`.
   - Pastikan hak akses direktori log host (`0755` / `0775`) dapat dibaca oleh user rootless Diagnostic Service secara *read-only* (`:ro,z`).
   - Verifikasi bahwa log aplikasi yang ditulis saat startup atau error runtime secara otomatis terbaca oleh `bounded-file-reader` pada `diagnostic-service`.
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
-  - Log runtime container Tomcat hidup tersinkronisasi langsung ke mount `/run/tomcat-diagnostic/logs/catalina.out` pada Diagnostic Service.
+  - Log runtime container Tomcat hidup tersinkronisasi langsung ke mount `/run/tomcat-diagnostic/logs/catalina.out` (atau daily log) pada Diagnostic Service.
   - Skenario diagnosis kegagalan aplikasi nyata (seperti error connection pool, OOM, atau bind exception) dapat dievaluasi secara otomatis dari log asli tanpa intervensi penulisan manual `echo`.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Parameter volume `--volume "/tmp/tomcat-logs:/usr/local/tomcat/logs:z"` dipasang pada `tomcat-jmx-exporter/scripts/run.sh`.
+  - Verifikasi live runtime membuktikan berkas `catalina.2026-09-10.log` terbentuk otomatis dan cuplikan log tersaji pada Seksi 4 (*Correlated Log Evidence*) di laporan email Mailpit.
+  - Didokumentasikan pada [TN-008](engineering-journal/monitoring-platform-integration/TN-008-integrate-live-prometheus-evidence-adapter-and-shared-persistent-logs.md).
 
 #### TASK-TM-014: Otomatisasi Service & Daemonization Event Collector (Kesiapan Produksi TN-016)
 
@@ -389,14 +394,19 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 
 #### TASK-TM-016: Integrasi Live Prometheus Evidence Adapter pada Application Lifecycle (Kesiapan Produksi Metrik)
 
+- **Status:** `Completed` ✅ (TN-008)
 - **Deskripsi:**
   Menghubungkan modul `PrometheusAdapter` ke dalam fungsi pengumpul bukti live `createDefaultEvidenceCollector` pada `src/application/application.js` dan menyertakan `prometheusSelector` pada allowlist `targets.json` di runtime deployment.
 - **Kebutuhan Teknis:**
   - Panggil `prometheusAdapter.query()` saat worker mengeksekusi analisis insiden `firing`.
-  - Tambahkan konfigurasi `prometheusSelector` (misal: `job="tomcat-jmx-exporter", instance="lab-tomcat-01"`) pada target allowlist.
+  - Tambahkan konfigurasi `prometheusSelector` (misal: `job="tomcat-jmx-exporter",instance="tomcat-jmx-exporter:9404"`) pada target allowlist.
   - Pastikan timeout agresif (5000ms) tidak memblokir rantai evaluasi bukti lainnya jika Prometheus tidak responsif.
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
   - Snapshot metrik live (memory pool, thread busy, scrape health) secara otomatis terlampir pada `evidence_summaries` di database SQLite saat insiden `TomcatDown` diproses.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Skema konfigurasi diperbarui (`application-config-v1.schema.json`) dan diverifikasi melalui 61 unit dan integration tests (100% pass).
+  - Snapshot metrik live `up`, `jvm_memory_pool_used_bytes`, dan `tomcat_threads_busy_threads` tersimpan di SQLite `evidence_summaries` dan dirender pada Seksi 3 (*Key Metrics Snapshot*) Laporan SRE di Mailpit.
+  - Didokumentasikan pada [TN-008](engineering-journal/monitoring-platform-integration/TN-008-integrate-live-prometheus-evidence-adapter-and-shared-persistent-logs.md).
 
 ---
 
@@ -411,10 +421,10 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-018** | Multi-Domain Diagnostic Dispatcher | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0023 | Diagnostic Service | Dispatcher modular 4 domain engine & fidelity alertname |
 | **TASK-TM-004** | Stale Lock Recovery Worker SQLite | **P1 (High)** | `Completed` ✅ | TM-ADR-0015 | Diagnostic Service | Re-queue otomatis event status processing (TN-007) |
 | **TASK-TM-005** | Housekeeping & Retention DB SQLite | **P1 (High)** | `Completed` ✅ | TM-ADR-0015 | Diagnostic Service | Pembersihan data lama & disk terkendali (TN-007) |
-| **TASK-TM-013** | Persistent Volume Mount Log Tomcat | **P1 (High)** | `Planned` 📋 | TN-019 / GAP-006 | Tomcat Runtime / DS | Log container live terbaca otomatis oleh DS |
+| **TASK-TM-013** | Persistent Volume Mount Log Tomcat | **P1 (High)** | `Completed` ✅ | TN-019 / TN-008 | Tomcat Runtime / DS | Log container live terbaca otomatis oleh DS (TN-008) |
 | **TASK-TM-014** | Daemonization Restricted Event Collector | **P1 (High)** | `Planned` 📋 | TN-016 / GAP-002 | Event Collector | Collector berjalan sebagai systemd user service |
 | **TASK-TM-015** | Enterprise SMTP Relay Configuration | **P1 (High)** | `Planned` 📋 | GAP-014 | Diagnostic Service | Notifikasi terkirim via relay SMTP TLS resmi |
-| **TASK-TM-016** | Live Prometheus Evidence Wire-up | **P1 (High)** | `Planned` 📋 | GAP-004 / TN-006 | Diagnostic Service | Metrik live otomatis terlampir di evidence |
+| **TASK-TM-016** | Live Prometheus Evidence Wire-up | **P1 (High)** | `Completed` ✅ | GAP-004 / TN-008 | Diagnostic Service | Metrik live otomatis terlampir di evidence (TN-008) |
 | **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | `Planned` 📋 | TM-ADR-0014 | Diagnostic Service | Log persisten tindakan manual SRE |
 | **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Rule saturasi thread pool 100% (TN-004) |
 | **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Sinyal Emas GC Pause, Overhead, Old Gen (TN-004) |

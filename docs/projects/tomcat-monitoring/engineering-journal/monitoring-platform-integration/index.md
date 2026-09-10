@@ -34,6 +34,7 @@ Mengintegrasikan seluruh subsistem monitoring dan diagnostik ke dalam satu kesat
 | **JVM GC & Concurrency Live Verification** | Verifikasi empiris live runtime (firing & resolved lifecycle) dan pengiriman email Mailpit | Completed (TN-005) |
 | **Multi-Domain Diagnostic Engine & Dispatcher** | Implementasi Dispatcher dan 4 Decision Engine domain baku (AH, GC, TH, TD) dengan prinsip Zero Undecided Alerts (TM-ADR-0023) | Completed (TN-006) |
 | **SQLite State Resilience & Retention** | Implementasi Stale Lock Recovery, bounded retry limit, dan retention housekeeping pada SQLite (TM-ADR-0015) | Completed (TN-007) |
+| **Live Prometheus Evidence & Persistent Logs** | Integrasi PrometheusAdapter live, shared persistent log mount, dan laporan 7-seksi SRE utuh (TASK-TM-016 & TASK-TM-013) | Completed (TN-008) |
 
 ## 📄 Technical Notes
 
@@ -64,6 +65,10 @@ Mengintegrasikan seluruh subsistem monitoring dan diagnostik ke dalam satu kesat
 7. **[TN-007 — Implement Stale Lock Recovery and SQLite State Resilience](TN-007-implement-stale-lock-recovery-and-sqlite-state-resilience.md)**
 
     Mengimplementasikan pemulihan otomatis antrean macet (*stale lock recovery* dengan batas waktu sewa dan batasan *retry* maksimum), pencegahan *infinite crash loop*, rutinitas *housekeeping & foreign-key safe retention pruning* data historis, serta metrik observabilitas ukuran database SQLite pada Diagnostic Service v0.1.6 sesuai mitigasi [TM-ADR-0015](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md).
+
+8. **[TN-008 — Integrate Live Prometheus Evidence Adapter and Shared Persistent Tomcat Logs](TN-008-integrate-live-prometheus-evidence-adapter-and-shared-persistent-logs.md)**
+
+    Menghubungkan `PrometheusAdapter` ke dalam fungsi pengumpul bukti live `createDefaultEvidenceCollector` pada `application.js`, mengonfigurasi shared persistent volume mount log Tomcat ke host (`/tmp/tomcat-logs` ke `/usr/local/tomcat/logs:z`), mendukung pembacaan log runtime asli (`catalina.out` dan fallback log harian), serta memverifikasi keterisian penuh Seksi 3 (*Key Metrics Snapshot*) dan Seksi 4 (*Correlated Log Evidence*) pada Laporan Investigasi 7-Seksi SRE ke Mailpit.
 
 ## 🎓 Lessons Learned
 
