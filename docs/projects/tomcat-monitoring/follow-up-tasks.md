@@ -359,14 +359,14 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
   Mengonfigurasi volume mount persisten antara container runtime Tomcat (`tomcat-jmx-exporter`) dan host/Diagnostic Service agar log aplikasi real-time (`catalina.out` dan `catalina.YYYY-MM-DD.log`) dapat dibaca langsung oleh Diagnostic Service tanpa bergantung pada injeksi manual atau mock fixture pengujian.
 - **Kebutuhan Teknis:**
   - Perbarui skrip peluncuran container Tomcat ([`scripts/run.sh`](file:///home/eddywiyatno/git/tomcat-jmx-exporter/scripts/run.sh) & [`scripts/deploy-tomcat.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-tomcat.sh)) untuk menyertakan volume mount:
-    `--volume "/tmp/tomcat-logs:/usr/local/tomcat/logs:z"`.
-  - Pastikan hak akses direktori log host (`0755` / `0775`) dapat dibaca oleh user rootless Diagnostic Service secara *read-only* (`:ro,z`).
+    `--volume "${TOMCAT_LOG_DIR:-${HOME}/.local/share/tomcat-monitoring/logs}:/usr/local/tomcat/logs:z"`.
+  - Pastikan hak akses direktori log host (`0755` / `0775`) pada direktori persisten non-volatile `${HOME}/.local/share/tomcat-monitoring/logs` (menghindari penggunaan direktori `/tmp` yang rentan terhapus saat reboot) dapat dibaca oleh user rootless Diagnostic Service secara *read-only* (`:ro,z`).
   - Verifikasi bahwa log aplikasi yang ditulis saat startup atau error runtime secara otomatis terbaca oleh `bounded-file-reader` pada `diagnostic-service`.
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
   - Log runtime container Tomcat hidup tersinkronisasi langsung ke mount `/run/tomcat-diagnostic/logs/catalina.out` (atau daily log) pada Diagnostic Service.
   - Skenario diagnosis kegagalan aplikasi nyata (seperti error connection pool, OOM, atau bind exception) dapat dievaluasi secara otomatis dari log asli tanpa intervensi penulisan manual `echo`.
 - **Bukti Verifikasi (*Verification Evidence*):**
-  - Parameter volume `--volume "/tmp/tomcat-logs:/usr/local/tomcat/logs:z"` dipasang pada `tomcat-jmx-exporter/scripts/run.sh`.
+  - Parameter volume `--volume "${TOMCAT_LOG_DIR:-${HOME}/.local/share/tomcat-monitoring/logs}:/usr/local/tomcat/logs:z"` dipasang pada `tomcat-jmx-exporter/scripts/run.sh`.
   - Verifikasi live runtime membuktikan berkas `catalina.2026-09-10.log` terbentuk otomatis dan cuplikan log tersaji pada Seksi 4 (*Correlated Log Evidence*) di laporan email Mailpit.
   - Didokumentasikan pada [TN-008](engineering-journal/monitoring-platform-integration/TN-008-integrate-live-prometheus-evidence-adapter-and-shared-persistent-logs.md).
 

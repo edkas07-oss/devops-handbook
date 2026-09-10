@@ -68,7 +68,7 @@ Mengintegrasikan seluruh subsistem monitoring dan diagnostik ke dalam satu kesat
 
 8. **[TN-008 — Integrate Live Prometheus Evidence Adapter and Shared Persistent Tomcat Logs](TN-008-integrate-live-prometheus-evidence-adapter-and-shared-persistent-logs.md)**
 
-    Menghubungkan `PrometheusAdapter` ke dalam fungsi pengumpul bukti live `createDefaultEvidenceCollector` pada `application.js`, mengonfigurasi shared persistent volume mount log Tomcat ke host (`/tmp/tomcat-logs` ke `/usr/local/tomcat/logs:z`), mendukung pembacaan log runtime asli (`catalina.out` dan fallback log harian), serta memverifikasi keterisian penuh Seksi 3 (*Key Metrics Snapshot*) dan Seksi 4 (*Correlated Log Evidence*) pada Laporan Investigasi 7-Seksi SRE ke Mailpit.
+    Menghubungkan `PrometheusAdapter` ke dalam fungsi pengumpul bukti live `createDefaultEvidenceCollector` pada `application.js`, mengonfigurasi shared persistent volume mount log Tomcat ke direktori persisten non-volatile host (`~/.local/share/tomcat-monitoring/logs` ke `/usr/local/tomcat/logs:z`), mendukung pembacaan log runtime asli (`catalina.out` dan fallback log harian), serta memverifikasi keterisian penuh Seksi 3 (*Key Metrics Snapshot*) dan Seksi 4 (*Correlated Log Evidence*) pada Laporan Investigasi 7-Seksi SRE ke Mailpit.
 
 ## 🎓 Lessons Learned
 

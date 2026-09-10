@@ -527,7 +527,7 @@ melalui *direct emergency SMTP route* ke Mailpit, mencegah *Silent Failure* (TM-
 Alertmanager mengelola deduplikasi dan routing alert secara persisten (`group_wait: 10s`, `group_interval: 15s`). Seluruh
 alert operasional Tomcat diteruskan melalui HTTPS internal ke Diagnostic Service (`0.1.5`).
 Diagnostic Service memproses webhook secara asinkron, membaca metrik Prometheus,
-spool `/tmp/diagnostic-spool`, dan log Tomcat `/tmp/tomcat-logs` secara read-only,
+spool `/tmp/diagnostic-spool`, dan log Tomcat persisten `~/.local/share/tomcat-monitoring/logs` secara read-only,
 mengevaluasi pohon keputusan multi-domain (20 built-in branches `TD`, `AH`, `GC`, `TH` dan curated custom branches `TD-09` s/d `TD-18`), menyimpan riwayat audit ke
 SQLite `diagnostic_data`, dan mengirimkan laporan diagnosis 7-seksi ke Mailpit.
 Siklus pemulihan (*resolved*) memicu korelasi insiden otomatis dan mengirimkan

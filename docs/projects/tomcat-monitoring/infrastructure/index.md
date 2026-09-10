@@ -37,7 +37,7 @@ proses infrastructure yang telah ditetapkan.
 | SQLite diagnostic state | Mempertahankan event, incident, deduplication, canonical result, custom rules, dan delivery state | Available; persistent named volume `diagnostic_data` aktif di `/var/lib/tomcat-diagnostic/diagnostic.db` |
 | Restricted Event Collector | Mengumpulkan event host dan container yang diizinkan tanpa memberi akses kontrol host kepada Diagnostic Service | Available; rootless host collector aktif dengan atomic spooling |
 | Normalized collector spool | Menyediakan record event terbatas melalui mount read-only ke Diagnostic Service | Available; bind-mount `/tmp/diagnostic-spool:/run/tomcat-diagnostic/spool:ro,z` |
-| Diagnostic log directory | Menyediakan akses read-only ke log Tomcat untuk ekstraksi bukti dan analisis | Available; bind-mount `/tmp/tomcat-logs:/run/tomcat-diagnostic/logs:ro,z` |
+| Diagnostic log directory | Menyediakan akses read-only ke log Tomcat untuk ekstraksi bukti dan analisis | Available; bind-mount `~/.local/share/tomcat-monitoring/logs:/run/tomcat-diagnostic/logs:ro,z` |
 | Dedicated diagnostic network | Menghubungkan Alertmanager dan Diagnostic Service tanpa host-published service port | Available; terhubung pada container network `devops-lab` |
 | Diagnostic TLS dan bearer material | Mengamankan webhook internal dan Rules API | Available; certificate, private key, dan bearer token terpasang read-only |
 | Integration Bridge | Meneruskan alert ke TrueSight | Deferred; TrueSight tidak tersedia pada lab |
@@ -371,7 +371,7 @@ Untuk Diagnostic MVP, repositori `tomcat-diagnostic-service` (Node.js 24 ESM,
 image `0.1.3` digest `sha256:e781b9fb1cda`) dan `tomcat-diagnostic-event-collector`
 telah selesai dan terverifikasi secara live pada lingkungan persisten `devops-lab`.
 Volume persisten `diagnostic_data`, bind-mount `/tmp/diagnostic-spool` dan
-`/tmp/tomcat-logs` (:ro,z), webhooks internal HTTPS Alertmanager ke Diagnostic
+`~/.local/share/tomcat-monitoring/logs` (:ro,z), webhooks internal HTTPS Alertmanager ke Diagnostic
 Service, Declarative Rulepack Engine (`POST /api/v1/rules`), alur pengayaan AI,
 dan pengiriman laporan diagnosis ke Mailpit telah beroperasi penuh dan terbukti
 end-to-end.
