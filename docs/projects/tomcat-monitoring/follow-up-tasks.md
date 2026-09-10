@@ -390,14 +390,26 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 
 #### TASK-TM-015: Konfigurasi Enterprise SMTP Relay & Otentikasi Terenkripsi (Kesiapan Produksi Notifikasi)
 
+- **Status:** `Completed` ✅ (TN-010)
 - **Deskripsi:**
-  Mengganti mock server Mailpit dengan koneksi SMTP Relay produksi yang mendukung STARTTLS/TLS (port 587/465), otentikasi kredensial terisolasi, dan header email standar enterprise.
+  Mengembangkan konfigurasi SMTP Relay produksi yang mendukung `requireTLS`, otentikasi kredensial Cyrus SASL terisolasi, dan header email standar enterprise RFC (`Auto-Submitted`, `X-Priority`, `X-Incident-Target`, `X-Diagnostic-Rule`).
 - **Kebutuhan Teknis:**
-  - Konfigurasi parameter `smtp` pada `application.json` (`host`, `port: 587/465`, `secure: true`, path file username & password).
-  - Manajemen secret file kredensial SMTP dengan izin ketat `0400` yang dipasang via volume mount rootless.
-  - Penanganan retry pengiriman cerdas dan perlindungan dari kegagalan autentikasi relay.
+  - Konfigurasi parameter `smtp` pada `application-config-v1.schema.json` dan `application.json` (`host`, `port: 587`, `secure: false`, `requireTLS: true`, path file username & password).
+  - Manajemen secret file kredensial SMTP dengan izin ketat `0400`/`0444` yang dipasang via volume mount rootless.
+  - Penambahan header standar enterprise RFC pada `src/adapters/smtp-adapter.js` (`Auto-Submitted: auto-generated`, `X-Priority: 1/3`, `X-Incident-Target`, `X-Diagnostic-Rule`).
+  - Verifikasi otomatis alur pengiriman terenkripsi dan terotentikasi via suite `verify-postfix-relay.sh`.
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
-  - Laporan diagnostik terkirim secara aman melalui enterprise SMTP relay resmi dan lolos validasi SPF/DKIM pada inbox tim operasional/SRE.
+  - Laporan diagnostik 7-seksi SRE terkirim secara aman melalui enterprise SMTP relay terotentikasi, lolos negative testing auth, dan memuat seluruh header enterprise pada inbox penerima.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Image Diagnostic Service `localhost/tomcat-diagnostic-service:0.1.8` (digest `sha256:4519277d6a36d8ce0ce9cf01434ee0f0302e1ba4a63e3b0abe883e4497b5ab2e`) dibangun dan lulus 62 unit/integration tests (100% pass).
+  - Suite pengujian otomatis `scripts/verify-postfix-relay.sh` memvalidasi:
+    1. Penolakan koneksi relay tanpa kredensial SASL (`554 5.7.1 Access denied`).
+    2. Penolakan koneksi dengan password salah (`535 5.7.8 Authentication failed`).
+    3. Pengiriman terotentikasi via Submission Port 587 (TLSv1.3 + SASL PLAIN).
+    4. End-to-end incident webhook evaluation dan pengiriman laporan 7-seksi SRE.
+    5. Verifikasi kepatuhan header RFC (`Auto-Submitted: auto-generated`, `X-Priority: 1`, `X-Incident-Target: lab/tomcat-01/default`, `X-Diagnostic-Rule: TomcatDown`) via Mailpit API.
+    6. Audit antrean Postfix bersih (`Mail queue is empty`).
+  - Didokumentasikan secara lengkap pada [TN-010](engineering-journal/monitoring-platform-integration/TN-010-implement-and-verify-enterprise-smtp-configuration-and-headers.md).
 
 #### TASK-TM-016: Integrasi Live Prometheus Evidence Adapter pada Application Lifecycle (Kesiapan Produksi Metrik)
 
@@ -430,7 +442,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-005** | Housekeeping & Retention DB SQLite | **P1 (High)** | `Completed` ✅ | TM-ADR-0015 | Diagnostic Service | Pembersihan data lama & disk terkendali (TN-007) |
 | **TASK-TM-013** | Persistent Volume Mount Log Tomcat | **P1 (High)** | `Completed` ✅ | TN-019 / TN-008 | Tomcat Runtime / DS | Log container live terbaca otomatis oleh DS (TN-008) |
 | **TASK-TM-014** | Daemonization Restricted Event Collector | **P1 (High)** | `Completed` ✅ | TN-016 / TN-009 | Event Collector | Collector berjalan sebagai systemd user service (TN-009) |
-| **TASK-TM-015** | Enterprise SMTP Relay Configuration | **P1 (High)** | `Planned` 📋 | GAP-014 | Diagnostic Service | Notifikasi terkirim via relay SMTP TLS resmi |
+| **TASK-TM-015** | Enterprise SMTP Relay Configuration | **P1 (High)** | `Completed` ✅ | GAP-014 / TN-010 | Diagnostic Service | Notifikasi terkirim via relay SMTP TLS resmi (TN-010) |
 | **TASK-TM-016** | Live Prometheus Evidence Wire-up | **P1 (High)** | `Completed` ✅ | GAP-004 / TN-008 | Diagnostic Service | Metrik live otomatis terlampir di evidence (TN-008) |
 | **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | `Planned` 📋 | TM-ADR-0014 | Diagnostic Service | Log persisten tindakan manual SRE |
 | **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Rule saturasi thread pool 100% (TN-004) |

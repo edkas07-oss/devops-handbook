@@ -36,6 +36,7 @@ Mengintegrasikan seluruh subsistem monitoring dan diagnostik ke dalam satu kesat
 | **SQLite State Resilience & Retention** | Implementasi Stale Lock Recovery, bounded retry limit, dan retention housekeeping pada SQLite (TM-ADR-0015) | Completed (TN-007) |
 | **Live Prometheus Evidence & Persistent Logs** | Integrasi PrometheusAdapter live, shared persistent log mount, dan laporan 7-seksi SRE utuh (TASK-TM-016 & TASK-TM-013) | Completed (TN-008) |
 | **Event Collector Daemonization & Persistent Spool** | Otomatisasi daemon `systemd --user`, standardisasi spool persisten `${HOME}/.local/share/tomcat-monitoring/spool` (`0700`), dan integrasi mount read-only (TASK-TM-014) | Completed (TN-009) |
+| **Enterprise SMTP Configuration & Headers** | Implementasi `requireTLS`, standardisasi header enterprise RFC (`Auto-Submitted`, `X-Priority`, `X-Incident-Target`, `X-Diagnostic-Rule`), kredensial terisolasi, dan verifikasi relay (TASK-TM-015) | Completed (TN-010) |
 
 ## 📄 Technical Notes
 
@@ -74,6 +75,10 @@ Mengintegrasikan seluruh subsistem monitoring dan diagnostik ke dalam satu kesat
 9. **[TN-009 — Implement and Verify Event Collector Daemonization and Persistent Spool](TN-009-implement-and-verify-event-collector-daemonization-and-persistent-spool.md)**
 
     Mengotomatisasi Restricted Event Collector sebagai background daemon persisten yang dikelola oleh `systemd --user` (`tomcat-diagnostic-event-collector.service`), menstandarisasi jalur spool ke lokasi persisten non-volatile (`${HOME}/.local/share/tomcat-monitoring/spool` izin `0700`) sesuai Zero `/tmp` Policy, membangun skrip deployment `scripts/deploy-event-collector.sh`, serta memverifikasi penangkapan event Podman dan pembacaan read-only oleh Diagnostic Service secara live di `devops-lab`.
+
+10. **[TN-010 — Implement and Verify Enterprise SMTP Configuration and Headers](TN-010-implement-and-verify-enterprise-smtp-configuration-and-headers.md)**
+
+    Menuntaskan `TASK-TM-015` dengan memperbarui skema konfigurasi aplikasi (`requireTLS`), menambahkan header email standar enterprise RFC (`Auto-Submitted: auto-generated`, `X-Priority: 1/3`, `X-Incident-Target`, `X-Diagnostic-Rule`), mengisolasi kredensial SMTP melalui secret files mounted (`0400`/`0444`), membangun image `localhost/tomcat-diagnostic-service:0.1.8`, serta memverifikasi pengiriman laporan diagnosis insiden 7-seksi SRE secara end-to-end melalui jalur relay terotentikasi dan terenkripsi pada `devops-lab`.
 
 ## 🎓 Lessons Learned
 
