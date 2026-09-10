@@ -35,31 +35,71 @@ Penghapusan named volume, penghapusan database, perbaikan manual, ekspor, atau r
 
 ---
 
-## 📋 Data Logis Minimum
+## 💡 Arsitektur Self-Managed SQLite Engine (Manajemen Mandiri)
 
-Skema fisik merepresentasikan:
-- Migrasi skema (`schema_migrations`);
-- Permintaan dan event alert (`diagnostic_events`);
-- Riwayat insiden dan status siklus hidup;
-- Identitas target kanonikal;
-- Hasil kanonikal terstruktur (`canonical_results`);
-- Ringkasan bukti terbatas (`evidence_summaries`);
-- Aturan kustom deklaratif (`custom_rules` dengan branch unik);
-- Riwayat percobaan notifikasi (`delivery_attempts`);
-- Kunci deduplikasi dan status pemeliharaan.
+Diagnostic Service didesain menggunakan **Embedded SQLite** ([TM-ADR-0013](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0013.md)) yang berjalan langsung di dalam kontainer tanpa bantuan server database eksternal (seperti PostgreSQL atau MySQL) dan tanpa peran administrator database (DBA) khusus.
+
+Karena berjalan terisolasi tanpa DBA, Diagnostic Service **wajib mengelola dan merawat database-nya sendiri (*Self-Managed Autonomous Engine*)** melalui 3 pilar:
+
+```text
++-----------------------------------------------------------------------------------+
+|               Self-Managed SQLite Lifecycle di Diagnostic Service                |
++-----------------------------------------------------------------------------------+
+| 1. Self-Healing State Recovery (TASK-TM-004 / Anti-Zombie):                       |
+|    Mendeteksi kuncian macet (stale processing lock) saat container restart dan    |
+|    mengembalikan tugas ke antrean secara otomatis tanpa query manual operator.     |
++-----------------------------------------------------------------------------------+
+| 2. Automated Storage Housekeeping & Disk Guard (TASK-TM-005 / Anti-Disk Bloat):   |
+|    Memangkas data lama (> 30 hari) secara periodik sesuai relasi Foreign Key      |
+|    dan menjalankan PRAGMA incremental_vacuum untuk membebaskan ruang disk ke OS.  |
++-----------------------------------------------------------------------------------+
+| 3. Autonomous Storage Telemetry & Quota Guard (Self-Monitoring):                  |
+|    Menghitung ukuran fisik database (diagnostic_db_size_bytes) dan mengeksposnya  |
+|    ke Prometheus agar kapasitas storage selalu terpantau.                         |
++-----------------------------------------------------------------------------------+
+```
+
+### 3 Pilar Manajemen Mandiri:
+
+1. **Self-Healing State & Crash Resilience (Pencegahan Zombie Task):**
+   - Setiap tugas yang diklaim oleh worker diberikan stempel waktu mulai (`started_at`) dan batas waktu sewa (`lease_expires_at = now + timeoutMs`).
+   - Jika kontainer mati mendadak (misal `kill -9` atau restart host) saat tugas berstatus `processing`, fungsi `recoverStaleLocks()` saat startup atau siklus berkala akan mendeteksi sewa yang kadaluwarsa, mengembalikan status ke `queued`, dan menaikkan `retry_count`.
+   - Jika tugas gagal berkali-kali (`retry_count >= maxRetries`), tugas ditandai `failed` untuk mencegah *infinite crash loop*.
+
+2. **Automated Storage Housekeeping & Disk Guard (Pencegahan Kebocoran Disk):**
+   - Fungsi `pruneHistoricalRecords()` dijalankan otomatis saat startup dan secara periodik di background loop worker.
+   - Menghapus data yang melewati batas retensi 30 hari dalam urutan referensial *Foreign Key* yang aman: `evidence_summaries` $\rightarrow$ `notification_attempts` $\rightarrow$ `canonical_results` $\rightarrow$ `work_queue` $\rightarrow$ `events` $\rightarrow$ `requests` $\rightarrow$ resolved `incidents`.
+   - Menjalankan `PRAGMA incremental_vacuum` untuk mengembalikan halaman disk yang kosong ke filesystem host tanpa mengunci transaksi aktif.
+
+3. **Autonomous Storage Telemetry (Visibilitas Kapasitas Host):**
+   - Fungsi `getDatabaseSizeBytes()` menghitung ukuran aktual berkas database fisik (`page_count * page_size`).
+   - Diekspos melalui metrik Prometheus `diagnostic_db_size_bytes` dan `diagnostic_housekeeping_runs_total` pada endpoint `/metrics`.
+
+---
+
+## 📋 Skema & Migrasi Database Terpadu (001 s/d 007)
+
+Skema fisik dikelola melalui migrasi *forward-only* terurut numerik:
+- **`001-initial.sql`:** Skema dasar tabel `schema_migrations`, `requests`, `incidents`, `events`, dan `work_queue`.
+- **`002-canonical-results.sql`:** Tabel `canonical_results`, `evidence_summaries`, dan kolom `material_update_count`.
+- **`003-delivery-attempts.sql`:** Tabel `notification_attempts` untuk riwayat pengiriman SMTP berbatas.
+- **`004-notification-lifecycle.sql`:** Kolom `resolved_notification_count` pada tabel `incidents`.
+- **`005-custom-rules.sql`:** Tabel `custom_rules` dengan proteksi unik anti-collision `branch`.
+- **`006-rule-category.sql`:** Kolom `category` dan indeks domain query pada `custom_rules`.
+- **`007-stale-lock-recovery-and-retention.sql`:** Kolom `retry_count`, `lease_expires_at`, dan indeks optimasi retensi.
 
 ---
 
 ## ✅ Skenario Penerimaan dan Pengujian
 
-Pengujian mencakup: inisialisasi volume kosong, penanganan kegagalan migrasi, commit database sebelum respons `202`, deduplikasi event setelah restart service, korelasi firing/resolved, pemulihan mode WAL, penegakan retensi 30 hari, ambang batas kapasitas 100 MiB & 250 MiB, serta perlindungan data insiden aktif.
+Pengujian mencakup: inisialisasi volume kosong, penanganan kegagalan migrasi, commit database sebelum respons `202`, deduplikasi event setelah restart service, korelasi firing/resolved, pemulihan mode WAL, penegakan retensi 30 hari, ambang batas kapasitas 100 MiB & 250 MiB, pemulihan antrean macet pasca-crash, batasan retry exhaustion, dan perlindungan data insiden aktif.
 
 ---
 
 ## 📌 Status
 
-**Implemented & Verified in Runtime (`tomcat-diagnostic-service` v0.1.4 / `devops-lab`).**
-Persistensi database SQLite pada volume bernama `diagnostic_data`, mode WAL, migrasi otomatis skema (termasuk `004-custom-rules.sql`), proteksi deduplikasi, retensi, dan ketahanan data saat container direstart telah diimplementasikan 100% dan terverifikasi secara live pada lingkungan `devops-lab` ([TN-005](../engineering-journal/diagnostic-mvp-pilot/TN-005-implement-durable-diagnostic-ingestion-and-queue.md), [TN-007](../engineering-journal/diagnostic-mvp-pilot/TN-007-implement-worker-canonical-result-and-renderers.md), [TN-013](../engineering-journal/diagnostic-mvp-pilot/TN-013-rebuild-and-verify-diagnostic-service-mailpit-runtime.md), [TN-015](../engineering-journal/diagnostic-mvp-pilot/TN-015-deploy-persistent-monitoring-runtime.md), [TN-017](../engineering-journal/diagnostic-mvp-pilot/TN-017-verify-end-to-end-incident-diagnostic-flow.md), dan [TN-018](../engineering-journal/diagnostic-mvp-pilot/TN-018-implement-strict-declarative-rulepack-engine.md)).
+**Implemented & Verified in Runtime (`tomcat-diagnostic-service` v0.1.6 / `devops-lab`).**
+Persistensi database SQLite pada volume bernama `diagnostic_data`, mode WAL, migrasi otomatis skema (`001` s/d `007`), proteksi deduplikasi, retensi 30 hari, pemulihan kuncian macet otomatis (*stale lock recovery*), penegakan batas retry crash loop, serta telemetri metrik kapasitas database telah diimplementasikan 100% dan terverifikasi secara live pada lingkungan `devops-lab` ([TN-005](../engineering-journal/diagnostic-mvp-pilot/TN-005-implement-durable-diagnostic-ingestion-and-queue.md), [TN-007](../engineering-journal/diagnostic-mvp-pilot/TN-007-implement-worker-canonical-result-and-renderers.md), [TN-018](../engineering-journal/diagnostic-mvp-pilot/TN-018-implement-strict-declarative-rulepack-engine.md), [TN-006](../engineering-journal/monitoring-platform-integration/TN-006-implement-multi-domain-diagnostic-dispatcher-and-decision-engines.md), dan [TN-007](../engineering-journal/monitoring-platform-integration/TN-007-implement-stale-lock-recovery-and-sqlite-state-resilience.md)).
 
 ---
 
