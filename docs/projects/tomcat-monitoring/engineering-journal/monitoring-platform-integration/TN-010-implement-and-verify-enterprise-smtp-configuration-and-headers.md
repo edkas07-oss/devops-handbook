@@ -50,7 +50,7 @@ Meskipun memadai untuk pengujian awal, pola pengiriman langsung tersebut menyisa
 
 Pekerjaan implementasi mencakup:
 
-- **`tomcat-diagnostic-service`:**
+- **`tomcat-diagnostic-service` (v0.1.8):**
   - [`config/schemas/application-config-v1.schema.json`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/config/schemas/application-config-v1.schema.json): Penambahan properti `"requireTLS": { "type": "boolean" }` pada skema konfigurasi `smtp`.
   - [`src/application/config-loader.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/application/config-loader.js): Pemetaan properti `requireTLS` ke dalam objek konfigurasi `smtp` yang di-freeze secara *immutable*.
   - [`src/adapters/smtp-adapter.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/adapters/smtp-adapter.js): Konfigurasi `requireTLS` pada transport Nodemailer dan penyematan header RFC enterprise (`Auto-Submitted`, `X-Priority`, `X-Incident-Target`, `X-Diagnostic-Rule`).
@@ -65,9 +65,9 @@ Pekerjaan implementasi mencakup:
   - [`scripts/test-tomcatdown-live.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/test-tomcatdown-live.sh): Skrip pengujian end-to-end simulasi insiden `TomcatDown` live (fase FIRING dan RESOLVED).
   - [`scripts/validate.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/validate.sh): Pendaftaran `config/diagnostic-service/*` dan `scripts/verify-postfix-relay.sh` ke dalam `REQUIRED_FILES`.
 - **`devops-handbook`:**
-  - [`TN-010`](TN-010-implement-and-verify-enterprise-smtp-configuration-and-headers.md): Jurnal teknik kanonikal implementasi dan verifikasi live.
-  - [`follow-up-tasks.md`](../../follow-up-tasks.md): Pembaruan status backlog `TASK-TM-015` menjadi `Completed` ✅.
-  - [`index.md`](index.md): Penambahan entri `TN-010` pada tabel hasil dan daftar catatan teknis.
+  - [`docs/projects/tomcat-monitoring/engineering-journal/monitoring-platform-integration/TN-010-implement-and-verify-enterprise-smtp-configuration-and-headers.md`](TN-010-implement-and-verify-enterprise-smtp-configuration-and-headers.md): Jurnal teknik kanonikal implementasi dan verifikasi live.
+  - [`docs/projects/tomcat-monitoring/follow-up-tasks.md`](../../follow-up-tasks.md): Pembaruan status backlog `TASK-TM-015` menjadi `Completed` ✅.
+  - [`docs/projects/tomcat-monitoring/engineering-journal/monitoring-platform-integration/index.md`](index.md): Penambahan entri `TN-010` pada tabel hasil dan daftar catatan teknis.
 
 ---
 
@@ -173,27 +173,23 @@ Berkas [`config/diagnostic-service/application.json`](file:///home/eddywiyatno/g
 
 ## 🧭 Implementation Plan
 
-1. **Schema & Config Loader Enhancement (`tomcat-diagnostic-service`):**
-   - Menambahkan properti `"requireTLS"` pada `application-config-v1.schema.json`.
-   - Menyesuaikan `config-loader.js` untuk memetakan `requireTLS` dengan default `false`.
-2. **Standard Enterprise Headers on SmtpAdapter (`tomcat-diagnostic-service`):**
-   - Menerapkan opsi transport `requireTLS: true` pada instance `nodemailer.createTransport()`.
-   - Menginjeksi 4 header enterprise: `Auto-Submitted`, `X-Priority`, `X-Incident-Target`, `X-Diagnostic-Rule`.
-3. **Unit & Integration Testing:**
-   - Memperbarui test suite unit untuk validasi skema dan verifikasi header multipart email.
-4. **Version Bump & Image Build:**
-   - Menaikkan versi semantik ke `0.1.8` dan membangun image `localhost/tomcat-diagnostic-service:0.1.8`.
-5. **Configuration Standardization & Runtime Deployment (`tomcat-monitoring`):**
-   - Menyediakan `config/diagnostic-service/application.json` dan `targets.json`.
-   - Memperbarui `deploy-diagnostic-service.sh` untuk me-mount langsung dari direktori `config/` dan persistent host secrets.
-6. **Automated Verification Suites:**
-   - Mengeksekusi `scripts/verify-postfix-relay.sh` dan `scripts/test-tomcatdown-live.sh`.
+| Tahap | Rencana & Tanggung Jawab Teknis |
+| :--- | :--- |
+| **Enhance SMTP Configuration Schema and Header Standards** | Memperbarui `application-config-v1.schema.json` untuk menambahkan properti `requireTLS`, menyesuaikan `config-loader.js`, memperkaya `smtp-adapter.js` dengan header standar enterprise RFC (`Auto-Submitted`, `X-Priority`, `X-Incident-Target`, `X-Diagnostic-Rule`), serta memvalidasi unit test suite 62 test passing. |
+| **Standardize Static Configuration and Host Secret Storage** | Menyediakan berkas konfigurasi statis kanonikal `application.json`, `targets.json`, dan `README.md` pada `tomcat-monitoring/config/diagnostic-service/`, serta mengisolasi secret files `smtp-username`, `smtp-password`, dan `bearer-token` pada `${HOME}/.local/share/tomcat-monitoring/diagnostic-service-secrets/` dengan izin `0400`. |
+| **Build Versioned Container Image and Verify Static Boundaries** | Memperbarui versi ke `0.1.8`, membangun image `localhost/tomcat-diagnostic-service:0.1.8`, dan menjalankan static validator (`validate.sh`, `test-image.sh`). |
+| **Deploy Runtime with Persistent Configuration Mounts** | Memperbarui `scripts/deploy-diagnostic-service.sh` untuk me-mount langsung dari `config/diagnostic-service/` dan host persistent secrets, mengeliminasi pembuatan konfigurasi temporer `/tmp`. |
+| **Verify Authenticated Submission and Live TomcatDown Incident Delivery** | Mengeksekusi test suite otomatis `scripts/verify-postfix-relay.sh` dan `scripts/test-tomcatdown-live.sh` untuk memvalidasi negative test autentikasi SASL, STARTTLS submission, evaluasi insiden `TomcatDown` (FIRING & RESOLVED), serta kepatuhan 7-seksi SRE di Mailpit. |
 
 ---
 
 ## ⚙️ Implementation
 
-### Step 1: Perubahan Schema JSON Konfigurasi Aplikasi
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Enhance SMTP Configuration Schema and Header Standards
 
 Menambahkan properti `"requireTLS": { "type": "boolean" }` pada [`config/schemas/application-config-v1.schema.json`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/config/schemas/application-config-v1.schema.json):
 
@@ -215,14 +211,7 @@ Menambahkan properti `"requireTLS": { "type": "boolean" }` pada [`config/schemas
      },
 ```
 
-- **Expected Result:** Validator Ajv menerima konfigurasi yang memuat `requireTLS: true` maupun tanpa `requireTLS` (backward-compatible).
-- **Actual Result:** Skema tervalidasi dan lolos kompilasi Ajv Draft 2020-12.
-
----
-
-### Step 2: Penyesuaian Config Loader dan Default Value
-
-Memperbarui [`src/application/config-loader.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/application/config-loader.js) agar properti `requireTLS` dipetakan dengan default `false` ke dalam objek konfigurasi `smtp` yang di-freeze:
+Memperbarui [`src/application/config-loader.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/application/config-loader.js) agar properti `requireTLS` dipetakan dengan default `false`:
 
 ```javascript
     smtp: Object.freeze({
@@ -234,14 +223,7 @@ Memperbarui [`src/application/config-loader.js`](file:///home/eddywiyatno/git/to
     })
 ```
 
-- **Expected Result:** `loaded.smtp.requireTLS` bernilai `true` jika dikonfigurasikan atau `false` secara default.
-- **Actual Result:** Terbukti melalui unit test [`test/unit/config-loader.test.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/test/unit/config-loader.test.js).
-
----
-
-### Step 3: Implementasi Header Standar Enterprise pada SmtpAdapter
-
-Memperbarui [`src/adapters/smtp-adapter.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/adapters/smtp-adapter.js) untuk menyertakan opsi transport `requireTLS` dan menambahkan header standar enterprise pada setiap email yang dikirim:
+Memperbarui [`src/adapters/smtp-adapter.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/adapters/smtp-adapter.js) untuk menerapkan opsi transport `requireTLS` dan 4 header RFC enterprise:
 
 ```javascript
 export class SmtpAdapter {
@@ -282,32 +264,10 @@ export class SmtpAdapter {
 }
 ```
 
-- **Expected Result:** Setiap email laporan memuat 4 header wajib enterprise (`Auto-Submitted`, `X-Priority`, `X-Incident-Target`, `X-Diagnostic-Rule`).
-- **Actual Result:** Terbukti pada pengujian unit stream transport dan inspeksi MIME header live pada Mailpit API.
-
----
-
-### Step 4: Version Bump dan Validasi Static Baseline
-
-Memperbarui versi ke `0.1.8` pada `VERSION`, `package.json`, dan `package-lock.json`, kemudian mengeksekusi static validator:
+Menjalankan pengujian unit suite:
 
 ```bash
 cd /home/eddywiyatno/git/tomcat-diagnostic-service
-./scripts/validate.sh
-```
-
-**Output Validasi Statis:**
-```text
-Static validation passed: schema, migration, source, and dependency boundaries are consistent.
-```
-
----
-
-### Step 5: Eksekusi Unit & Integration Test Suite
-
-Menjalankan seluruh unit dan integration test suite di dalam isolated runtime container:
-
-```bash
 podman run --rm --userns=keep-id \
     --volume "/home/eddywiyatno/git/tomcat-diagnostic-service:/app:ro,Z" \
     --workdir /app \
@@ -315,51 +275,68 @@ podman run --rm --userns=keep-id \
     node --test test/unit/*.test.js test/integration/*.test.js
 ```
 
-**Hasil Pengujian:**
+**Hasil:**
 ```text
 ✔ SMTP adapter produces bounded multipart message with enterprise headers (19.540902ms)
 ✔ SMTP adapter sets normal priority for resolved and non-critical alerts (3.2806ms)
 ✔ loads versioned non-secret configuration and mounted files (122.829873ms)
 ✔ rejects invalid configuration without exposing mounted secret (55.607842ms)
-...
 ℹ tests 62
-ℹ suites 0
 ℹ pass 62
 ℹ fail 0
-ℹ cancelled 0
-ℹ skipped 0
-ℹ todo 0
-ℹ duration_ms 548.587094
 ```
 
----
+</div>
 
-### Step 6: Pembangunan Image Container `0.1.8` & Smoke Test
+<div class="procedure-step" markdown>
 
-Membangun image baru menggunakan `scripts/build.sh` dan memverifikasi integritas image via `scripts/test-image.sh`:
+### Standardize Static Configuration and Host Secret Storage
+
+Menstandarisasi direktori konfigurasi pada [`config/diagnostic-service/application.json`](file:///home/eddywiyatno/git/tomcat-monitoring/config/diagnostic-service/application.json) dan [`config/diagnostic-service/targets.json`](file:///home/eddywiyatno/git/tomcat-monitoring/config/diagnostic-service/targets.json).
+
+Menyiapkan direktori secret persisten pada host dengan proteksi ketat:
+
+```bash
+readonly SECRETS_HOST_DIR="${HOME}/.local/share/tomcat-monitoring/diagnostic-service-secrets"
+mkdir -p "${SECRETS_HOST_DIR}"
+chmod 0700 "${SECRETS_HOST_DIR}"
+
+echo -n "diagnostic-agent" > "${SECRETS_HOST_DIR}/smtp-username"
+echo -n "DiagnosticPass123!" > "${SECRETS_HOST_DIR}/smtp-password"
+echo -n "test-token-12345" > "${SECRETS_HOST_DIR}/bearer-token"
+chmod 0400 "${SECRETS_HOST_DIR}"/*
+```
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Build Versioned Container Image and Verify Static Boundaries
+
+Memperbarui versi semantik ke `0.1.8` pada `VERSION`, `package.json`, dan `package-lock.json`, lalu membangun image baru:
 
 ```bash
 cd /home/eddywiyatno/git/tomcat-diagnostic-service
+./scripts/validate.sh
 ./scripts/build.sh
 ./scripts/test-image.sh
 ```
 
-**Identitas Image Terverifikasi:**
-- **Image Name:** `localhost/tomcat-diagnostic-service:0.1.8`
-- **Image Digest:** `sha256:4519277d6a36d8ce0ce9cf01434ee0f0302e1ba4a63e3b0abe883e4497b5ab2e`
+**Output Identitas Image:**
+- **Image Reference:** `localhost/tomcat-diagnostic-service:0.1.8`
+- **Pinned Digest:** `sha256:4519277d6a36d8ce0ce9cf01434ee0f0302e1ba4a63e3b0abe883e4497b5ab2e`
 
----
+</div>
 
-### Step 7: Integrasi Orkestrasi Deployment Runtime
+<div class="procedure-step" markdown>
 
-Memperbarui [`scripts/deploy-diagnostic-service.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-diagnostic-service.sh) pada repositori `tomcat-monitoring` untuk:
-1. Mengonsumsi image `localhost/tomcat-diagnostic-service:0.1.8` dengan exact pinned digest `sha256:4519277d6a36d8ce0ce9cf01434ee0f0302e1ba4a63e3b0abe883e4497b5ab2e`.
-2. Me-mount berkas konfigurasi statis langsung dari [`config/diagnostic-service/application.json`](file:///home/eddywiyatno/git/tomcat-monitoring/config/diagnostic-service/application.json) dan [`config/diagnostic-service/targets.json`](file:///home/eddywiyatno/git/tomcat-monitoring/config/diagnostic-service/targets.json) (menghilangkan ketergantungan pada berkas konfigurasi temporer di `/tmp`).
-3. Mengamankan kredensial rahasia (`smtp-username`, `smtp-password`, `bearer-token`) di direktori persisten host `${HOME}/.local/share/tomcat-monitoring/diagnostic-service-secrets/` dengan izin `0700` direktori dan `0400` berkas secret.
-4. Me-mount CA Certificate internal `postfix-ca.crt` untuk verifikasi STARTTLS terpercaya.
+### Deploy Runtime with Persistent Configuration Mounts
+
+Memperbarui [`scripts/deploy-diagnostic-service.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-diagnostic-service.sh) untuk me-mount berkas konfigurasi langsung dari repositori dan direktori secrets host:
 
 ```bash
-/home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-diagnostic-service.sh
+cd /home/eddywiyatno/git/tomcat-monitoring
+./scripts/deploy-diagnostic-service.sh
 ```
 
 **Output:**
@@ -370,6 +347,28 @@ diagnostic-service
 3. Verifying readiness...
 Diagnostic Service is running.
 ```
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Verify Authenticated Submission and Live TomcatDown Incident Delivery
+
+Mengeksekusi rangkaian pengujian otomatis end-to-end:
+
+```bash
+cd /home/eddywiyatno/git/tomcat-monitoring
+./scripts/validate.sh
+./scripts/verify-postfix-relay.sh
+./scripts/test-tomcatdown-live.sh
+```
+
+**Hasil:**
+Seluruh 7 seksi pengujian `verify-postfix-relay.sh` dan seluruh tahapan `test-tomcatdown-live.sh` berhasil lulus 100% (`PASS`).
+
+</div>
+
+</div>
 
 ---
 
@@ -596,23 +595,21 @@ Query API ke endpoint `http://127.0.0.1:8025/api/v1/message/{msg_id}/headers` me
 
 ## 🛠️ Troubleshooting
 
-### 1. Toleransi Pembersihan Antrean Postfix (`postqueue -p`)
-- **Gejala:** Skrip verifikasi seksi 7 sempat melaporkan kegagalan karena antrean Postfix masih memuat pesan yang sedang dalam siklus penerusan aktif (*active queue* bertanda `*`) saat diperiksa tepat beberapa milidetik setelah pengiriman.
-- **Penyebab:** Eksekusi `postqueue -p` berjalan instan sebelum Postfix menyelesaikan *acknowledgement* dan penghapusan pesan dari disk spool.
-- **Solusi:** Menambahkan loop toleransi (hingga 10 percobaan) disertai perintah pembersihan antrean eksplisit `postqueue -f` pada `scripts/verify-postfix-relay.sh` dan `scripts/test-tomcatdown-live.sh`.
-
-### 2. Envelope Validasi Webhook Alertmanager v4
-- **Gejala:** Permintaan webhook manual menghasilkan respons `HTTP 400 {"error":"invalid_request"}`.
-- **Penyebab:** Payload pengujian awal tidak memuat atribut wajib skema envelope v4 (`"version": "4"` dan `"groupKey"`).
-- **Solusi:** Menyelaraskan pembentukan payload webhook dengan JSON Schema Alertmanager v4 (`alertmanager-webhook-v4.schema.json`).
+| Gejala Masalah | Penyebab Utama | Solusi & Tindakan Perbaikan |
+| --- | --- | --- |
+| Pemeriksaan queue Postfix sempat gagal (`07EA79A650B* in active queue`) | `postqueue -p` dieksekusi instan beberapa milidetik setelah pengiriman saat MTA masih memproses flushing | Tambahkan polling loop toleransi latensi (hingga 10 detik) disertai perintah `postqueue -f` pada skrip pengujian. |
+| Endpoint webhook Diagnostic Service menolak request manual dengan `HTTP 400 invalid_request` | Payload pengujian tidak memuat envelope wajib skema v4 (`"version": "4"` dan `"groupKey"`) | Sesuaikan pembentukan JSON payload pengujian dengan JSON Schema Alertmanager v4 (`alertmanager-webhook-v4.schema.json`). |
 
 ---
 
 ## 🧹 Cleanup & Resource Integrity
 
-- **Mailbox Mailpit:** Direset secara terkontrol menggunakan endpoint `DELETE /api/v1/messages` sebelum dan sesudah pengujian agar tidak menyisakan *log clutter*.
-- **Temporary Payload Files:** Berkas temporer JSON dihapus secara otomatis via `rm -f` setelah dieksekusi oleh kontainer Node.js.
-- **Postfix Queue:** Diaudit di akhir pengujian untuk memastikan nol pesan tertahan (`Mail queue is empty`).
+| Sumber Daya | Status Retensi | Bukti Integritas (*Integrity Evidence*) |
+| --- | :---: | --- |
+| Mailbox Mailpit (`:8025`) | Bersih & Terkontrol | Reset via `DELETE /api/v1/messages` sebelum dan sesudah verifikasi |
+| Temporary Webhook Payloads | Terhapus Otomatis | Perintah `rm -f /tmp/tomcatdown-*.json` setelah pengujian |
+| Postfix Relay Spool Queue | Kosong (0 Pesan) | `postqueue -p` $\rightarrow$ `Mail queue is empty` |
+| Container `diagnostic-service` | Active (Running) | `podman inspect diagnostic-service` $\rightarrow$ `Status=running` |
 
 ---
 
@@ -633,6 +630,7 @@ cd /home/eddywiyatno/git/tomcat-monitoring
 ./scripts/deploy-diagnostic-service.sh
 
 # 4. Validasi baseline repository
+cd /home/eddywiyatno/git/tomcat-monitoring
 ./scripts/validate.sh
 
 # 5. Eksekusi pengujian otomatis terpadu Postfix Relay Bridge
@@ -680,17 +678,19 @@ Backlog **`TASK-TM-015`** telah diselesaikan secara penuh dengan status **`Compl
 
 ## ⏭️ Next Steps
 
-1. Melanjutkan ke **TN-011** untuk mengimplementasikan **`TASK-TM-006`** (Penyediaan Endpoint Audit Trail dan Feedback Tindakan Operator sesuai mandat TM-ADR-0014).
-2. Membangun dashboard observabilitas Grafana terpusat (**`TASK-TM-009`**).
+1. **TASK-TM-006: Endpoint Audit Log Konfirmasi Tindakan Operator (TM-ADR-0014):** Menyediakan API pencatatan umpan balik tindakan operasional manual SRE pada TN-011.
+2. **TASK-TM-009: Dashboard Observabilitas Grafana:** Membangun dashboard visualisasi terpusat JVM, Tomcat, dan infrastruktur monitoring.
 
 ---
 
 ## 🔗 Related Documentation
 
-- [TM-ADR-0014 — Enforce Zero Automatic Remediation for Diagnostic Service](../../adr/tomcat-monitoring/adr-records/TM-ADR-0014.md)
-- [TM-ADR-0015 — Adopt Asynchronous Webhook Ingestion with Durable SQLite Acceptance Pattern](../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md)
-- [TM-ADR-0016 — Designate Diagnostic Service as Canonical Incident Notification Authority](../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md)
-- [TN-008 — Integrate Live Prometheus Evidence Adapter and Shared Persistent Logs](TN-008-integrate-live-prometheus-evidence-adapter-and-shared-persistent-logs.md)
+- [Follow-up Tasks Backlog](../../follow-up-tasks.md)
+- [Diagnostic MVP Target and Evidence Contract](../../diagnostic-mvp/target-and-evidence-contract.md)
+- [TM-ADR-0014 — Enforce Zero Automatic Remediation for Diagnostic Service](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0014.md)
+- [TM-ADR-0015 — Adopt Asynchronous Webhook Ingestion with Durable SQLite Acceptance Pattern](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md)
+- [TM-ADR-0016 — Designate Diagnostic Service as Canonical Incident Notification Authority](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md)
+- [TM-ADR-0023 — Adopt Multi-Domain Diagnostic Dispatcher and Rule ID Fidelity](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0023.md)
+- [TN-008 — Integrate Live Prometheus Evidence Adapter and Shared Persistent Tomcat Logs](TN-008-integrate-live-prometheus-evidence-adapter-and-shared-persistent-logs.md)
 - [TN-009 — Implement and Verify Event Collector Daemonization and Persistent Spool](TN-009-implement-and-verify-event-collector-daemonization-and-persistent-spool.md)
 - [Engineering Journal Standards](../../../../standards/engineering-journal-standards.md)
-- [Follow-up Tasks Backlog Matrix](../../follow-up-tasks.md)
