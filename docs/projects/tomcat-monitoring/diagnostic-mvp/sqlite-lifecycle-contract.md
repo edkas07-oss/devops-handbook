@@ -59,23 +59,22 @@ Konsekuensinya, Diagnostic Service wajib memiliki kemampuan mengelola dan memeli
 +-----------------------------------------------------------------------------+
 ```
 
----
+### 1. Self-Healing State & Crash Resilience ([TASK-TM-004](../follow-up-tasks.md#task-tm-004-implementasi-stale-lock-recovery-pada-worker-ingestion))
 
-### 🎯 3 Aspek Self-Manage yang Telah Terpasang di v0.1.6:
+- Jika kontainer mati mendadak saat worker sedang menganalisis insiden, event tidak akan menjadi *"zombie"* yang tertinggal selamanya di status `processing`.
+- Saat aplikasi hidup kembali, metode [`sqlite-repository.js:166-194`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/adapters/sqlite-repository.js#L166-L194) secara mandiri mengembalikan tugas ke status `queued` dengan counter `retry_count`, sehingga analisis otomatis dilanjutkan tanpa intervensi manusia.
+- Jika suatu tugas berulang kali memicu crash hingga melampaui batas maksimum (`maxRetries = 3`), statusnya diubah menjadi `failed` untuk mencegah *infinite crash loop*.
 
-1. **Self-Healing State & Crash Resilience ([TASK-TM-004](../follow-up-tasks.md#task-tm-004-implementasi-stale-lock-recovery-pada-worker-ingestion)):**
-   - Jika kontainer mati mendadak saat worker sedang menganalisis insiden, event tidak akan menjadi *"zombie"* yang tertinggal selamanya di status `processing`.
-   - Saat aplikasi hidup kembali, metode [`sqlite-repository.js:166-194`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/adapters/sqlite-repository.js#L166-L194) secara mandiri mengembalikan tugas ke status `queued` dengan counter `retry_count`, sehingga analisis otomatis dilanjutkan tanpa intervensi manusia.
-   - Jika suatu tugas berulang kali memicu crash hingga melampaui batas maksimum (`maxRetries = 3`), statusnya diubah menjadi `failed` untuk mencegah *infinite crash loop*.
+### 2. Automated Data Lifecycle & Disk Guard ([TASK-TM-005](../follow-up-tasks.md#task-tm-005-penjadwalan-housekeeping--pruning-database-sqlite))
 
-2. **Automated Data Lifecycle & Disk Guard ([TASK-TM-005](../follow-up-tasks.md#task-tm-005-penjadwalan-housekeeping--pruning-database-sqlite)):**
-   - Tanpa cron job eksternal, aplikasi menjalankan metode [`sqlite-repository.js:196-235`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/adapters/sqlite-repository.js#L196-L235) pada startup dan secara berkala di worker loop.
-   - Record lama yang melewati batas retensi (> 30 hari) dihapus secara terurut (*Foreign-Key Safe*: `evidence_summaries` $\rightarrow$ `notification_attempts` $\rightarrow$ `canonical_results` $\rightarrow$ `work_queue` $\rightarrow$ `events` $\rightarrow$ `requests` $\rightarrow$ resolved `incidents`).
-   - Ruang disk kosong dikembalikan ke OS melalui `PRAGMA incremental_vacuum;` agar ukuran file database tetap berbatas (*bounded storage*).
+- Tanpa cron job eksternal, aplikasi menjalankan metode [`sqlite-repository.js:196-235`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/adapters/sqlite-repository.js#L196-L235) pada startup dan secara berkala di worker loop.
+- Record lama yang melewati batas retensi (> 30 hari) dihapus secara terurut (*Foreign-Key Safe*: `evidence_summaries` $\rightarrow$ `notification_attempts` $\rightarrow$ `canonical_results` $\rightarrow$ `work_queue` $\rightarrow$ `events` $\rightarrow$ `requests` $\rightarrow$ resolved `incidents`).
+- Ruang disk kosong dikembalikan ke OS melalui `PRAGMA incremental_vacuum;` agar ukuran file database tetap berbatas (*bounded storage*).
 
-3. **Self-Monitoring Metrics (Autonomous Telemetry):**
-   - Aplikasi secara mandiri mengukur ukuran aktual berkas database pada disk (`page_count * page_size`) via [`sqlite-repository.js:237-244`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/adapters/sqlite-repository.js#L237-L244).
-   - Metrik `diagnostic_db_size_bytes` dan `diagnostic_housekeeping_runs_total` diekspos langsung ke Prometheus, memastikan tim SRE memiliki visibilitas penuh terhadap kesehatan storage lokal tanpa perlu login manual ke server.
+### 3. Self-Monitoring Metrics & Storage Telemetry
+
+- Aplikasi secara mandiri mengukur ukuran aktual berkas database pada disk (`page_count * page_size`) via [`sqlite-repository.js:237-244`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/adapters/sqlite-repository.js#L237-L244).
+- Metrik `diagnostic_db_size_bytes` dan `diagnostic_housekeeping_runs_total` diekspos langsung ke Prometheus, memastikan tim SRE memiliki visibilitas penuh terhadap kesehatan storage lokal tanpa perlu login manual ke server.
 
 ---
 
