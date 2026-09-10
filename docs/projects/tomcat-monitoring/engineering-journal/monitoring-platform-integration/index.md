@@ -35,6 +35,7 @@ Mengintegrasikan seluruh subsistem monitoring dan diagnostik ke dalam satu kesat
 | **Multi-Domain Diagnostic Engine & Dispatcher** | Implementasi Dispatcher dan 4 Decision Engine domain baku (AH, GC, TH, TD) dengan prinsip Zero Undecided Alerts (TM-ADR-0023) | Completed (TN-006) |
 | **SQLite State Resilience & Retention** | Implementasi Stale Lock Recovery, bounded retry limit, dan retention housekeeping pada SQLite (TM-ADR-0015) | Completed (TN-007) |
 | **Live Prometheus Evidence & Persistent Logs** | Integrasi PrometheusAdapter live, shared persistent log mount, dan laporan 7-seksi SRE utuh (TASK-TM-016 & TASK-TM-013) | Completed (TN-008) |
+| **Event Collector Daemonization & Persistent Spool** | Otomatisasi daemon `systemd --user`, standardisasi spool persisten `${HOME}/.local/share/tomcat-monitoring/spool` (`0700`), dan integrasi mount read-only (TASK-TM-014) | Completed (TN-009) |
 
 ## 📄 Technical Notes
 
@@ -69,6 +70,10 @@ Mengintegrasikan seluruh subsistem monitoring dan diagnostik ke dalam satu kesat
 8. **[TN-008 — Integrate Live Prometheus Evidence Adapter and Shared Persistent Tomcat Logs](TN-008-integrate-live-prometheus-evidence-adapter-and-shared-persistent-logs.md)**
 
     Menghubungkan `PrometheusAdapter` ke dalam fungsi pengumpul bukti live `createDefaultEvidenceCollector` pada `application.js`, mengonfigurasi shared persistent Named Volume log Tomcat (`tomcat_logs` ke `/usr/local/tomcat/logs:z` dan `/run/tomcat-diagnostic/logs:ro,z`), mendukung pembacaan log runtime asli (`catalina.out` dan fallback log harian), serta memverifikasi keterisian penuh Seksi 3 (*Key Metrics Snapshot*) dan Seksi 4 (*Correlated Log Evidence*) pada Laporan Investigasi 7-Seksi SRE ke Mailpit.
+
+9. **[TN-009 — Implement and Verify Event Collector Daemonization and Persistent Spool](TN-009-implement-and-verify-event-collector-daemonization-and-persistent-spool.md)**
+
+    Mengotomatisasi Restricted Event Collector sebagai background daemon persisten yang dikelola oleh `systemd --user` (`tomcat-diagnostic-event-collector.service`), menstandarisasi jalur spool ke lokasi persisten non-volatile (`${HOME}/.local/share/tomcat-monitoring/spool` izin `0700`) sesuai Zero `/tmp` Policy, membangun skrip deployment `scripts/deploy-event-collector.sh`, serta memverifikasi penangkapan event Podman dan pembacaan read-only oleh Diagnostic Service secara live di `devops-lab`.
 
 ## 🎓 Lessons Learned
 

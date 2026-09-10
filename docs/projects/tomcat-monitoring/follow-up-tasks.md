@@ -372,14 +372,21 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 
 #### TASK-TM-014: Otomatisasi Service & Daemonization Event Collector (Kesiapan Produksi TN-016)
 
+- **Status:** `Completed` ✅
 - **Deskripsi:**
   Membangun skrip deployment otomatis dan unit service `systemd --user` untuk menjalankan `tomcat-diagnostic-event-collector` sebagai daemon persisten di latar belakang, menggantikan eksekusi manual ad-hoc atau one-shot saat pengujian.
 - **Kebutuhan Teknis:**
   - Implementasi skrip deployment [`scripts/deploy-event-collector.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-event-collector.sh) pada repositori `tomcat-monitoring`.
   - Pembuatan unit service `~/.config/systemd/user/tomcat-diagnostic-event-collector.service` dengan restart policy `always`.
-  - Pengalihan path spooling dari direktori ephemeral `/tmp/diagnostic-spool` ke path persisten non-volatile dengan hak akses `0700`.
+  - Pengalihan path spooling dari direktori ephemeral `/tmp/diagnostic-spool` ke path persisten non-volatile dengan hak akses `0700` (`${HOME}/.local/share/tomcat-monitoring/spool`).
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
-  - Restricted Event Collector aktif secara otomatis sebagai daemon background dan segera merekam event Podman (`died`, `stop`, `oom`) ke direktori spool secara atomik tanpa intervensi manual operator.
+  - Restricted Event Collector aktif secara otomatis sebagai daemon background dan segera merekam event Podman (`died`, `stop`, `oom`, `start`) ke direktori spool secara atomik tanpa intervensi manual operator.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Unit test `test/test-collector.sh` dan validator `scripts/validate.sh` pada `tomcat-diagnostic-event-collector` lulus 100% dengan verifikasi izin direktori `0700`.
+  - Skrip deployment `scripts/deploy-event-collector.sh` memasang dan mengaktifkan service `systemd --user` `tomcat-diagnostic-event-collector.service` dengan status `active (running)`.
+  - Direktori spool persisten `${HOME}/.local/share/tomcat-monitoring/spool` di-mount secara *read-only* ke container `diagnostic-service` (`/run/tomcat-diagnostic/spool:ro,z`).
+  - Verifikasi live runtime membuktikan event container (`stop`/`start`) secara otomatis terekam oleh daemon background ke dalam berkas JSON berversi dan berhasil dikonsumsi oleh Diagnostic Service serta dipersistensikan ke tabel SQLite `evidence_summaries`.
+  - Didokumentasikan pada [TN-009](engineering-journal/monitoring-platform-integration/TN-009-implement-and-verify-event-collector-daemonization-and-persistent-spool.md).
 
 #### TASK-TM-015: Konfigurasi Enterprise SMTP Relay & Otentikasi Terenkripsi (Kesiapan Produksi Notifikasi)
 
@@ -422,7 +429,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-004** | Stale Lock Recovery Worker SQLite | **P1 (High)** | `Completed` ✅ | TM-ADR-0015 | Diagnostic Service | Re-queue otomatis event status processing (TN-007) |
 | **TASK-TM-005** | Housekeeping & Retention DB SQLite | **P1 (High)** | `Completed` ✅ | TM-ADR-0015 | Diagnostic Service | Pembersihan data lama & disk terkendali (TN-007) |
 | **TASK-TM-013** | Persistent Volume Mount Log Tomcat | **P1 (High)** | `Completed` ✅ | TN-019 / TN-008 | Tomcat Runtime / DS | Log container live terbaca otomatis oleh DS (TN-008) |
-| **TASK-TM-014** | Daemonization Restricted Event Collector | **P1 (High)** | `Planned` 📋 | TN-016 / GAP-002 | Event Collector | Collector berjalan sebagai systemd user service |
+| **TASK-TM-014** | Daemonization Restricted Event Collector | **P1 (High)** | `Completed` ✅ | TN-016 / TN-009 | Event Collector | Collector berjalan sebagai systemd user service (TN-009) |
 | **TASK-TM-015** | Enterprise SMTP Relay Configuration | **P1 (High)** | `Planned` 📋 | GAP-014 | Diagnostic Service | Notifikasi terkirim via relay SMTP TLS resmi |
 | **TASK-TM-016** | Live Prometheus Evidence Wire-up | **P1 (High)** | `Completed` ✅ | GAP-004 / TN-008 | Diagnostic Service | Metrik live otomatis terlampir di evidence (TN-008) |
 | **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | `Planned` 📋 | TM-ADR-0014 | Diagnostic Service | Log persisten tindakan manual SRE |
