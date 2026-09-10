@@ -358,16 +358,16 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 - **Deskripsi:**
   Mengonfigurasi volume mount persisten antara container runtime Tomcat (`tomcat-jmx-exporter`) dan host/Diagnostic Service agar log aplikasi real-time (`catalina.out` dan `catalina.YYYY-MM-DD.log`) dapat dibaca langsung oleh Diagnostic Service tanpa bergantung pada injeksi manual atau mock fixture pengujian.
 - **Kebutuhan Teknis:**
-  - Perbarui skrip peluncuran container Tomcat ([`scripts/run.sh`](file:///home/eddywiyatno/git/tomcat-jmx-exporter/scripts/run.sh) & [`scripts/deploy-tomcat.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-tomcat.sh)) untuk menyertakan volume mount:
-    `--volume "${TOMCAT_LOG_DIR:-${HOME}/.local/share/tomcat-monitoring/logs}:/usr/local/tomcat/logs:z"`.
-  - Pastikan hak akses direktori log host (`0755` / `0775`) pada direktori persisten non-volatile `${HOME}/.local/share/tomcat-monitoring/logs` (menghindari penggunaan direktori `/tmp` yang rentan terhapus saat reboot) dapat dibaca oleh user rootless Diagnostic Service secara *read-only* (`:ro,z`).
-  - Verifikasi bahwa log aplikasi yang ditulis saat startup atau error runtime secara otomatis terbaca oleh `bounded-file-reader` pada `diagnostic-service`.
+  - Perbarui skrip peluncuran container Tomcat ([`scripts/run.sh`](file:///home/eddywiyatno/git/tomcat-jmx-exporter/scripts/run.sh) & [`scripts/deploy-tomcat.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-tomcat.sh)) untuk menyertakan volume mount Podman Named Volume:
+    `--volume "${LOG_VOLUME:-tomcat_logs}:/usr/local/tomcat/logs:z"`.
+  - Standarisasi seluruh penyimpanan persisten monitoring menggunakan Podman Named Volumes (`diagnostic_data`, `prometheus_data`, `alertmanager_data`, dan `tomcat_logs`) untuk mengeliminasi dependensi direktori `/tmp` yang volatile dan menghindari path host absolut.
+  - Verifikasi bahwa log aplikasi yang ditulis saat startup atau error runtime secara otomatis terbaca oleh `bounded-file-reader` pada `diagnostic-service` via `--volume "tomcat_logs:/run/tomcat-diagnostic/logs:ro,z"`.
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
-  - Log runtime container Tomcat hidup tersinkronisasi langsung ke mount `/run/tomcat-diagnostic/logs/catalina.out` (atau daily log) pada Diagnostic Service.
+  - Log runtime container Tomcat hidup tersinkronisasi langsung ke mount `/run/tomcat-diagnostic/logs/catalina.out` (atau daily log) pada Diagnostic Service via Named Volume `tomcat_logs`.
   - Skenario diagnosis kegagalan aplikasi nyata (seperti error connection pool, OOM, atau bind exception) dapat dievaluasi secara otomatis dari log asli tanpa intervensi penulisan manual `echo`.
 - **Bukti Verifikasi (*Verification Evidence*):**
-  - Parameter volume `--volume "${TOMCAT_LOG_DIR:-${HOME}/.local/share/tomcat-monitoring/logs}:/usr/local/tomcat/logs:z"` dipasang pada `tomcat-jmx-exporter/scripts/run.sh`.
-  - Verifikasi live runtime membuktikan berkas `catalina.2026-09-10.log` terbentuk otomatis dan cuplikan log tersaji pada Seksi 4 (*Correlated Log Evidence*) di laporan email Mailpit.
+  - Parameter volume `--volume "${LOG_VOLUME:-tomcat_logs}:/usr/local/tomcat/logs:z"` dipasang pada `tomcat-jmx-exporter/scripts/run.sh`.
+  - Verifikasi live runtime membuktikan berkas log terbentuk otomatis pada Named Volume `tomcat_logs` dan cuplikan log tersaji pada Seksi 4 (*Correlated Log Evidence*) di laporan email Mailpit.
   - Didokumentasikan pada [TN-008](engineering-journal/monitoring-platform-integration/TN-008-integrate-live-prometheus-evidence-adapter-and-shared-persistent-logs.md).
 
 #### TASK-TM-014: Otomatisasi Service & Daemonization Event Collector (Kesiapan Produksi TN-016)

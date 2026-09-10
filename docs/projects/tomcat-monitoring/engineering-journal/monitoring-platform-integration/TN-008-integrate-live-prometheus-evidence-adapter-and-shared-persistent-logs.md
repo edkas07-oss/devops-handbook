@@ -24,10 +24,9 @@ Mengintegrasikan modul pengumpul bukti telemetri langsung (*Live Evidence Collec
    - Menyertakan konfigurasi `prometheus` (`baseUrl`) pada skema konfigurasi aplikasi dan `prometheusSelector` exact-match (`job="tomcat-jmx-exporter",instance="tomcat-jmx-exporter:9404"`) pada allowlist target [`targets.json`](file:///home/eddywiyatno/git/tomcat-monitoring/config/targets.json).
    - Menjamin perlindungan batas waktu kueri agresif (*aggressive timeout* 5000ms via `AbortSignal.timeout`) sehingga kegagalan atau kelambatan endpoint Prometheus tidak memblokir rantai evaluasi bukti lainnya.
    - Menyimpan snapshot metrik live (scrape health `up`, memory pool `jvm_memory_pool_used_bytes`, dan thread concurrency `tomcat_threads_busy_threads`) secara otomatis ke tabel `evidence_summaries` pada SQLite.
-2. **TASK-TM-013: Integrasi Shared Persistent Volume Mount untuk Log Runtime Tomcat:**
-   - Mengonfigurasi volume mount persisten non-volatile host-to-container antara runtime Tomcat (`tomcat-jmx-exporter`) dan host/Diagnostic Service (`--volume "${HOME}/.local/share/tomcat-monitoring/logs:/usr/local/tomcat/logs:z"`).
-   - Menolak secara tegas penggunaan direktori `/tmp` (misal `/tmp/tomcat-logs`) karena bersifat *volatile* (dibersihkan saat reboot sistem oleh `systemd-tmpfiles` atau `tmpfs`), yang melanggar kebijakan retensi internal berkas log pengguna.
-   - Menjamin hak akses direktori log host (`0755` / `0775`) sehingga dapat ditulis oleh container Tomcat dan dibaca secara terisolasi dan *read-only* (`:ro,z`) oleh non-root user UID 1000 (`node`) pada Diagnostic Service.
+2. **TASK-TM-013: Integrasi Shared Persistent Named Volume untuk Log Runtime Tomcat:**
+   - Mengonfigurasi Podman Named Volume persisten `tomcat_logs` (`--volume "tomcat_logs:/usr/local/tomcat/logs:z"`) antara runtime Tomcat (`tomcat-jmx-exporter`) dan Diagnostic Service (`--volume "tomcat_logs:/run/tomcat-diagnostic/logs:ro,z"`).
+   - Menegakkan standardisasi Named Volume menyeluruh pada seluruh layer persistensi monitoring platform (`diagnostic_data`, `prometheus_data`, `alertmanager_data`, dan `tomcat_logs`), menolak penggunaan direktori ephemeral `/tmp` maupun host bind-mount yang rentan terhadap volatilitas reboot atau ketergantungan path host absolut.
    - Mengaktifkan pembacaan log runtime nyata (`catalina.out` dan fallback log harian `catalina.YYYY-MM-DD.log`) melalui [`bounded-file-reader.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/adapters/bounded-file-reader.js) dengan redaksi rahasia otomatis.
 3. **Penyajian Bukti Utuh pada Laporan Investigasi 7-Seksi SRE:**
    - Memastikan snapshot metrik telemetri runtime terisi pada Seksi 3 (*Key Metrics Snapshot*) dan rekaman log Tomcat asli terisi pada Seksi 4 (*Correlated Log Evidence*) dalam notifikasi email resmi ke Mailpit.
@@ -41,10 +40,10 @@ Sebelum implementasi ini, rantai pengumpulan bukti diagnostik (*Evidence Collect
 Akibatnya:
 - Notifikasi insiden yang dikirimkan ke tim SRE menampilkan status `not_configured` pada Seksi 3 (Key Metrics Snapshot) dan `not_found` pada Seksi 4 (Correlated Log Evidence).
 - Berkas log runtime Tomcat (`catalina.out` / `catalina.YYYY-MM-DD.log`) terisolasi di dalam container ephemeral Tomcat dan tidak dapat dijangkau oleh Diagnostic Service.
-- Upaya penempatan log pada `/tmp` tidak memenuhi standar kepatuhan (*compliance*) pengguna karena data log akan musnah saat server di-restart.
+- Penggunaan host bind-mount sembarang atau direktori `/tmp` rentan terhadap penghapusan berkas log saat server me-restart dan melanggar portabilitas serta tata kelola retensi log internal pengguna.
 - Snapshot metrik real-time dari Prometheus API tidak terekam pada tabel SQLite `evidence_summaries`, menyisakan kesenjangan forensik pasca-insiden.
 
-Untuk mencapai kesiapan lingkungan produksi (*Production Readiness*) sesuai peta jalan **TN-020** dan **TM-ADR-0016**, seluruh rantai bukti live wajib terhubung secara mulus, aman, berbatas (*bounded*), dan persisten di media penyimpanan non-volatile.
+Untuk mencapai kesiapan lingkungan produksi (*Production Readiness*) sesuai peta jalan **TN-020** dan **TM-ADR-0016**, seluruh rantai bukti live wajib terhubung secara mulus, aman, berbatas (*bounded*), dan terstandarisasi berbasis Podman Named Volumes.
 
 ---
 
@@ -62,9 +61,9 @@ Pekerjaan implementasi dan integrasi mencakup:
   - [`test/unit/config-loader.test.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/test/unit/config-loader.test.js): Penambahan unit test validasi konfigurasi `prometheus`.
   - [`VERSION`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/VERSION), [`package.json`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/package.json), [`package-lock.json`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/package-lock.json): Peningkatan versi rilis ke `0.1.7`.
 - **`tomcat-jmx-exporter`:**
-  - [`scripts/run.sh`](file:///home/eddywiyatno/git/tomcat-jmx-exporter/scripts/run.sh): Pemasangan volume persisten non-volatile `--volume "${TOMCAT_LOG_DIR:-${HOME}/.local/share/tomcat-monitoring/logs}:/usr/local/tomcat/logs:z"`.
+  - [`scripts/run.sh`](file:///home/eddywiyatno/git/tomcat-jmx-exporter/scripts/run.sh): Pemasangan Named Volume persisten `--volume "${LOG_VOLUME:-tomcat_logs}:/usr/local/tomcat/logs:z"`.
 - **`tomcat-monitoring`:**
-  - [`scripts/deploy-diagnostic-service.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-diagnostic-service.sh): Pemutakhiran deployment image ke digest immutable v0.1.7, konfigurasi `prometheus.baseUrl: "http://prometheus:9090"`, penyematan exact `prometheusSelector` pada allowlist `targets.json`, dan bind mount non-volatile `${HOME}/.local/share/tomcat-monitoring/logs:/run/tomcat-diagnostic/logs:ro,z`.
+  - [`scripts/deploy-diagnostic-service.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-diagnostic-service.sh): Pemutakhiran deployment image ke digest immutable v0.1.7, konfigurasi `prometheus.baseUrl: "http://prometheus:9090"`, penyematan exact `prometheusSelector` pada allowlist `targets.json`, dan volume mount read-only `tomcat_logs:/run/tomcat-diagnostic/logs:ro,z`.
 - **`devops-handbook`:**
   - [`docs/projects/tomcat-monitoring/engineering-journal/monitoring-platform-integration/TN-008-integrate-live-prometheus-evidence-adapter-and-shared-persistent-logs.md`](TN-008-integrate-live-prometheus-evidence-adapter-and-shared-persistent-logs.md): Jurnal teknik kanonikal 14 seksi.
   - [`docs/projects/tomcat-monitoring/follow-up-tasks.md`](../../follow-up-tasks.md): Pembaruan status backlog `TASK-TM-016` dan `TASK-TM-013` menjadi `Completed` ✅.
@@ -78,7 +77,7 @@ Pekerjaan implementasi dan integrasi mencakup:
 | **Diagnostic Service Baseline** | Commit `0d4bc9e` | Rilis v0.1.7 dengan 61 unit dan integration tests passing 100%. |
 | **Tomcat JMX Exporter Baseline** | Commit `d7d3789` | Runtime Tomcat 9.0 dengan Java Agent JMX Exporter HTTPS. |
 | **Monitoring Network Stack** | Network `devops-lab` | Prometheus (`:9090`), Alertmanager (`:9093`), Mailpit (`:8025/:1025`). |
-| **Persistent Storage Volumes** | `diagnostic_data` & `~/.local/share/tomcat-monitoring/logs` | Volume SQLite persisten dan shared non-volatile log directory berizin `0775`. |
+| **Persistent Storage Volumes** | `diagnostic_data` & `tomcat_logs` | Named Volume Podman terkelola untuk database SQLite dan shared log storage. |
 | **Implementation Authorization** | Approved (2026-09-10) | Otorisasi penuh oleh Project Owner. |
 
 ---
@@ -100,12 +99,12 @@ Arsitektur pengumpulan bukti live dirancang berdasarkan prinsip-prinsip berikut:
 |    Diagnostic Service hanya mengeksekusi kueri yang digabungkan dengan       |
 |    prometheusSelector terdaftar pada targets.json (anti-arbitrary query).   |
 |                                                                             |
-| 3. Non-Volatile Persistent Shared Log Mount (:ro,z):                        |
-|    Tomcat menulis log ke /usr/local/tomcat/logs (:z) yang dipetakan ke path  |
-|    persisten non-volatile ~/.local/share/tomcat-monitoring/logs pada host,  |
-|    sedangkan Diagnostic Service membaca path tersebut secara read-only       |
-|    (:ro,z) via BoundedFileReader terisolasi. Dilarang keras menggunakan     |
-|    /tmp demi menjaga kepatuhan retensi log saat server restart.             |
+| 3. Standardized Podman Named Volume Shared Log Mount (:ro,z):               |
+|    Tomcat menulis log ke /usr/local/tomcat/logs (:z) via Named Volume       |
+|    tomcat_logs, sedangkan Diagnostic Service membaca volume tersebut secara |
+|    read-only (:ro,z) via BoundedFileReader terisolasi. Pendekatan ini       |
+|    menjamin portabilitas penuh, konsisten dengan named volume lainnya       |
+|    (diagnostic_data, prometheus_data), dan kebal terhadap reboot host.       |
 |                                                                             |
 | 4. Automatic Secret Redaction:                                              |
 |    Seluruh token, password, authorization, dan API keys pada cuplikan log   |
@@ -124,7 +123,7 @@ sequenceDiagram
     participant AM as Alertmanager<br/>(:9093)
     participant DS as Diagnostic Service<br/>(HTTPS :8443)
     participant Tom as Tomcat Container<br/>(tomcat-jmx-exporter)
-    participant Disk as Non-Volatile Log Storage<br/>(~/.local/share/tomcat-monitoring/logs)
+    participant Disk as Named Volume Storage<br/>(tomcat_logs)
     participant DB as SQLite DB<br/>(evidence_summaries)
     participant Mail as Mailpit SMTP<br/>(:1025)
 
@@ -230,13 +229,13 @@ Pada [`src/application/application.js`](file:///home/eddywiyatno/git/tomcat-diag
     }
 ```
 
-### 3. Konfigurasi Shared Persistent Volume Mount pada Tomcat Runtime
+### 3. Konfigurasi Shared Persistent Named Volume pada Tomcat Runtime
 
-Pada [`tomcat-jmx-exporter/scripts/run.sh`](file:///home/eddywiyatno/git/tomcat-jmx-exporter/scripts/run.sh), direktori `/usr/local/tomcat/logs` dipasang ke host non-volatile persistent storage `${TOMCAT_LOG_DIR:-${HOME}/.local/share/tomcat-monitoring/logs}` dengan label SELinux `:z`:
+Pada [`tomcat-jmx-exporter/scripts/run.sh`](file:///home/eddywiyatno/git/tomcat-jmx-exporter/scripts/run.sh), direktori `/usr/local/tomcat/logs` dipasang ke Podman Named Volume `${LOG_VOLUME:-tomcat_logs}` dengan label SELinux `:z`:
 
 ```bash
-TOMCAT_LOG_DIR="${TOMCAT_LOG_DIR:-${HOME}/.local/share/tomcat-monitoring/logs}"
-mkdir -p "${TOMCAT_LOG_DIR}" && chmod 0775 "${TOMCAT_LOG_DIR}" 2>/dev/null || true
+LOG_VOLUME="${LOG_VOLUME:-tomcat_logs}"
+podman volume exists "${LOG_VOLUME}" || podman volume create "${LOG_VOLUME}" >/dev/null
 
 podman run --detach \
     --name "${INSTANCE}" \
@@ -247,7 +246,7 @@ podman run --detach \
     --volume "${CONFIG_FILE}:/etc/tomcat-jmx-exporter/config.yml:ro" \
     --volume "${KEYSTORE_FILE}:/run/secrets/tomcat-jmx-exporter/keystore.p12:ro" \
     --volume "${PASSWORD_FILE}:/run/secrets/tomcat-jmx-exporter/keystore-password:ro" \
-    --volume "${TOMCAT_LOG_DIR}:/usr/local/tomcat/logs:z" \
+    --volume "${LOG_VOLUME}:/usr/local/tomcat/logs:z" \
     "${IMAGE_NAME}:${PROJECT_VERSION}"
 ```
 
@@ -263,8 +262,8 @@ podman run --detach \
 | **Diagnostic Service** | [`test/unit/collector-spool-adapter.test.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/test/unit/collector-spool-adapter.test.js) | Test | Unit test pengumpulan metrik live & timeout resilience. |
 | **Diagnostic Service** | [`test/unit/config-loader.test.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/test/unit/config-loader.test.js) | Test | Unit test pemuatan konfigurasi `prometheus`. |
 | **Diagnostic Service** | [`VERSION`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/VERSION) | Meta | Release tag `0.1.7` (digest `sha256:ae212a72419e7c10f6b7d4e1af06a576546143d2f20e335629a21ddc16fcbb25`). |
-| **Tomcat JMX Exporter** | [`scripts/run.sh`](file:///home/eddywiyatno/git/tomcat-jmx-exporter/scripts/run.sh) | Script | Pemasangan volume persisten log non-volatile `~/.local/share/tomcat-monitoring/logs`. |
-| **Tomcat Monitoring** | [`scripts/deploy-diagnostic-service.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-diagnostic-service.sh) | Script | Deployment runtime Diagnostic Service v0.1.7 dengan allowlist selector & non-volatile log mount. |
+| **Tomcat JMX Exporter** | [`scripts/run.sh`](file:///home/eddywiyatno/git/tomcat-jmx-exporter/scripts/run.sh) | Script | Pemasangan persistent Named Volume `tomcat_logs`. |
+| **Tomcat Monitoring** | [`scripts/deploy-diagnostic-service.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-diagnostic-service.sh) | Script | Deployment runtime Diagnostic Service v0.1.7 dengan allowlist selector & read-only Named Volume mount `tomcat_logs`. |
 
 ---
 
@@ -278,7 +277,7 @@ podman run --detach \
 | **UT-04** | Schema & Config Loader Validation | `loadApplicationConfig` | Validasi tipe objek `prometheus` dan batas nilai `prometheusMs` | `Passed` ✅ |
 | **CT-01** | Static Governance & Boundary Audit | `validate.sh` | Integritas schema, migration, dependency lock, dan secret isolation | `Passed` ✅ |
 | **CT-02** | Image Runtime Contract Probe | `test-image-component.sh` | Verifikasi HTTPS, SQLite startup, dan graceful shutdown pada image v0.1.7 | `Passed` ✅ |
-| **LT-01** | Shared Log Volume Synchronization | `tomcat-jmx-exporter` | Tomcat menulis log langsung ke host non-volatile `~/.local/share/tomcat-monitoring/logs` | `Passed` ✅ |
+| **LT-01** | Shared Log Volume Synchronization | `tomcat-jmx-exporter` | Tomcat menulis log langsung ke Named Volume `tomcat_logs` | `Passed` ✅ |
 | **LT-02** | End-to-End Live Evidence Ingestion | `devops-lab` | Metrik live dan cuplikan log tersimpan di SQLite & disajikan di Mailpit | `Passed` ✅ |
 
 ---
@@ -434,7 +433,7 @@ curl -s http://localhost:8025/api/v1/messages | jq '.messages[0].Subject'
 1. **TASK-TM-016 Terpenuhi Penuh:**
    `PrometheusAdapter` aktif pada runtime `DiagnosticApplication`, mengambil snapshot metrik `up`, `jvm_memory_pool_used_bytes`, dan `tomcat_threads_busy_threads` dengan batas waktu agresif 5000ms.
 2. **TASK-TM-013 Terpenuhi Penuh:**
-   Pemasangan volume persisten non-volatile `~/.local/share/tomcat-monitoring/logs` ke `/usr/local/tomcat/logs:z` memungkinkan Diagnostic Service membaca log aplikasi Tomcat (`catalina.out` / `catalina.YYYY-MM-DD.log`) secara real-time dan terisolasi (`:ro,z`) dengan jaminan durabilitas log penuh saat host direstart sesuai kebijakan kepatuhan retensi pengguna.
+   Pemasangan Podman Named Volume persisten `tomcat_logs` ke `/usr/local/tomcat/logs:z` (Tomcat) dan `/run/tomcat-diagnostic/logs:ro,z` (Diagnostic Service) memungkinkan pembacaan log aplikasi Tomcat (`catalina.out` / `catalina.YYYY-MM-DD.log`) secara real-time dan terisolasi dengan jaminan portabilitas, kebersihan path host, dan durabilitas log penuh saat host direstart sesuai kebijakan kepatuhan retensi pengguna.
 3. **Observabilitas Forensik Menyeluruh:**
    Laporan SRE pada Mailpit kini menyajikan bukti telemetri kuantitatif dan cuplikan log kualitatif yang terkorelasi dalam format kanonikal 7-seksi.
 
