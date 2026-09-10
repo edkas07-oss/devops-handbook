@@ -387,7 +387,7 @@ Bagian ini mencatat seluruh berkas (*artifacts*) yang dibuat atau dimodifikasi s
 | `docs/.../TN-007-implement-stale-lock-recovery-and-sqlite-state-resilience.md` | Dokumentasi Engineering | Baru | Technical Note pelaksanaan implementasi dan bukti verifikasi live. |
 | `docs/projects/tomcat-monitoring/follow-up-tasks.md` | Tata Kelola Proyek | Modifikasi | Menandai TASK-TM-018, TASK-TM-004, dan TASK-TM-005 selesai (`Completed`). |
 
-### Alur Keterkaitan Antar-Berkas
+### Artifact Dependency & Relationship Graph
 
 ```mermaid
 %%{init: {
