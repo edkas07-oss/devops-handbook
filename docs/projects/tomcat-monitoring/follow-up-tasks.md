@@ -186,6 +186,28 @@ Kategori ini merupakan prioritas utama (*Critical*) untuk mengantisipasi keterba
 
 Kategori ini menindaklanjuti konsekuensi teknis pada **TM-ADR-0015** (*Adopt Asynchronous Webhook Ingestion with Durable SQLite Acceptance Pattern*), terkait pemrosesan status event dan pencegahan penumpukan data (*bounded storage*).
 
+Karena Diagnostic Service menggunakan *Embedded SQLite* tanpa server database eksternal dan tanpa peran DBA, Diagnostic Service **wajib memiliki kemampuan mengelola dan memelihara database SQLite-nya sendiri (*self-managed / autonomous engine*)**, yang mencakup **3 pilar utama**:
+
+```text
++-----------------------------------------------------------------------------+
+|               Self-Managed SQLite Lifecycle in Diagnostic Service           |
++-----------------------------------------------------------------------------+
+| 1. Self-Healing State Recovery (TASK-TM-004):                                |
+|    Mendeteksi & memulihkan antrean macet (stale processing lock) pasca-crash|
+|    secara otomatis tanpa intervensi manual operator / DBA.                  |
++-----------------------------------------------------------------------------+
+| 2. Automated Storage Housekeeping & Pruning (TASK-TM-005):                  |
+|    Memangkas event/log lama (> 30 hari) secara teratur & menjalankan        |
+|    PRAGMA incremental_vacuum untuk mencegah kebocoran disk (bounded storage).|
++-----------------------------------------------------------------------------+
+| 3. Autonomous Storage Telemetry & Quota Guard:                              |
+|    Memantau ukuran file fisik database (diagnostic_db_size_bytes) dan       |
+|    mengeksposnya ke Prometheus untuk pemantauan kapasitas host.             |
++-----------------------------------------------------------------------------+
+```
+
+---
+
 #### TASK-TM-004: Implementasi Stale Lock Recovery pada Worker Ingestion
 
 - **Status:** `Completed` ✅
