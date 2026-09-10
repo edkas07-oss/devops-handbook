@@ -94,13 +94,13 @@ Pekerjaan implementasi dan standarisasi mencakup:
   }
 }}%%
 flowchart TD
-    T1["1. Implementasi 3 Sub-Engine Domain<br/>(Application Health, JVM, Concurrency)"] --> T2["2. Integrasi Dispatcher di DynamicRuleEvaluator<br/>(Layer 1 & Layer 2 Routing)"]
-    T2 --> T3["3. Pemutakhiran Worker & Renderers<br/>(Preservasi ruleId & Severity Dinamis)"]
-    T3 --> T4["4. Pengujian Unit & Validasi Integritas<br/>(test/unit/ & scripts/validate.sh)"]
-    T4 --> T5["5. Pembangunan Image 0.1.5 & Testing Image<br/>(scripts/build.sh & scripts/test-image.sh)"]
+    T1["1. Sub-Engine Domain Baru<br/>(Health, JVM, Concurrency)"] --> T2["2. Integrasi Dispatcher<br/>DynamicRuleEvaluator (L1 & L2)"]
+    T2 --> T3["3. Preservasi ruleId Asli<br/>& Severity Dinamis Renderer"]
+    T3 --> T4["4. Pengujian Unit & Integritas<br/>(test/unit/ & validate.sh)"]
+    T4 --> T5["5. Pembangunan Image v0.1.5<br/>(build.sh & test-image.sh)"]
     T5 --> T6["6. Deployment Persistent Runtime<br/>(deploy-diagnostic-service.sh)"]
-    T6 --> T7["7. Verifikasi Simulasi Live & Mailpit Audit<br/>(verify-jvm-workload-live.sh)"]
-    T7 --> T8["8. Dokumentasi & Finalisasi Backlog<br/>(TN-006 & follow-up-tasks.md)"]
+    T6 --> T7["7. Verifikasi Live & Mailpit<br/>(verify-jvm-workload-live.sh)"]
+    T7 --> T8["8. Finalisasi Dokumentasi<br/>(TN-006 & follow-up-tasks.md)"]
 ```
 
 ## 🏛️ Architecture and Specification Decisions
@@ -125,18 +125,18 @@ flowchart TD
   }
 }}%%
 flowchart TD
-    EVENT["Normalized Incident Event<br/>(eventKey, targetId, labels.alertname, severity)"] --> QUEUE["Bounded Work Queue"]
-    QUEUE --> WORKER["Single Worker Loop (Claim Next)"]
-    WORKER --> COLLECT["Collect Evidence Pipeline<br/>(Spool, Logs, HTTP Health, JMX)"]
+    EVENT["Normalized Incident Event<br/>(eventKey, targetId, alertname, severity)"] --> QUEUE["Bounded Work Queue"]
+    QUEUE --> WORKER["Single Worker Loop<br/>(claimNext)"]
+    WORKER --> COLLECT["Kumpulkan Bukti Telemetri<br/>(Spool, Logs, HTTP, JMX)"]
     
-    COLLECT --> EVAL{"DynamicRuleEvaluator.evaluate(evidence, event)"}
+    COLLECT --> EVAL{"Evaluasi Aturan<br/>DynamicRuleEvaluator"}
     
     %% Layer 2
-    EVAL -->|1. Scan Custom Rules| L2{"Layer 2 Regex Match?"}
-    L2 -->|Ya (Match)| CUSTOM["Custom Ingested Assessment<br/>ruleId = event.alertname || rule.ruleId<br/>branch = TD-09+ / Custom"]
+    EVAL -->|1. Pindai Custom Rules| L2{"Cocok Aturan<br/>Layer 2?"}
+    L2 -->|Ya, Match| CUSTOM["Custom Ingested Assessment<br/>(ruleId = alertname, branch = Custom)"]
     
     %% Layer 1
-    L2 -->|Tidak (Fallback)| L1{"Layer 1: Route by alertname"}
+    L2 -->|Tidak, Fallback| L1{"Rute Domain<br/>Layer 1 (alertname)"}
     
     L1 -->|TomcatDown| E1["evaluateTomcatDown<br/>(TD-01..TD-08)"]
     L1 -->|TomcatApplicationHealth*| E2["evaluateApplicationHealth<br/>(AH-01..AH-05)"]
@@ -144,16 +144,16 @@ flowchart TD
     L1 -->|TomcatThreadPool*| E4["evaluateConcurrency<br/>(TH-01..TH-03)"]
     L1 -->|Lainnya / Unhandled| E5["Fallback Evaluator<br/>(UN-01: Undetermined)"]
     
-    CUSTOM --> CANON["buildCanonicalResult(core, event, timing)"]
+    CUSTOM --> CANON["Bentuk Canonical Result<br/>buildCanonicalResult()"]
     E1 --> CANON
     E2 --> CANON
     E3 --> CANON
     E4 --> CANON
     E5 --> CANON
     
-    CANON --> NOTIFY{"Periksa Izin Notifikasi<br/>(Initial / Material / Resolved)"}
+    CANON --> NOTIFY{"Izin Notifikasi<br/>Terpenuhi?"}
     NOTIFY -->|Kirim| RENDER["Render Laporan 7-Seksi SRE<br/>(HTML Dinamis + Plain Text)"]
-    RENDER --> SMTP["Kirim via SmtpAdapter<br/>Subject: [SEVERITY] [ENV] Tomcat Service: AlertName"]
+    RENDER --> SMTP["Kirim via SmtpAdapter<br/>Subject: [SEV] [ENV] AlertName"]
 ```
 
 ## 💻 Implementation Details

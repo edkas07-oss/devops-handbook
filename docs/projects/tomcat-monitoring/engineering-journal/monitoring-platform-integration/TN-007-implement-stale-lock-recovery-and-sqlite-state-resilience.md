@@ -118,30 +118,37 @@ Implementasi menegakkan keputusan arsitektur dan pola operasional berikut:
 Alur teknis pemulihan antrean macet (*Stale Lock Recovery*) dan pembersihan data historis (*Retention Housekeeping*):
 
 ```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'edgeLabelBackground': 'transparent',
+    'fontSize': '12px'
+  }
+}}%%
 flowchart TD
     subgraph STARTUP["1. Inisialisasi & Startup Recovery"]
-        S1["Application.start()"] --> S2["recoverStaleLocks()"]
-        S2 --> S3{"Ada Item Stale<br/>(state='processing')?"}
-        S3 -->|"Ya & retry < maxRetries"| S4["Re-queue: state='queued'<br/>retry_count += 1"]
-        S3 -->|"Ya & retry >= maxRetries"| S5["Mark as Failed:<br/>state='failed'"]
-        S3 -->|"Tidak"| S6["Housekeeping & Pruning"]
+        S1["Application.start()<br/>(Inisialisasi Service)"] --> S2["recoverStaleLocks()<br/>(Pindai Kuncian Macet)"]
+        S2 --> S3{"Ada Item<br/>Stale?"}
+        S3 -->|Ya, retry < max| S4["Re-queue Antrean<br/>(state = 'queued')<br/>retry_count + 1"]
+        S3 -->|Ya, retry >= max| S5["Tandai Gagal Permanen<br/>(state = 'failed')<br/>completed_at = now"]
+        S3 -->|Tidak Ada| S6["Housekeeping Awal<br/>(Pruning Retensi)"]
         S4 --> S6
         S5 --> S6
     end
 
     subgraph WORKER["2. Worker Processing Loop"]
-        W1["claimNext({ timeoutMs })<br/>state='processing', lease_expires_at=now+5m"] --> W2["Collect Evidence & Evaluate Rules"]
-        W2 --> W3["complete(success=true)<br/>state='completed'"]
+        W1["Klaim: claimNext()<br/>state = 'processing'<br/>lease_expires_at = now + 5m"] --> W2["Kumpulkan Bukti Telemetri<br/>& Evaluasi Aturan Diagnostik"]
+        W2 --> W3["Selesai: complete()<br/>state = 'completed'"]
     end
 
     subgraph HOUSEKEEPING["3. Automated Storage Housekeeping"]
-        H1["pruneHistoricalRecords({ retentionDays: 30 })"] --> H2["Hapus Record Lama Sesuai Urutan FK"]
-        H2 --> H3["PRAGMA incremental_vacuum"]
-        H3 --> H4["getDatabaseSizeBytes()<br/>Update Prometheus Gauge"]
+        H1["Pangkas Data Kadaluwarsa<br/>pruneHistoricalRecords()"] --> H2["Hapus Data Historis<br/>Terurut Foreign Key"]
+        H2 --> H3["Klaim Ruang Kosong Disk<br/>PRAGMA incremental_vacuum"]
+        H3 --> H4["Ukur Ukuran Berkas DB<br/>getDatabaseSizeBytes()"]
     end
 
     STARTUP --> WORKER
-    WORKER -.->|"Periodik saat idle"| HOUSEKEEPING
+    WORKER -.->|Saat antrean idle| HOUSEKEEPING
 ```
 
 ### Workflow Activity Details
@@ -383,15 +390,22 @@ Bagian ini mencatat seluruh berkas (*artifacts*) yang dibuat atau dimodifikasi s
 ### Alur Keterkaitan Antar-Berkas
 
 ```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'edgeLabelBackground': 'transparent',
+    'fontSize': '12px'
+  }
+}}%%
 flowchart TD
-    CONFIG["config/schemas/...schema.json<br/>(Konfigurasi Timeout & Retensi)"] --> APP["src/application/application.js<br/>(Startup & Worker Loop)"]
-    APP --> REPO["src/adapters/sqlite-repository.js<br/>(Transactional Logic)"]
-    REPO --> MIGRATION[("migrations/007-...sql<br/>(Skema retry_count & lease)")]
+    CONFIG["application-config-v1.schema.json<br/>(Validasi Timeout & Retensi)"] --> APP["src/application/application.js<br/>(Siklus Hidup & Worker Loop)"]
+    APP --> REPO["src/adapters/sqlite-repository.js<br/>(Logika Transaksi & Pruning)"]
+    REPO --> MIGRATION[("007-stale-lock-recovery.sql<br/>(Skema Kolom & Indeks)")]
     APP --> METRICS["src/application/health-metrics.js<br/>(Metrik Prometheus DB & Lock)"]
     
     subgraph VERIFICATION["Pengujian & Deployment"]
-        UNIT["test/unit/stale-lock-and-retention.test.js"] -. Menguji .-> REPO
-        DEPLOY["scripts/deploy-diagnostic-service.sh"] -. Menjalankan .-> APP
+        UNIT["stale-lock-and-retention.test.js<br/>(Uji Unit Terisolasi)"] -. Memvalidasi .-> REPO
+        DEPLOY["deploy-diagnostic-service.sh<br/>(Deployment Runtime v0.1.6)"] -. Menjalankan .-> APP
     end
 ```
 
