@@ -452,7 +452,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-014** | Daemonization Restricted Event Collector | **P1 (High)** | `Completed` ✅ | TN-016 / TN-009 | Event Collector | Collector berjalan sebagai systemd user service (TN-009) |
 | **TASK-TM-015** | Enterprise SMTP Relay Configuration | **P1 (High)** | `Completed` ✅ | GAP-014 / TN-010 | Diagnostic Service | Notifikasi terkirim via relay SMTP TLS resmi (TN-010) |
 | **TASK-TM-016** | Live Prometheus Evidence Wire-up | **P1 (High)** | `Completed` ✅ | GAP-004 / TN-008 | Diagnostic Service | Metrik live otomatis terlampir di evidence (TN-008) |
-| **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | `Planned` 📋 | TM-ADR-0014 | Diagnostic Service | Log persisten tindakan manual SRE |
+| **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | `Descoped` ⚪ | TM-ADR-0014 | Diagnostic Service | Digantikan arsip dossier 7-seksi terpusat |
 | **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Rule saturasi thread pool 100% (TN-004) |
 | **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Sinyal Emas GC Pause, Overhead, Old Gen (TN-004) |
 | **TASK-TM-009** | Dashboard Observabilitas Grafana | **P2 (Medium)** | `Planned` 📋 | TN-020 | Grafana | Dashboard terpusat JVM, Tomcat, & Health |
