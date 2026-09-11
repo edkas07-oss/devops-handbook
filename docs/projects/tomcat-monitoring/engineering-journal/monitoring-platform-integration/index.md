@@ -38,6 +38,7 @@ Mengintegrasikan seluruh subsistem monitoring dan diagnostik ke dalam satu kesat
 | **Event Collector Daemonization & Persistent Spool** | Otomatisasi daemon `systemd --user`, standardisasi spool persisten `${HOME}/.local/share/tomcat-monitoring/spool` (`0700`), dan integrasi mount read-only (TASK-TM-014) | Completed (TN-009) |
 | **Enterprise SMTP Configuration & Headers** | Implementasi `requireTLS`, standardisasi header enterprise RFC (`Auto-Submitted`, `X-Priority`, `X-Incident-Target`, `X-Diagnostic-Rule`), kredensial terisolasi, dan verifikasi relay (TASK-TM-015) | Completed (TN-010) |
 | **Spool Lifecycle & Log Retention Governance** | Implementasi pemangkasan berkas spool otonom (24 jam), penegakan kuota FIFO cap (1000 berkas), pembersihan .tmp stale (60m), isolasi hak akses 0700/0600, dan SOP SRE (TASK-TM-010) | Completed (TN-011) |
+| **Production-Ready Jenkins CI/CD Architecture & Roadmap** | Perancangan arsitektur CI/CD decoupled component & stack CD hub, standarisasi 6 pilar kesiapan produksi enterprise, evaluasi multi-repo, dan penyusunan roadmap TN-013 s.d. TN-016 (TASK-TM-019) | Completed (TN-012) |
 
 ## 📄 Technical Notes
 
@@ -84,6 +85,10 @@ Mengintegrasikan seluruh subsistem monitoring dan diagnostik ke dalam satu kesat
 11. **[TN-011 — Implement and Verify Host Spool Lifecycle and Runtime Log Retention Governance](TN-011-implement-and-verify-spool-lifecycle-and-log-retention.md)**
 
     Menuntaskan `TASK-TM-010` dengan membangun mesin pemangkasan otonom (*autonomous spool pruning*) pada Restricted Event Collector (`MAX_SPOOL_AGE_HOURS=24`), menegakkan kuota batas kapasitas 1000 berkas (*FIFO cap*), membersihkan berkas `.tmp` terlantar (`STALE_TMP_AGE_MINUTES=60`), mengunci izin direktori `0700` dan berkas bukti `0600` sesuai *Zero `/tmp` Policy*, serta mengonsolidasikan dokumentasi SOP operasional SRE untuk event collector dan log runtime Tomcat pada `README.md`.
+
+12. **[TN-012 — Design Production-Ready Jenkins CI/CD Pipeline Architecture and Implementation Roadmap](TN-012-design-production-ready-jenkins-cicd-pipeline-architecture.md)**
+
+    Mendokumentasikan secara komprehensif evaluasi kebutuhan CI/CD skala produksi (`TASK-TM-019`), penetapan pola arsitektur *Decoupled Component CI + Orchestrated Stack CD Hub*, standarisasi 6 pilar produksi enterprise (parameterisasi, isolasi rahasia, quality gates, OCI immutable build, atomic rollback, runbook), serta penyusunan peta jalan bertahap (TN-013 s.d. TN-016).
 
 ## 🎓 Lessons Learned
 
