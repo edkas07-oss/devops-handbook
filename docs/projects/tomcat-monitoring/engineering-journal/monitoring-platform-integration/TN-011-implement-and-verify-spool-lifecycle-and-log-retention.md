@@ -283,7 +283,8 @@ podman run --rm -v /home/eddywiyatno/git/tomcat-diagnostic-service:/app:ro,z -w 
 
 | Path Berkas | Tipe | Komponen | Peran & Deskripsi |
 | :--- | :---: | :--- | :--- |
-| [`tomcat-diagnostic-event-collector/CONFIG`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector/CONFIG) | Source | Event Collector | Definisi parameter non-secret batas retensi, kapasitas kuota, dan usia file temporer. |
+| [`tomcat-diagnostic-event-collector/CONFIG`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector/CONFIG) | Source | Event Collector | Definisi parameter non-secret batas retensi, kapasitas kuota, dan usia file temporer (SSOT). |
+| [`tomcat-diagnostic-event-collector/config/README.md`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector/config/README.md) | Docs | Event Collector | Dokumentasi spesifikasi konfigurasi deklaratif, matriks parameter, dan SOP penyesuaian threshold. |
 | [`tomcat-diagnostic-event-collector/src/collector.sh`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector/src/collector.sh) | Source | Event Collector | Engine daemon penangkap event Podman dan pemangkas berkas spool kadaluwarsa (`prune_stale_spool_records`). |
 | [`tomcat-diagnostic-event-collector/scripts/validate.sh`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector/scripts/validate.sh) | Source | Event Collector | Validator integritas metadata, schema JSON, sintaks shell, dan tipe variabel konfigurasi. |
 | [`tomcat-diagnostic-event-collector/test/test-collector.sh`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector/test/test-collector.sh) | Source | Event Collector | Test suite komponen: validasi skema, izin file `0600`/`0700`, retensi 24h, dan kuota FIFO cap. |
@@ -296,7 +297,8 @@ podman run --rm -v /home/eddywiyatno/git/tomcat-diagnostic-service:/app:ro,z -w 
 
 ```mermaid
 flowchart TD
-    CONFIG["<b>CONFIG</b><br/>(Retention & Cap Params)"] --> COLLECTOR["<b>src/collector.sh</b><br/>(Pruning Engine & Atomic Writer)"]
+    CONFIG["<b>CONFIG</b><br/>(Retention & Cap Params SSOT)"] --> CONFIG_DOC["<b>config/README.md</b><br/>(Spec & Tuning SOP)"]
+    CONFIG --> COLLECTOR["<b>src/collector.sh</b><br/>(Pruning Engine & Atomic Writer)"]
     CONFIG --> VALIDATE["<b>scripts/validate.sh</b><br/>(Static Validator)"]
     COLLECTOR --> TEST["<b>test/test-collector.sh</b><br/>(Pruning & Cap Suite)"]
     COLLECTOR --> SPOOL[("<b>Host Spool Directory</b><br/>~/.local/share/.../spool (0700)")]
