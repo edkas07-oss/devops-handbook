@@ -22,6 +22,7 @@ Record, dan referensi eksternal yang digunakan oleh Tomcat Monitoring.
 - [Gitea `tomcat-jmx-exporter`](http://edkas-pc1:3000/gitadm/tomcat-jmx-exporter)
 - [Tomcat Monitoring Architecture Decision Records](../../../adr/tomcat-monitoring/index.md)
 - [Diagnostic Service REST API Reference](diagnostic-service-rest-api-reference.md)
+- [Prometheus Metrics Catalog & PromQL Reference](prometheus-metrics-catalog.md)
 - [Diagnostic MVP Contracts](../diagnostic-mvp/index.md)
 - [Diagnostic MVP Pilot Engineering Journal](../engineering-journal/diagnostic-mvp-pilot/index.md)
 - JMX Exporter Java Agent How-to — required at root How-to; not yet published.

@@ -125,4 +125,5 @@ Untuk prosedur operasional pengelolaan basis pengetahuan diagnosis (*declarative
 
 * [Runbook: AI Knowledge Enrichment & Declarative Rule Management](ai-knowledge-enrichment-and-rule-management-runbook.md)
 * [Tomcat Diagnostic Service REST API Reference](../references/diagnostic-service-rest-api-reference.md)
+* [Prometheus Metrics Catalog & PromQL Reference](../references/prometheus-metrics-catalog.md)
 

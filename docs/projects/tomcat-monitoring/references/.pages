@@ -6,3 +6,4 @@ arrange:
 
 - index.md
 - diagnostic-service-rest-api-reference.md
+- prometheus-metrics-catalog.md

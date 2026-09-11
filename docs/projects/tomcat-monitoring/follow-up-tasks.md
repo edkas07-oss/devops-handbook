@@ -255,14 +255,13 @@ Kategori ini mendukung implementasi kebijakan **TM-ADR-0014** (*Enforce Zero Aut
 
 #### TASK-TM-006: Penyediaan Endpoint Audit Log untuk Konfirmasi Tindakan Operator
 
+- **Status:** `Descoped / Superseded` ⚪
 - **Deskripsi:**
   Menyediakan antarmuka pencatatan (*audit log endpoint*) pada Diagnostic Service agar tim operasional dapat mengonfirmasi eksekusi rekomendasi manual yang tercantum pada laporan insiden.
-- **Kebutuhan Teknis:**
-  - Endpoint baru: `POST /api/v1/incidents/{incident_id}/actions`.
-  - Payload memuat: ID insiden, identitas operator, jenis tindakan yang diambil (misal: restart Tomcat, penambahan memory heap, penyesuaian connection pool), dan catatan teknis.
-  - Data disimpan secara *append-only* di tabel `operator_actions` pada SQLite.
+- **Hasil Evaluasi Arsitektural:**
+  Berdasarkan evaluasi operasional nyata, penambahan manual REST API pada edge diagnostic service di masing-masing host menambah friksi operasional bagi SRE on-call dan tidak praktis untuk kebutuhan audit. Sesuai model operasional terpadu, Laporan Investigasi 7-Seksi SRE yang diterima bersama oleh Tim SRE dan Tim Monitoring diarsipkan secara terpusat. Tim Monitoring bertindak sebagai *custodian* resmi data bukti (*evidence dossier*) untuk audit dan post-mortem review, sehingga endpoint manual edge tidak diperlukan.
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
-  - Setiap laporan insiden dapat dihubungkan dengan rekam jejak tindakan nyata yang diambil oleh tim SRE saat sesi evaluasi pasca-insiden (*post-mortem*).
+  - Tata kelola audit didukung penuh melalui arsip Laporan 7-Seksi SRE dan sistem ITSM/ticketing terpusat.
 
 ---
 
