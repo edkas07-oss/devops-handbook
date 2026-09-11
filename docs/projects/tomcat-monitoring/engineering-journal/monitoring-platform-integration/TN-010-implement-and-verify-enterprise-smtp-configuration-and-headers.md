@@ -133,52 +133,19 @@ flowchart TD
     MP -->|Pemeriksaan RFC Headers & Delivery| SRE
 ```
 
-### 1. Peta Lokasi Berkas Konfigurasi & Secrets
+### Workflow Activity Details
 
-Sesuai dengan standar arsitektur *Infrastructure as Code* (IaC) dan pemisahan tegas antara konfigurasi statis dengan *runtime secrets*, seluruh berkas konfigurasi layanan Diagnostic Service ditempatkan di direktori konfigurasi kanonikal repositori:
+#### 1. Alert Ingestion & Analysis
+- Diagnostic Service menerima webhook alert dari Alertmanager pada port HTTPS 8443.
+- Worker mengklaim event, mengumpulkan bukti multi-domain, mengevaluasi rulepack, dan menyimpan Canonical Result ke database SQLite persisten.
 
-| Komponen | Jalur Berkas di Host | Jalur Mount di Container | Izin Akses | Keterangan |
-| :--- | :--- | :--- | :--- | :--- |
-| **Konfigurasi Utama** | [`tomcat-monitoring/config/diagnostic-service/application.json`](file:///home/eddywiyatno/git/tomcat-monitoring/config/diagnostic-service/application.json) | `/run/tomcat-diagnostic/application.json:ro,z` | `0644` | Definisi server, TLS, timeouts, evidence collection, dan konfigurasi SMTP relay. |
-| **Target Allowlist** | [`tomcat-monitoring/config/diagnostic-service/targets.json`](file:///home/eddywiyatno/git/tomcat-monitoring/config/diagnostic-service/targets.json) | `/run/tomcat-diagnostic/targets.json:ro,z` | `0644` | Daftar target instance Tomcat lab/prod yang diizinkan untuk dievaluasi. |
-| **Panduan Konfigurasi** | [`tomcat-monitoring/config/diagnostic-service/README.md`](file:///home/eddywiyatno/git/tomcat-monitoring/config/diagnostic-service/README.md) | N/A (Dokumentasi Git) | `0644` | Panduan parameter konfigurasi, referensi skema, dan troubleshooting. |
-| **Secret: Username** | `${HOME}/.local/share/tomcat-monitoring/diagnostic-service-secrets/smtp-username` | `/run/tomcat-diagnostic/secrets/smtp-username:ro,z` | `0400` | Username SASL untuk autentikasi SMTP (`diagnostic-agent`). |
-| **Secret: Password** | `${HOME}/.local/share/tomcat-monitoring/diagnostic-service-secrets/smtp-password` | `/run/tomcat-diagnostic/secrets/smtp-password:ro,z` | `0400` | Password SASL untuk autentikasi SMTP (`DiagnosticPass123!`). |
-| **Secret: Bearer Token**| `${HOME}/.local/share/tomcat-monitoring/diagnostic-service-secrets/bearer-token` | `/run/tomcat-diagnostic/secrets/bearer-token:ro,z` | `0400` | Token autentikasi incoming Alertmanager webhook. |
-| **CA Certificate** | `/home/eddywiyatno/git/postfix-relay/tls/ca.crt` | `/run/tomcat-diagnostic/tls/postfix-ca.crt:ro,z` | `0644` | Sertifikat root CA internal untuk validasi STARTTLS Postfix Relay. |
+#### 2. Enterprise Secure SMTP Relay Submission
+- `SmtpAdapter` membungkus laporan investigasi 7-seksi SRE dengan 4 header kepatuhan enterprise RFC (`Auto-Submitted`, `X-Priority`, `X-Incident-Target`, `X-Diagnostic-Rule`).
+- Koneksi diinisiasi ke Postfix Relay port 587 menggunakan perintah `STARTTLS` (`requireTLS: true`) dan autentikasi Cyrus SASL PLAIN via berkas secret terisolasi (`0400`).
 
-> [!IMPORTANT]
-> **Zero Volatile `/tmp` Configuration:**
-> Seluruh konfigurasi aplikasi dibaca langsung dari berkas statis terversi di dalam direktori `config/diagnostic-service/` dan bukan dibuat secara temporer di folder `/tmp`. Kredensial rahasia dipisahkan secara permanen di direktori aman host pengguna `${HOME}/.local/share/tomcat-monitoring/diagnostic-service-secrets/` dengan proteksi izin `0700` pada folder dan `0400` pada berkas secret.
-
-### 2. Struktur Blok Konfigurasi SMTP (`application.json`)
-
-Berkas [`config/diagnostic-service/application.json`](file:///home/eddywiyatno/git/tomcat-monitoring/config/diagnostic-service/application.json) memuat blok konfigurasi `"smtp"` berikut:
-
-```json
-{
-  "smtp": {
-    "host": "postfix-relay",
-    "port": 587,
-    "secure": false,
-    "requireTLS": true,
-    "from": "diagnostic@tomcat-monitoring.invalid",
-    "to": "operator@tomcat-monitoring.invalid",
-    "usernameFile": "/run/tomcat-diagnostic/secrets/smtp-username",
-    "passwordFile": "/run/tomcat-diagnostic/secrets/smtp-password"
-  }
-}
-```
-
-**Penjelasan Parameter SMTP:**
-- **`host` (`"postfix-relay"`):** Alamat FQDN kontainer atau server SMTP Relay di dalam Podman network `devops-lab`.
-- **`port` (`587`):** Port Submission SMTP standar enterprise.
-- **`secure` (`false`):** Bernilai `false` karena port 587 memulai handshake awal secara plaintext lalu meningkatkan koneksi ke TLS via perintah STARTTLS (berbeda dengan port 465 SMTPS yang menggunakan implicit TLS sejak awal).
-- **`requireTLS` (`true`):** Parameter baru pada TN-010 yang mewajibkan klien Nodemailer untuk menolak pengiriman email apabila server relay tidak menawarkan kapabilitas STARTTLS terenkripsi.
-- **`from` (`"diagnostic@tomcat-monitoring.invalid"`):** Alamat email pengirim laporan diagnosis.
-- **`to` (`"operator@tomcat-monitoring.invalid"`):** Alamat email penerima laporan investigasi SRE.
-- **`usernameFile` (`"/run/tomcat-diagnostic/secrets/smtp-username"`):** Jalur berkas di dalam kontainer yang memuat username autentikasi SASL.
-- **`passwordFile` (`"/run/tomcat-diagnostic/secrets/smtp-password"`):** Jalur berkas di dalam kontainer yang memuat password autentikasi SASL.
+#### 3. Downstream Delivery & SRE Inspection
+- Postfix Relay memvalidasi kredensial SASL dan sertifikat TLS, meneruskan pesan ke mailbox Mailpit port 1025.
+- Tim SRE dan operator memeriksa struktur header MIME asli dan format laporan 7-seksi melalui Mailpit Web UI pada port 8025.
 
 ---
 
@@ -303,9 +270,34 @@ podman run --rm --userns=keep-id \
 
 ### Standardize Static Configuration and Host Secret Storage
 
-Menstandarisasi direktori konfigurasi pada [`config/diagnostic-service/application.json`](file:///home/eddywiyatno/git/tomcat-monitoring/config/diagnostic-service/application.json) dan [`config/diagnostic-service/targets.json`](file:///home/eddywiyatno/git/tomcat-monitoring/config/diagnostic-service/targets.json).
+1. Menstandarisasi direktori konfigurasi statis pada [`config/diagnostic-service/application.json`](file:///home/eddywiyatno/git/tomcat-monitoring/config/diagnostic-service/application.json) dan [`config/diagnostic-service/targets.json`](file:///home/eddywiyatno/git/tomcat-monitoring/config/diagnostic-service/targets.json):
 
-Menyiapkan direktori secret persisten pada host dengan proteksi ketat:
+| Komponen | Jalur Berkas di Host | Jalur Mount di Container | Izin Akses | Keterangan |
+| :--- | :--- | :--- | :--- | :--- |
+| **Konfigurasi Utama** | `config/diagnostic-service/application.json` | `/run/tomcat-diagnostic/application.json:ro,z` | `0644` | Definisi server, TLS, timeouts, dan konfigurasi SMTP relay. |
+| **Target Allowlist** | `config/diagnostic-service/targets.json` | `/run/tomcat-diagnostic/targets.json:ro,z` | `0644` | Daftar target instance Tomcat lab/prod yang diizinkan dievaluasi. |
+| **Panduan Konfigurasi** | `config/diagnostic-service/README.md` | N/A (Dokumentasi Git) | `0644` | Panduan parameter konfigurasi dan troubleshooting. |
+| **Secret: Username** | `${HOME}/.local/share/.../smtp-username` | `/run/tomcat-diagnostic/secrets/smtp-username:ro,z` | `0400` | Username SASL untuk autentikasi SMTP (`diagnostic-agent`). |
+| **Secret: Password** | `${HOME}/.local/share/.../smtp-password` | `/run/tomcat-diagnostic/secrets/smtp-password:ro,z` | `0400` | Password SASL untuk autentikasi SMTP (`DiagnosticPass123!`). |
+| **Secret: Bearer Token**| `${HOME}/.local/share/.../bearer-token` | `/run/tomcat-diagnostic/secrets/bearer-token:ro,z` | `0400` | Token autentikasi incoming Alertmanager webhook. |
+| **CA Certificate** | `postfix-relay/tls/ca.crt` | `/run/tomcat-diagnostic/tls/postfix-ca.crt:ro,z` | `0644` | Sertifikat root CA internal untuk validasi STARTTLS Relay. |
+
+```json
+{
+  "smtp": {
+    "host": "postfix-relay",
+    "port": 587,
+    "secure": false,
+    "requireTLS": true,
+    "from": "diagnostic@tomcat-monitoring.invalid",
+    "to": "operator@tomcat-monitoring.invalid",
+    "usernameFile": "/run/tomcat-diagnostic/secrets/smtp-username",
+    "passwordFile": "/run/tomcat-diagnostic/secrets/smtp-password"
+  }
+}
+```
+
+2. Menyiapkan direktori secret persisten pada host dengan proteksi izin ketat `0400`:
 
 ```bash
 readonly SECRETS_HOST_DIR="${HOME}/.local/share/tomcat-monitoring/diagnostic-service-secrets"
@@ -317,6 +309,12 @@ echo -n "DiagnosticPass123!" > "${SECRETS_HOST_DIR}/smtp-password"
 echo -n "test-token-12345" > "${SECRETS_HOST_DIR}/bearer-token"
 chmod 0400 "${SECRETS_HOST_DIR}"/*
 ```
+
+**Actual Result:** Seluruh berkas konfigurasi statis tersimpan di repositori dan seluruh rahasia terisolasi di direktori host persisten berizin `0400`, sepenuhnya meniadakan dependensi `/tmp`.
+
+!!! success "Expected Result"
+
+    Konfigurasi runtime terbaca dari berkas statis `config/diagnostic-service/` dan rahasia terisolasi dengan proteksi izin `0400`.
 
 </div>
 
@@ -460,6 +458,37 @@ Tabel di bawah mengelompokkan berkas berdasarkan peran teknis dan lapisannya:
 | `tomcat-monitoring/scripts/test-tomcatdown-live.sh` | Test Automation | Baru | Test suite live simulasi insiden `TomcatDown` (fase FIRING dan RESOLVED). |
 | `tomcat-monitoring/scripts/validate.sh` | Governance | Modifikasi | Skrip validasi baseline kontrak dan tata letak repositori. |
 | `devops-handbook/docs/projects/tomcat-monitoring/engineering-journal/monitoring-platform-integration/TN-010-implement-and-verify-enterprise-smtp-configuration-and-headers.md` | Tata Kelola (Handbook) | Baru | Dokumentasi Technical Note kanonikal 20 seksi. |
+
+### Artifact Dependency & Relationship Graph
+
+```mermaid
+flowchart TD
+    subgraph CONFIG["1. Static Configuration & Secrets Layer"]
+        direction TB
+        C_CONF["config/diagnostic-service/application.json<br/>(requireTLS: true & SMTP block)"]
+        C_TARG["config/diagnostic-service/targets.json<br/>(Allowlist target instances)"]
+        S_SEC[("Host Secrets: 0400<br/>(~/.local/share/.../secrets/)")]
+        C_CONF --> D_APP["diagnostic-service v0.1.8"]
+        C_TARG --> D_APP
+        S_SEC --> D_APP
+    end
+
+    subgraph RELAY["2. Authenticated Relay Bridge"]
+        direction TB
+        D_APP -->|Port 587: STARTTLS + SASL| P_RELAY["postfix-relay<br/>(Cyrus SASL Validation)"]
+        P_RELAY -->|Port 1025 Relay| M_SINK["mailpit<br/>(RFC MIME Headers & 7-Section Report)"]
+    end
+
+    subgraph AUDIT["3. Verification & Test Automation"]
+        direction TB
+        T_POST["verify-postfix-relay.sh<br/>(7-Section Relay Bridge Test)"]
+        T_LIVE["test-tomcatdown-live.sh<br/>(Firing & Resolved Lifecycle Test)"]
+        D_TN["TN-010 Journal<br/>(Enterprise SMTP Verification)"]
+        T_POST -.-> P_RELAY
+        T_LIVE -.-> D_APP
+        M_SINK -.-> D_TN
+    end
+```
 
 ---
 
@@ -670,7 +699,7 @@ Setelah penutupan verifikasi teknis ini, berkas yang siap dicommit mencakup:
 
 ---
 
-## 🧹 Cleanup & Resource Integrity
+## 🧹 Cleanup Evidence
 
 | Sumber Daya | Status Retensi | Bukti Integritas (*Integrity Evidence*) |
 | --- | :---: | --- |
@@ -702,8 +731,6 @@ Backlog **`TASK-TM-015`** telah diselesaikan secara penuh dengan status **`Compl
 2. **Kepatuhan Standar RFC Enterprise:** Seluruh email laporan diagnostik dan notifikasi pemulihan kini memuat 4 header kepatuhan enterprise (`Auto-Submitted`, `X-Priority`, `X-Incident-Target`, `X-Diagnostic-Rule`).
 3. **Penyempurnaan Arsitektur Konfigurasi:** Konfigurasi runtime telah distandarisasi di direktori `tomcat-monitoring/config/diagnostic-service/` dengan isolasi kredensial pada direktori host persisten (`0400`), menghilangkan sepenuhnya ketergantungan pada `/tmp`.
 4. **Verifikasi Terpadu:** Rangkaian pengujian otomatis (`verify-postfix-relay.sh` dan `test-tomcatdown-live.sh`) membuktikan keandalan pipeline dari penolakan akses tidak sah, pengiriman STARTTLS + SASL, evaluasi insiden `TomcatDown` (FIRING & RESOLVED), hingga verifikasi struktur 7-seksi SRE pada Mailpit.
-
-### Tabel Analisis Dampak Operasional
 
 | Aspek Operasional | Sebelum TN-010 | Sesudah TN-010 | Keuntungan SRE / Sistem |
 | :--- | :--- | :--- | :--- |

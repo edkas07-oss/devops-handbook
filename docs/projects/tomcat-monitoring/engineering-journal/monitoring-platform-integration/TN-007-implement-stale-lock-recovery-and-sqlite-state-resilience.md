@@ -508,7 +508,7 @@ Setelah penutupan verifikasi teknis ini, berkas yang siap dicommit mencakup:
 - `tomcat-monitoring/scripts/deploy-diagnostic-service.sh`
 - `devops-handbook/docs/projects/tomcat-monitoring/engineering-journal/monitoring-platform-integration/TN-007-implement-stale-lock-recovery-and-sqlite-state-resilience.md`
 
-## 🧹 Cleanup & Resource Integrity
+## 🧹 Cleanup Evidence
 
 1. Data pengujian isolasi crash di-rollback secara bersih dan database kembali ke mode operasional normal.
 2. Kontainer `diagnostic-service` berjalan secara stabil dengan image v0.1.6 pada network `devops-lab`.
@@ -554,14 +554,9 @@ Implementasi berikutnya berfokus pada penyelesaian backlog Kategori 5 pada [`fol
 
 - [Follow-up Tasks Backlog](../../follow-up-tasks.md)
 - [Diagnostic MVP Target and Evidence Contract](../../diagnostic-mvp/target-and-evidence-contract.md)
-- [TM-ADR-0015 — Adopt Asynchronous Webhook Ingestion with Durable SQLite Acceptance Pattern](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md)
-- [TM-ADR-0016 — Designate Diagnostic Service as Canonical Incident Notification Authority](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md)
-- [TN-006 — Implement Multi-Domain Diagnostic Dispatcher and Decision Engines](TN-006-implement-multi-domain-diagnostic-dispatcher-and-decision-engines.md)
-
-
 - [Diagnostic MVP Index](../../diagnostic-mvp/index.md)
 - [SQLite Lifecycle Contract](../../diagnostic-mvp/sqlite-lifecycle-contract.md)
 - [TM-ADR-0013 — Embed SQLite for Local Incident State Storage](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0013.md)
 - [TM-ADR-0015 — Adopt Asynchronous Webhook Ingestion with Durable SQLite Acceptance Pattern](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md)
+- [TM-ADR-0016 — Designate Diagnostic Service as Canonical Incident Notification Authority](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md)
 - [TN-006 — Implement Multi-Domain Diagnostic Dispatcher and Decision Engines](TN-006-implement-multi-domain-diagnostic-dispatcher-and-decision-engines.md)
-- [Follow-up Tasks Backlog](../../follow-up-tasks.md)

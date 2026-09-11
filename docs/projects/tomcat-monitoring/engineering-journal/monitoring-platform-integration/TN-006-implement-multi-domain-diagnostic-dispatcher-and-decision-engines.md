@@ -177,7 +177,7 @@ flowchart TD
 
 <div class="procedure-step" markdown>
 
-### Tahap 1: Develop Domain Decision Sub-Engines
+### Develop Domain Decision Sub-Engines
 
 Mengimplementasikan modul-modul pohon keputusan deterministik baru di `src/domain/`:
 
@@ -205,7 +205,7 @@ Mengimplementasikan modul-modul pohon keputusan deterministik baru di `src/domai
 
 <div class="procedure-step" markdown>
 
-### Tahap 2: Integrate Multi-Domain Dispatcher
+### Integrate Multi-Domain Dispatcher
 
 Mengintegrasikan routing 2-lapis pada `DynamicRuleEvaluator` (`src/domain/rulepack-loader.js`):
 
@@ -283,7 +283,7 @@ Mendaftarkan seluruh 20 cabang keputusan pada konstanta `BUILTIN_BRANCHES` dan f
 
 <div class="procedure-step" markdown>
 
-### Tahap 3: Implement Dynamic Severity Rendering and Rule ID Fidelity
+### Implement Dynamic Severity Rendering and Rule ID Fidelity
 
 Menyesuaikan komponen worker, renderer, dan SMTP adapter:
 
@@ -302,7 +302,7 @@ Menyesuaikan komponen worker, renderer, dan SMTP adapter:
 
 <div class="procedure-step" markdown>
 
-### Tahap 4: Execute Unit Testing and Static Validation
+### Execute Unit Testing and Static Validation
 
 Menjalankan pengujian unit terisolasi `test/unit/domain-engines.test.js` dan audit integritas repositori:
 
@@ -326,7 +326,7 @@ npm test
 
 <div class="procedure-step" markdown>
 
-### Tahap 5: Build Container Image and Verify Live Deployment
+### Build Container Image and Verify Live Deployment
 
 Membangun image kontainer rilis v0.1.5 dan mendeploy ke stack `devops-lab`:
 
@@ -422,6 +422,45 @@ Tabel di bawah mengelompokkan berkas berdasarkan peran teknis dan lapisannya:
 | `tomcat-monitoring/scripts/deploy-diagnostic-service.sh` | Orchestration | Modifikasi | Pemutakhiran pinning image digest v0.1.5. |
 | `devops-handbook/docs/adr/tomcat-monitoring/adr-records/TM-ADR-0023.md` | Tata Kelola (ADR) | Baru | Dokumen keputusan arsitektur Multi-Domain Dispatcher dan Zero Undecided Alerts. |
 | `devops-handbook/docs/projects/tomcat-monitoring/engineering-journal/monitoring-platform-integration/TN-006-implement-multi-domain-diagnostic-dispatcher-and-decision-engines.md` | Tata Kelola (Handbook) | Baru | Dokumen Technical Note resmi implementasi Multi-Domain Dispatcher. |
+
+### Artifact Dependency & Relationship Graph
+
+```mermaid
+flowchart TD
+    subgraph ENGINES["1. Domain Decision Engines"]
+        direction TB
+        E_APP["application-health-engine.js<br/>(AH-01..05)"]
+        E_JVM["jvm-workload-engine.js<br/>(GC-01..04)"]
+        E_CON["concurrency-engine.js<br/>(TH-01..03)"]
+        E_DISP["rulepack-loader.js<br/>(Multi-Domain Dispatcher)"]
+
+        E_APP --> E_DISP
+        E_JVM --> E_DISP
+        E_CON --> E_DISP
+    end
+
+    subgraph WORKER["2. Worker & Delivery Pipeline"]
+        direction TB
+        W_WORK["diagnostic-worker.js<br/>(Event Context & Rule ID Fidelity)"]
+        W_REND["result-renderer.js<br/>(Dynamic Severity Color Themes)"]
+        W_SMTP["smtp-adapter.js<br/>(RFC Headers & Severity Subjects)"]
+
+        E_DISP --> W_WORK
+        W_WORK --> W_REND
+        W_REND --> W_SMTP
+    end
+
+    subgraph VERIFICATION["3. Testing & Governance"]
+        direction TB
+        T_UNIT["domain-engines.test.js<br/>(54 Unit Tests Passed)"]
+        D_ADR["TM-ADR-0023.md<br/>(Architecture Decision Record)"]
+        D_TN["TN-006 Journal<br/>(Monitoring Platform Integration)"]
+
+        E_DISP -.-> T_UNIT
+        E_DISP -.-> D_ADR
+        D_ADR --> D_TN
+    end
+```
 
 ## 🧪 Test-Scenario Matrix
 

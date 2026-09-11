@@ -565,7 +565,7 @@ Empat aturan peringatan Sinyal Emas GC JVM (`TomcatGCPauseHigh`, `TomcatGCOverhe
 4. **Penyediaan Dashboard Visualisasi Grafana Terpusat (TASK-TM-009):**
    - Membangun dashboard Grafana untuk visualisasi metrik Sinyal Emas GC JVM (durasi pause, GC overhead), Tomcat Connector (active threads, request rate), dan health status stack monitoring.
 
-## 🔗 References
+## 🔗 Related Documentation
 
 * [**TM-ADR-0001** — Adopt Embedded Monitoring Instrumentation for Apache Tomcat](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0001.md)
 * [**TM-ADR-0004** — Separate Application Failure from Monitoring Signal Loss](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0004.md)

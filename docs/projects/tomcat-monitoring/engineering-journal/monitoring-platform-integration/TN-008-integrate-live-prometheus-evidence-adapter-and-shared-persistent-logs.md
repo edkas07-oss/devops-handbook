@@ -146,6 +146,18 @@ sequenceDiagram
     end
 ```
 
+### Workflow Activity Details
+
+#### 1. Runtime Telemetry Scraping & Incident Firing
+- Prometheus melakukan scraping telemetri Tomcat via HTTPS port 9404. Saat target ketersediaan hilang (`up == 0`), alert `TomcatDown` firing dan dikirim ke Diagnostic Service via webhook HTTPS.
+
+#### 2. Non-Blocking Live Evidence Collection
+- Diagnostic Service mengeksekusi kueri paralel terproteksi ke Prometheus API (`up`, `jvm_memory_pool_used_bytes`, `tomcat_threads_busy_threads`) dengan batas waktu timeout 5000ms.
+- `BoundedFileReader` membaca berkas log Tomcat (`catalina.out` / `catalina.YYYY-MM-DD.log`) secara read-only dari Named Volume persisten `tomcat_logs` dengan redaksi rahasia otomatis.
+
+#### 3. Canonical Assessment & 7-Section SRE Notification
+- Evaluator Multi-Domain menganalisis bukti, menyimpan snapshot ke tabel SQLite `evidence_summaries`, dan menerbitkan email resmi 7-seksi SRE ke Mailpit dengan Seksi 3 dan Seksi 4 terisi penuh.
+
 ---
 
 ## 🧭 Implementation Plan
@@ -164,7 +176,7 @@ sequenceDiagram
 
 <div class="procedure-step" markdown>
 
-### Tahap 1: Enhance Schema and Config Loader
+### Enhance Schema and Config Loader
 
 Pada [`config/schemas/application-config-v1.schema.json`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/config/schemas/application-config-v1.schema.json), properti `prometheus` dan `timeouts.prometheusMs` didefinisikan secara deklaratif:
 
@@ -204,7 +216,7 @@ Pada [`src/application/config-loader.js`](file:///home/eddywiyatno/git/tomcat-di
 
 <div class="procedure-step" markdown>
 
-### Tahap 2: Integrate Prometheus Adapter into Application Lifecycle
+### Integrate Prometheus Adapter into Application Lifecycle
 
 Pada [`src/application/application.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/application/application.js), fungsi `createDefaultEvidenceCollector` ditingkatkan untuk mengeksekusi kueri paralel terproteksi ke Prometheus API:
 
@@ -241,7 +253,7 @@ Pada [`src/application/application.js`](file:///home/eddywiyatno/git/tomcat-diag
 
 <div class="procedure-step" markdown>
 
-### Tahap 3: Standardize Persistent Named Volume for Tomcat Logs
+### Standardize Persistent Named Volume for Tomcat Logs
 
 Pada [`tomcat-jmx-exporter/scripts/run.sh`](file:///home/eddywiyatno/git/tomcat-jmx-exporter/scripts/run.sh), direktori `/usr/local/tomcat/logs` dipasang ke Podman Named Volume `${LOG_VOLUME:-tomcat_logs}` dengan label SELinux `:z`:
 
@@ -271,7 +283,7 @@ podman run --detach \
 
 <div class="procedure-step" markdown>
 
-### Tahap 4: Execute Test Suites and Build Container Image v0.1.7
+### Execute Test Suites and Build Container Image v0.1.7
 
 Menjalankan pengujian unit, validasi statis, dan pembangunan image:
 
@@ -296,7 +308,7 @@ npm test
 
 <div class="procedure-step" markdown>
 
-### Tahap 5: Deploy and Verify Live Evidence Pipeline
+### Deploy and Verify Live Evidence Pipeline
 
 Menerapkan deployment stack `devops-lab` dan memverifikasi aliran bukti ke SQLite dan Mailpit:
 
@@ -385,6 +397,44 @@ Tabel di bawah mengelompokkan berkas berdasarkan peran teknis dan lapisannya:
 | `tomcat-jmx-exporter/scripts/run.sh` | Orchestration | Modifikasi | Pemasangan persistent Named Volume `tomcat_logs`. |
 | `tomcat-monitoring/scripts/deploy-diagnostic-service.sh` | Orchestration | Modifikasi | Deployment runtime Diagnostic Service v0.1.7 dengan allowlist selector & read-only Named Volume mount `tomcat_logs`. |
 | `devops-handbook/docs/projects/tomcat-monitoring/engineering-journal/monitoring-platform-integration/TN-008-integrate-live-prometheus-evidence-adapter-and-shared-persistent-logs.md` | Tata Kelola (Handbook) | Baru | Jurnal teknik kanonikal integrasi live Prometheus adapter dan shared persistent log volume. |
+
+### Artifact Dependency & Relationship Graph
+
+```mermaid
+flowchart TD
+    subgraph CONFIG["1. Configuration & Schema Layer"]
+        direction TB
+        S_CONF["application-config-v1.schema.json<br/>(Prometheus & Timeout Schema)"]
+        L_CONF["config-loader.js<br/>(Immutable Prometheus Config)"]
+        S_CONF --> L_CONF
+    end
+
+    subgraph ADAPTERS["2. Evidence Collection Adapters"]
+        direction TB
+        A_PROM["prometheus-adapter.js<br/>(Timeout 5000ms AbortSignal)"]
+        A_APP["application.js<br/>(createDefaultEvidenceCollector)"]
+        L_CONF --> A_APP
+        A_PROM --> A_APP
+    end
+
+    subgraph STORAGE["3. Storage & Persistence"]
+        direction TB
+        V_LOGS[("Named Volume: tomcat_logs<br/>(/usr/local/tomcat/logs:z)")]
+        V_DIAG[("Named Volume: diagnostic_data<br/>(SQLite: evidence_summaries)")]
+        A_APP --> V_LOGS
+        A_APP --> V_DIAG
+    end
+
+    subgraph DEPLOY["4. Orchestration & Documentation"]
+        direction TB
+        D_RUN["tomcat-jmx-exporter/scripts/run.sh<br/>(Named Volume Attachment)"]
+        D_DEP["deploy-diagnostic-service.sh<br/>(Digest v0.1.7 Deployment)"]
+        D_TN["TN-008 Journal<br/>(Canonical Integration Journal)"]
+        D_RUN --> V_LOGS
+        D_DEP --> A_APP
+        V_DIAG -.-> D_TN
+    end
+```
 
 ## 🧪 Test-Scenario Matrix
 

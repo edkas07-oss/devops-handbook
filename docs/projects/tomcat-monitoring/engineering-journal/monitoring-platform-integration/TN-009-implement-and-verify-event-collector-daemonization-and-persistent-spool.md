@@ -135,6 +135,20 @@ sequenceDiagram
     DS->>Mail: 9. Dispatch SRE Investigation Report with direct container evidence
 ```
 
+### Workflow Activity Details
+
+#### 1. Supervisor-Managed Daemon Lifecycle
+- Systemd user instance menjalankan daemon `tomcat-diagnostic-event-collector.service` dengan kebijakan auto-restart `always` (`RestartSec=3s`).
+- Daemon menegakkan izin ketat `0700` pada direktori spool host `${HOME}/.local/share/tomcat-monitoring/spool` dan menulis snapshot status container awal.
+
+#### 2. Proactive Container Lifecycle Event Streaming
+- Daemon mendengarkan aliran event Podman secara kontinu (`died`, `stop`, `start`, `unpause`, `oom`, `kill`, `restart`).
+- Setiap terjadi perubahan status container `tomcat-jmx-exporter`, daemon melakukan inspeksi dan menulis rekaman atomik `.tmp` $\rightarrow$ `.json` ke direktori spool persisten.
+
+#### 3. Isolated Ingestion & Report Correlation
+- Diagnostic Service me-mount direktori spool secara *read-only* (`:ro,z`).
+- Saat terjadi insiden `TomcatDown`, worker mengonsumsi berkas spool, memvalidasi integritas data, menyimpannya ke tabel SQLite `evidence_summaries`, dan menyajikannya pada Laporan Investigasi 7-Seksi SRE di Mailpit.
+
 ---
 
 ## 🧭 Implementation Plan
@@ -430,6 +444,36 @@ Tabel di bawah mengelompokkan berkas berdasarkan peran teknis dan lapisannya:
 | **Tomcat Monitoring** | [`README.md`](file:///home/eddywiyatno/git/tomcat-monitoring/README.md) | Docs | Pembaruan tabel persistensi data dan deskripsi daemon Restricted Event Collector. |
 | **DevOps Handbook** | [`docs/projects/tomcat-monitoring/engineering-journal/monitoring-platform-integration/TN-009-implement-and-verify-event-collector-daemonization-and-persistent-spool.md`](TN-009-implement-and-verify-event-collector-daemonization-and-persistent-spool.md) | Docs | Dokumentasi Technical Note kanonikal 20 seksi. |
 
+### Artifact Dependency & Relationship Graph
+
+```mermaid
+flowchart TD
+    subgraph COLLECTOR["1. Restricted Event Collector Daemon"]
+        direction TB
+        C_CONF["CONFIG<br/>(DEFAULT_SPOOL_DIR ~/.local/share/.../spool)"]
+        C_SRC["src/collector.sh<br/>(systemd --user Daemon Engine)"]
+        C_TEST["test/test-collector.sh<br/>(Atomic & 0700 Permissions Test)"]
+        C_CONF --> C_SRC
+        C_SRC -.-> C_TEST
+    end
+
+    subgraph PERSISTENCE["2. Isolated Persistent Spool Storage"]
+        direction TB
+        S_DIR[("Persistent Host Spool: 0700<br/>(~/.local/share/tomcat-monitoring/spool)")]
+        C_SRC -->|Atomic Write *.json| S_DIR
+    end
+
+    subgraph CONSUMER["3. Consumer & Orchestration"]
+        direction TB
+        D_SERV["deploy-event-collector.sh<br/>(systemd user unit automation)"]
+        D_DIAG["deploy-diagnostic-service.sh<br/>(Read-Only Mount :ro,z)"]
+        D_DIAG_SVC["Diagnostic Service<br/>(Ingests Spool to SQLite)"]
+        D_SERV --> C_SRC
+        S_DIR -->|Mount :ro,z| D_DIAG
+        D_DIAG --> D_DIAG_SVC
+    end
+```
+
 ## 🧪 Test-Scenario Matrix
 
 | ID | Skenario Pengujian | Komponen | Target Evaluasi | Status |
@@ -595,7 +639,7 @@ Setelah penutupan verifikasi teknis ini, berkas yang siap dicommit mencakup:
 - `tomcat-monitoring/README.md`
 - `devops-handbook/docs/projects/tomcat-monitoring/engineering-journal/monitoring-platform-integration/TN-009-implement-and-verify-event-collector-daemonization-and-persistent-spool.md`
 
-## 🧹 Cleanup & Resource Integrity
+## 🧹 Cleanup Evidence
 
 | Sumber Daya | Status Retensi | Bukti Integritas (*Integrity Evidence*) |
 | --- | :---: | --- |

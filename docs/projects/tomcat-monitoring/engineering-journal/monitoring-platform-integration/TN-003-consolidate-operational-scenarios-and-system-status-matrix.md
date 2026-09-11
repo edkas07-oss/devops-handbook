@@ -503,7 +503,7 @@ Seluruh 6 skenario operasional insiden live, taksonomi perutean 4 jalur (*Track 
 
 ---
 
-## 🔗 References
+## 🔗 Related Documentation
 
 * [**TM-ADR-0004** — Separate Application Failure from Monitoring Signal Loss](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0004.md)
 * [**TM-ADR-0014** — Enforce Zero Automatic Remediation for Diagnostic Service](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0014.md)
