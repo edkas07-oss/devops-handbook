@@ -37,6 +37,7 @@ Mengintegrasikan seluruh subsistem monitoring dan diagnostik ke dalam satu kesat
 | **Live Prometheus Evidence & Persistent Logs** | Integrasi PrometheusAdapter live, shared persistent log mount, dan laporan 7-seksi SRE utuh (TASK-TM-016 & TASK-TM-013) | Completed (TN-008) |
 | **Event Collector Daemonization & Persistent Spool** | Otomatisasi daemon `systemd --user`, standardisasi spool persisten `${HOME}/.local/share/tomcat-monitoring/spool` (`0700`), dan integrasi mount read-only (TASK-TM-014) | Completed (TN-009) |
 | **Enterprise SMTP Configuration & Headers** | Implementasi `requireTLS`, standardisasi header enterprise RFC (`Auto-Submitted`, `X-Priority`, `X-Incident-Target`, `X-Diagnostic-Rule`), kredensial terisolasi, dan verifikasi relay (TASK-TM-015) | Completed (TN-010) |
+| **Spool Lifecycle & Log Retention Governance** | Implementasi pemangkasan berkas spool otonom (24 jam), penegakan kuota FIFO cap (1000 berkas), pembersihan .tmp stale (60m), isolasi hak akses 0700/0600, dan SOP SRE (TASK-TM-010) | Completed (TN-011) |
 
 ## 📄 Technical Notes
 
@@ -79,6 +80,10 @@ Mengintegrasikan seluruh subsistem monitoring dan diagnostik ke dalam satu kesat
 10. **[TN-010 — Implement and Verify Enterprise SMTP Configuration and Headers](TN-010-implement-and-verify-enterprise-smtp-configuration-and-headers.md)**
 
     Menuntaskan `TASK-TM-015` dengan memperbarui skema konfigurasi aplikasi (`requireTLS`), menambahkan header email standar enterprise RFC (`Auto-Submitted: auto-generated`, `X-Priority: 1/3`, `X-Incident-Target`, `X-Diagnostic-Rule`), mengisolasi kredensial SMTP melalui secret files mounted (`0400`/`0444`), membangun image `localhost/tomcat-diagnostic-service:0.1.8`, serta memverifikasi pengiriman laporan diagnosis insiden 7-seksi SRE secara end-to-end melalui jalur relay terotentikasi dan terenkripsi pada `devops-lab`.
+
+11. **[TN-011 — Implement and Verify Host Spool Lifecycle and Runtime Log Retention Governance](TN-011-implement-and-verify-spool-lifecycle-and-log-retention.md)**
+
+    Menuntaskan `TASK-TM-010` dengan membangun mesin pemangkasan otonom (*autonomous spool pruning*) pada Restricted Event Collector (`MAX_SPOOL_AGE_HOURS=24`), menegakkan kuota batas kapasitas 1000 berkas (*FIFO cap*), membersihkan berkas `.tmp` terlantar (`STALE_TMP_AGE_MINUTES=60`), mengunci izin direktori `0700` dan berkas bukti `0600` sesuai *Zero `/tmp` Policy*, serta mengonsolidasikan dokumentasi SOP operasional SRE untuk event collector dan log runtime Tomcat pada `README.md`.
 
 ## 🎓 Lessons Learned
 

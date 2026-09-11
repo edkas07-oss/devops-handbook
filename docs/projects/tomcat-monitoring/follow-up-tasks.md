@@ -322,14 +322,23 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 
 #### TASK-TM-010: Standardisasi Log Aggregation & Pengelolaan Host Spool
 
+- **Status:** `Completed` ✅ (TN-011)
 - **Deskripsi:**
-  Menstandarkan pola penulisan log aplikasi Tomcat dan siklus hidup direktori spool kolektor host (`/tmp/diagnostic-spool`).
+  Menstandarkan pola penulisan log aplikasi Tomcat pada Podman Named Volume `tomcat_logs` dan siklus hidup direktori spool host persisten (`${HOME}/.local/share/tomcat-monitoring/spool`, izin `0700`) dengan mekanisme pembersihan otonom (*Zero Unbounded Spool*).
 - **Kebutuhan Teknis:**
-  - Konfigurasi rotasi file log Tomcat menggunakan `logrotate` atau internal rotasi Tomcat (`catalina.out`, `localhost_access_log`).
-  - Penegakan pembersihan otomatis file spool atomik `.json` yang telah melewati batas usia (misal: > 24 jam) oleh daemon Event Collector.
-  - Verifikasi isolasi hak akses direktori spool (izin `0700` milik user rootless).
+  - Penegakan pembersihan otomatis berkas spool atomik `.json` yang melewati batas usia (`DEFAULT_MAX_SPOOL_AGE_HOURS=24`) oleh daemon Event Collector.
+  - Penegakan kuota kapasitas jumlah berkas maksimal (`DEFAULT_MAX_SPOOL_FILES=1000`) melalui mekanisme *FIFO pruning* (menghapus berkas tertua terlebih dahulu saat terjadi *event storm*).
+  - Pembersihan berkas temporer yatim/terlantar (`DEFAULT_STALE_TMP_AGE_MINUTES=60`).
+  - Verifikasi isolasi hak akses direktori spool (izin `0700` milik user rootless) dan berkas bukti (`0600`).
+  - Konsolidasi dokumentasi SOP manajemen daemon event collector dan volume log Tomcat pada README repositori terkait.
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
-  - Direktori spool tidak mengalami pertumbuhan berkas tak terkendali dan izin direktori terlindungi dari akses proses lain.
+  - Direktori spool tidak mengalami pertumbuhan berkas tak terkendali, kuota berkas terjaga secara bounded, dan hak akses direktori serta berkas bukti terkunci ketat.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Parameter retensi dikonfigurasi di [`CONFIG`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector/CONFIG) dan divalidasi oleh `scripts/validate.sh` $\rightarrow$ `SUCCESS`.
+  - Logika `prune_stale_spool_records` di [`src/collector.sh`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector/src/collector.sh) lulus 100% pada unit & component test [`test/test-collector.sh`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector/test/test-collector.sh) (memvalidasi pemangkasan file `.json` lama, file `.tmp` stale, preservasi file valid, penegakan FIFO cap, dan izin `0700`/`0600`).
+  - Daemon `systemd --user` `tomcat-diagnostic-event-collector.service` terpasang dan berstatus `active (running)` di `devops-lab`.
+  - Seluruh 62 unit dan integration test pada `tomcat-diagnostic-service` tetap lulus 100% tanpa regresi saat membaca spool persisten.
+  - Didokumentasikan secara lengkap pada [TN-011](engineering-journal/monitoring-platform-integration/TN-011-implement-and-verify-spool-lifecycle-and-log-retention.md).
 
 #### TASK-TM-011: Otomatisasi Deployment Menggunakan Playbook Ansible
 
@@ -447,7 +456,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Rule saturasi thread pool 100% (TN-004) |
 | **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Sinyal Emas GC Pause, Overhead, Old Gen (TN-004) |
 | **TASK-TM-009** | Dashboard Observabilitas Grafana | **P2 (Medium)** | `Planned` 📋 | TN-020 | Grafana | Dashboard terpusat JVM, Tomcat, & Health |
-| **TASK-TM-010** | Standardisasi Log & Spool Cleanup | **P2 (Medium)** | `Planned` 📋 | TN-020 / TN-016 | Event Collector / Host | Rotasi teratur & spool cleanup atomik |
+| **TASK-TM-010** | Standardisasi Log & Spool Cleanup | **P2 (Medium)** | `Completed` ✅ | TN-020 / TN-011 | Event Collector / Host | Spool pruning 24h, cap 1000, & isolasi 0700 (TN-011) |
 | **TASK-TM-011** | Ansible Playbook Deployment | **P3 (Planned)** | `Planned` 📋 | TN-020 | Ansible / Podman | Zero-touch deployment seluruh stack |
 | **TASK-TM-012** | Integrasi TrueSight / Event Bridge | **P3 (Deferred)** | `Deferred` ⏳ | GAP-015 / TN-020 | Integration Bridge | Pengiriman event terintegrasi enterprise |
 
