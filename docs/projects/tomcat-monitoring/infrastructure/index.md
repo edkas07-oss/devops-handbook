@@ -26,7 +26,7 @@ proses infrastructure yang telah ditetapkan.
 | Reusable JMX Agent procedure | Menjelaskan pemasangan, TLS configuration, build, dan validation secara reusable | Required in root How-to; not yet published |
 | Prometheus container | Mengumpulkan dan menyimpan time-series metrics | Persistent lab runtime and strict JMX TLS scrape verified |
 | Telegraf container | Menjalankan local HTTP health check aplikasi | Persistent lab runtime deployed and scraped successfully by Prometheus |
-| Persistent metrics storage | Mempertahankan historical metrics | Named volume `prometheus_data` available; retention, sizing, backup, and recovery not determined |
+| Persistent metrics storage | Mempertahankan historical metrics | Available; persistent named volume `prometheus_data` aktif dengan retensi TSDB 15 hari (`15d`) dan replay WAL otomatis |
 | Container network | Menghubungkan Prometheus, Telegraf, dan Tomcat/JMX target | Persistent aliases `tomcat-jmx-exporter` and `telegraf` verified on `devops-lab` |
 | TLS certificate and trust | Mengamankan scrape endpoint menggunakan server-side TLS | Persistent lab material installed and strict verification passed; production certificate lifecycle not determined |
 | Application health endpoint | Memberikan status aplikasi yang dapat diverifikasi Telegraf | Lab-only JSP `/health` deployed and verified; production application endpoint planned |
@@ -69,11 +69,11 @@ configuration.
 - Prometheus dapat mengambil health metrics yang dihasilkan Telegraf.
 - Remote JMX tidak diaktifkan atau dipublikasikan dari container Tomcat.
 - Persistent storage tersedia untuk mempertahankan historical metrics sesuai
-  retention policy yang akan ditetapkan.
+  retention policy 15 hari (`15d`) pada named volume `prometheus_data`.
 - Certificate dan trust material dapat dipasang ke container sebagai read-only
   secret.
-- Host menyediakan kapasitas CPU, memory, dan storage yang memadai berdasarkan
-  sizing yang belum ditetapkan.
+- Host menyediakan kapasitas CPU, memory, dan storage yang memadai untuk
+  alokasi TSDB 15 hari.
 - Firewall hanya mengizinkan port yang diperlukan oleh alur monitoring.
 - Satu Diagnostic Service beroperasi per host Tomcat dan hanya menangani
   target lokal yang tercantum pada allowlist.

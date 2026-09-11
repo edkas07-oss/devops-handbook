@@ -189,6 +189,44 @@ diagnostic_housekeeping_runs_total
 
 ---
 
+## ⚙️ Arsitektur Penyimpanan, Retensi Data & Sizing TSDB
+
+Prometheus menggunakan engine penyimpanan **Time Series Database (TSDB)** yang dioptimalkan untuk performa tinggi dan efisiensi kompresi data time-series:
+
+```text
++-----------------------------------------------------------------------------+
+|                     PROMETHEUS TSDB STORAGE ARCHITECTURE                    |
++-----------------------------------------------------------------------------+
+|                                                                             |
+|  [Scrape Samples] ──> [In-Memory Head Block] ──> [Write-Ahead Log (WAL)]    |
+|                              │                                              |
+|                              ▼ (Setiap 2 Jam / Flush)                       |
+|                   [Persistent TSDB Block (2h)]                              |
+|                              │                                              |
+|                              ▼ (Compaction Background)                      |
+|                   [Compacted Blocks (4h, 8h...)]                            |
+|                              │                                              |
+|                              ▼ (Age > 15d)                                  |
+|                   [Automated Rolling Retention Purge]                       |
+|                                                                             |
++-----------------------------------------------------------------------------+
+```
+
+### 📋 Spesifikasi Teknis Penyimpanan & Retensi
+
+| Parameter | Nilai Konfigurasi / Kontrak | Penjelasan Teknis |
+| :--- | :---: | :--- |
+| **Storage Engine** | Prometheus TSDB | Format kolom time-series dengan algoritma kompresi Gorilla / Double-delta. |
+| **Named Volume** | `prometheus_data` | Volume Podman persisten non-rootless di `/prometheus` (`${HOME}/.local/share/containers/storage/volumes/prometheus_data/_data`). |
+| **Default Data Retention** | **`15 hari (15d)`** | Batas usia penyimpanan time-series. Data lebih lama dari 15 hari akan dibersihkan secara otomatis (*rolling compaction*). |
+| **Block Size (Chunk)** | 2 Jam (`2h`) | Setiap 2 jam, data di memori di-flush ke disk menjadi satu blok direktori mandiri. |
+| **Write-Ahead Log (WAL)** | Aktif (`/prometheus/wal`) | Menjamin integritas data saat container mati mendadak; data direkonstruksi otomatis saat restart (*crash-resilient*). |
+| **Scrape Interval (JMX & Telegraf)** | **`30s`** (Timeout: `10s`) | Frekuensi pengambilan metrik JVM, thread pool, dan health check aplikasi. |
+| **Scrape Interval (Diagnostic Service)** | **`15s`** (Timeout: `5s`) | Frekuensi pengawasan kesehatan Diagnostic Service untuk deteksi cepat `DiagnosticServiceDown`. |
+| **Estimasi Kebutuhan Disk** | ~30 – 50 MB / 15 hari | Rumus: `Kapasitas = Series * (Sampel/Detik) * 1.5 Bytes * 15 Hari`. Untuk footprint ~50 metrik aktif, konsumsi disk sangat hemat (< 100 MB). |
+
+---
+
 ## 🔗 Related Documentation
 
 - [Diagnostic Service REST API Reference](diagnostic-service-rest-api-reference.md)
