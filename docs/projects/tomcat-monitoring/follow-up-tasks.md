@@ -311,14 +311,11 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 
 #### TASK-TM-009: Penyediaan Dashboard Grafana Terpusat untuk Tomcat & Monitoring Stack
 
+- **Status:** `Descoped / Superseded` ⚪
 - **Deskripsi:**
   Membangun template dashboard visualisasi Grafana yang memadukan metrik kesehatan runtime Tomcat, JVM, dan infrastruktur monitoring.
-- **Kebutuhan Teknis:**
-  - Panel JVM: Heap memory pool, non-heap usage, GC duration & throughput, live threads, class loading.
-  - Panel Tomcat Connector: Active connections, request rate, error rate 4xx/5xx, processing time percentile (p95, p99).
-  - Panel Monitoring Health: Status scrape Prometheus, antrean alert Alertmanager, ketersediaan Diagnostic Service, dan metrik latensi SQLite.
-- **Kriteria Penerimaan (*Acceptance Criteria*):**
-  - Dashboard tersedia dalam format JSON deklaratif, dapat diimpor langsung ke instance Grafana, dan menampilkan visualisasi real-time yang akurat.
+- **Hasil Evaluasi Arsitektural:**
+  Kebutuhan visualisasi Grafana dikesampingkan (*descoped*) atas kesepakatan desain arsitektur karena platform monitoring stack difokuskan pada investigasi akar masalah otonom (*autonomous root-cause investigation*), pengiriman laporan kanonikal 7-seksi SRE via Enterprise SMTP Relay, dan query langsung Prometheus TSDB tanpa dependensi UI visualisasi tambahan.
 
 #### TASK-TM-010: Standardisasi Log Aggregation & Pengelolaan Host Spool
 
@@ -342,6 +339,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 
 #### TASK-TM-011: Otomatisasi Deployment Menggunakan Playbook Ansible
 
+- **Status:** `Planned` 📋
 - **Deskripsi:**
   Mengembangkan playbook Ansible untuk penyediaan (*provisioning*) dan pembaruan (*zero-touch deployment*) seluruh stack monitoring.
 - **Kebutuhan Teknis:**
@@ -352,13 +350,30 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 
 #### TASK-TM-012: Integrasi Enterprise Notification Bridge (TrueSight / Webhook Enterprise)
 
+- **Status:** `Descoped / Superseded` ⚪
 - **Deskripsi:**
   Menyiapkan adapter integrasi eksternal menuju sistem manajemen event enterprise (seperti TrueSight Operations Management atau Event Bridge) ketika infrastruktur target tersedia.
+- **Hasil Evaluasi Arsitektural:**
+  Integrasi TrueSight dikesampingkan (*descoped*) karena tidak ada infrastruktur TrueSight pada target lingkungan. Jalur notifikasi insiden operasional telah selesai dan terbukti handal menggunakan **Enterprise SMTP Relay (Pola A)** dengan enkripsi STARTTLS Port 587, otentikasi Cyrus SASL, dan kepatuhan 4 RFC Enterprise Headers ([TASK-TM-015](file:///home/eddywiyatno/git/devops-handbook/docs/projects/tomcat-monitoring/follow-up-tasks.md#task-tm-015-konfigurasi-enterprise-smtp-relay--otentikasi-terenkripsi-kesiapan-produksi-notifikasi) / [TN-010](engineering-journal/monitoring-platform-integration/TN-010-implement-and-verify-enterprise-smtp-configuration-and-headers.md)).
+
+#### TASK-TM-019: Otomatisasi CI/CD Pipeline Menggunakan Jenkins
+
+- **Status:** `Planned` 📋 (Active Next Milestone)
+- **Deskripsi:**
+  Mengimplementasikan pipeline Continuous Integration dan Continuous Deployment (CI/CD) otomatis berbasis Jenkins untuk membangun (*build*), menguji (*automated linting, contract validation, and unit/integration testing*), mempublikasikan image kontainer, dan men-deploy stack Tomcat Monitoring ke lingkungan runtime Podman rootless secara *zero-touch*.
 - **Kebutuhan Teknis:**
-  - Implementasi komponen penerjemah dari format *canonical result v1* ke format slot / kelas event TrueSight (`msend` payload).
-  - Penutupan item kesenjangan **GAP-014** (TLS Produksi & DR) dan **GAP-015** (Integrasi TrueSight).
+  - Penyusunan declarative `Jenkinsfile` pada repositori terkait (`tomcat-monitoring`, `tomcat-diagnostic-service`, `tomcat-diagnostic-event-collector`).
+  - Tahapan pipeline otomatis:
+    1. **Stage 1 — Source Checkout & Linting:** Checkout branch `main`, verifikasi shell syntax, dan validasi contract non-secret (`./scripts/validate.sh`).
+    2. **Stage 2 — Automated Testing:** Eksekusi unit tests, schema validation, dan component assertions.
+    3. **Stage 3 — Container Image Build & Digest Pinning:** Pembuatan immutable container images menggunakan Podman / Buildah serta penentuan digest SHA-256 lokal.
+    4. **Stage 4 — Continuous Deployment (CD):** Pembaruan kontainer runtime (`deploy-*.sh`) dengan kebijakan rollback otomatis (*zero-downtime deployment*).
+    5. **Stage 5 — Post-Deployment Verification:** Eksekusi smoke test & live incident pipeline verification (`test-tomcatdown-live.sh`, `verify-postfix-relay.sh`).
+  - Manajemen kredensial dan secret injection aman via Jenkins Credentials Store (mencegah kebocoran rahasia ke Git).
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
-  - Event insiden berhasil diterima oleh enterprise event bridge dengan metadata severity, host, slot mapping, dan rekomendasi SOP yang sesuai standar enterprise.
+  - Setiap commit / push ke repository Git secara otomatis memicu eksekusi pipeline Jenkins.
+  - Pipeline menolak (*fail-fast*) setiap perubahan yang melanggar kontrak validasi atau gagal dalam rangkaian uji otomatis.
+  - Deployment ke runtime Podman rootless berjalan lancar dengan status build `SUCCESS` dan seluruh verifikasi pasca-deploy lulus 100%.
 
 #### TASK-TM-013: Integrasi Shared Persistent Volume Mount untuk Log Runtime Tomcat (Kesiapan Produksi TN-019)
 
@@ -455,10 +470,11 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | `Descoped` ⚪ | TM-ADR-0014 | Diagnostic Service | Digantikan arsip dossier 7-seksi terpusat |
 | **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Rule saturasi thread pool 100% (TN-004) |
 | **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Sinyal Emas GC Pause, Overhead, Old Gen (TN-004) |
-| **TASK-TM-009** | Dashboard Observabilitas Grafana | **P2 (Medium)** | `Planned` 📋 | TN-020 | Grafana | Dashboard terpusat JVM, Tomcat, & Health |
+| **TASK-TM-009** | Dashboard Observabilitas Grafana | **P2 (Medium)** | `Descoped` ⚪ | TN-020 | Grafana | Fokus investigasi otonom & laporan email SRE |
 | **TASK-TM-010** | Standardisasi Log & Spool Cleanup | **P2 (Medium)** | `Completed` ✅ | TN-020 / TN-011 | Event Collector / Host | Spool pruning 24h, cap 1000, & isolasi 0700 (TN-011) |
-| **TASK-TM-011** | Ansible Playbook Deployment | **P3 (Planned)** | `Planned` 📋 | TN-020 | Ansible / Podman | Zero-touch deployment seluruh stack |
-| **TASK-TM-012** | Integrasi TrueSight / Event Bridge | **P3 (Deferred)** | `Deferred` ⏳ | GAP-015 / TN-020 | Integration Bridge | Pengiriman event terintegrasi enterprise |
+| **TASK-TM-019** | Otomatisasi CI/CD Pipeline Jenkins | **P1 (High)** | `Planned` 📋 | TN-020 | Jenkins / CI-CD | Pipeline build, test, & deploy rootless otomatis |
+| **TASK-TM-011** | Ansible Playbook Deployment | **P3 (Planned)** | `Planned` 📋 | TN-020 | Ansible / Podman | Zero-touch provisioning seluruh host |
+| **TASK-TM-012** | Integrasi TrueSight / Event Bridge | **P3 (Deferred)** | `Descoped` ⚪ | GAP-015 / TN-020 | Integration Bridge | Digantikan Enterprise SMTP Relay resmi (TN-010) |
 
 ---
 
