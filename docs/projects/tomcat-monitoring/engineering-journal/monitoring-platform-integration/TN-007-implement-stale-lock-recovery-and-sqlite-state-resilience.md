@@ -365,27 +365,79 @@ bash /home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-diagnostic-service.s
 
 </div>
 
+## 🛠️ Troubleshooting
+
+| Attempt | Actual result | Resolution |
+| --- | --- | --- |
+| Eksekusi awal pruning database dengan `foreign_keys = ON` | Terjadi error `FOREIGN KEY constraint failed` saat menghapus baris dari tabel `incidents` | Menyusun urutan query penghapusan berjenjang mulai dari tabel relasi anak (`evidence_summaries`, `canonical_results`, `event_assessments`) sebelum menghapus rekaman induk (`alert_events`, `incidents`). |
+| Uji pemulihan event bermasalah yang menyebabkan parser error | Kontainer me-restart berulang kali (*CrashLoopBackOff*) karena event terus di-claim ulang | Menambahkan counter `retry_count` dan batas `maxRetries = 3`. Jika `retry_count >= 3`, status event langsung dialihkan ke `failed`. |
+| Pengembalian ruang disk pasca-penghapusan data besar | Ukuran berkas database `.db` di disk tidak berkurang meskipun baris data telah terhapus | Menjalankan `PRAGMA incremental_vacuum` secara otomatis setelah siklus pruning selesai. |
+
+## ⌨️ Commands Executed
+
+### Phase 1: Unit & Integration Testing
+
+```bash
+# 1. Validasi statis repositori
+bash scripts/validate.sh
+
+# 2. Eksekusi pengujian unit stale lock dan retensi
+node --test test/unit/stale-lock-and-retention.test.js
+
+# 3. Eksekusi seluruh suite test di kontainer terisolasi
+podman run --rm --userns=keep-id --volume "${PWD}:/app:ro,Z" --workdir /app \
+  localhost/nodejs:24.18.0 node --test test/unit/*.test.js test/integration/*.test.js
+```
+
+### Phase 2: Container Image Build & Component Testing
+
+```bash
+# 1. Pembangunan image v0.1.6
+bash scripts/build.sh
+
+# 2. Pengujian kepatuhan runtime image dan probe database
+bash scripts/test-image.sh
+bash scripts/test-image-component.sh
+```
+
+### Phase 3: Deployment & Live Crash Injection
+
+```bash
+# 1. Deployment ke lingkungan devops-lab
+bash /home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-diagnostic-service.sh
+
+# 2. Injeksi event stale dan verifikasi metrik
+podman exec -it diagnostic-service node -e '/* inject stale event */'
+podman restart diagnostic-service
+curl -s http://localhost:9090/metrics | grep diagnostic_stale_locks
+```
+
 ## 📁 Artifact Manifest
 
-Bagian ini mencatat seluruh berkas (*artifacts*) yang dibuat atau dimodifikasi selama aktivitas implementasi TN-007:
+### Table Guide
 
-### Tabel Manifest Berkas
+Tabel di bawah mengelompokkan berkas berdasarkan peran teknis dan lapisannya:
+- **Berkas (*Path*)**: Lokasi berkas relatif terhadap root repositori.
+- **Layer / Kategori**: Lapisan arsitektural (Basis Data, Logika Aplikasi, Observabilitas, Kontrak Skema, Test & Tooling, Handbook).
+- **Status**: Status berkas (`Baru` = dibuat baru; `Modifikasi` = diperbarui).
+- **Tanggung Jawab Teknis**: Peran fungsional komponen dalam sistem ketahanan status.
+
+### Artifact Manifest Table
 
 | Berkas (*Path*) | Layer / Kategori | Status | Tanggung Jawab Teknis |
-| --- | --- | :---: | --- |
+| :--- | :--- | :---: | :--- |
 | `migrations/007-stale-lock-recovery-and-retention.sql` | Basis Data (SQLite) | Baru | Skrip DDL migrasi skema 007 untuk kolom `retry_count`, `lease_expires_at`, dan indeks housekeeping. |
 | `src/adapters/sqlite-repository.js` | Adapter Infrastruktur | Modifikasi | Menangani `recoverStaleLocks()`, `pruneHistoricalRecords()`, `claimNext()` dengan lease, dan ukuran DB. |
 | `src/application/application.js` | Logika Aplikasi | Modifikasi | Eksekusi otomatis recovery & housekeeping pada startup dan periodic worker loop. |
 | `src/application/health-metrics.js` | Observabilitas | Modifikasi | Pendaftaran metrik Prometheus untuk stale lock recovery, housekeeping, dan ukuran database. |
 | `config/schemas/application-config-v1.schema.json` | Kontrak Skema | Modifikasi | Menambahkan validasi schema JSON untuk konfigurasi timeout sewa dan interval retensi. |
-| `test/unit/stale-lock-and-retention.test.js` | Pengujian Otomatis (Unit) | Baru | Pengujian unit terisolasi untuk skenario pemulihan antrean, batas retry, dan pembersihan data terurut. |
-| `test/integration/application-lifecycle.test.js` | Pengujian Otomatis (Integrasi) | Modifikasi | Pengujian integrasi siklus startup aplikasi dan eksekusi recovery. |
-| `test/component/image-runtime-database-probe.js` | Pengujian Komponen | Modifikasi | Verifikasi integritas migrasi skema [1..7] di dalam image runtime. |
-| `VERSION`<br/>`package.json`<br/>`package-lock.json` | Tata Kelola Rilis | Modifikasi | Peningkatan versi semantik ke `0.1.6`. |
-| `scripts/validate.sh`<br/>`scripts/test-image.sh` | Otomasi Repositori | Modifikasi | Sinkronisasi validasi statis dan pengujian image terhadap migrasi skema 007. |
-| `scripts/deploy-diagnostic-service.sh` | Otomasi Deployment | Modifikasi | Mengunci pinning image ke rilis `0.1.6` (`sha256:31e4668648d0935494cf424923c7a15af1adf48fb288d8775011dc5813893f3a`). |
-| `docs/.../TN-007-implement-stale-lock-recovery-and-sqlite-state-resilience.md` | Dokumentasi Engineering | Baru | Technical Note pelaksanaan implementasi dan bukti verifikasi live. |
-| `docs/projects/tomcat-monitoring/follow-up-tasks.md` | Tata Kelola Proyek | Modifikasi | Menandai TASK-TM-018, TASK-TM-004, dan TASK-TM-005 selesai (`Completed`). |
+| `test/unit/stale-lock-and-retention.test.js` | Test & Tooling | Baru | Pengujian unit terisolasi untuk skenario pemulihan antrean, batas retry, dan pembersihan data terurut. |
+| `test/integration/application-lifecycle.test.js` | Test & Tooling | Modifikasi | Pengujian integrasi siklus startup aplikasi dan eksekusi recovery. |
+| `test/component/image-runtime-database-probe.js` | Test & Tooling | Modifikasi | Verifikasi integritas migrasi skema [1..7] di dalam image runtime. |
+| `VERSION`<br/>`package.json`<br/>`package-lock.json` | Metadata Rilis | Modifikasi | Peningkatan versi semantik ke `0.1.6`. |
+| `scripts/validate.sh`<br/>`scripts/test-image.sh` | Tooling & Script | Modifikasi | Sinkronisasi validasi statis dan pengujian image terhadap migrasi skema 007. |
+| `scripts/deploy-diagnostic-service.sh` | Orchestration | Modifikasi | Mengunci pinning image ke rilis `0.1.6` (`sha256:31e4668648d0935494cf424923c7a15af1adf48fb288d8775011dc5813893f3a`). |
+| `devops-handbook/docs/projects/tomcat-monitoring/engineering-journal/monitoring-platform-integration/TN-007-implement-stale-lock-recovery-and-sqlite-state-resilience.md` | Tata Kelola (Handbook) | Baru | Technical Note pelaksanaan implementasi dan bukti verifikasi live. |
 
 ### Artifact Dependency & Relationship Graph
 
@@ -409,16 +461,57 @@ flowchart TD
     end
 ```
 
-## 🧪 Test Scenario Matrix
+## 🧪 Test-Scenario Matrix
 
-| Scenario | Focus Area | Evidence |
+| Scenario | Focus Area | Evidence | Status |
+| :--- | :--- | :--- | :---: |
+| **Lease Lock Acquisition** | Adapter | `claimNext()` menetapkan `lease_expires_at` (now + 5m) dan `started_at`. | `Passed` ✅ |
+| **Stale Re-queue Recovery** | Resiliency | Item `processing` kadaluwarsa dikembalikan ke `queued` dengan `retry_count` bertambah. | `Passed` ✅ |
+| **Exhausted Retry Failure** | Crash Loop Guard | Item yang melampaui `maxRetries` (3) ditandai `failed` dan dicatat ke metrik. | `Passed` ✅ |
+| **FK Safe Pruning** | Data Lifecycle | Rekaman $>30$ hari dihapus berurutan tanpa melanggar *Foreign Key constraints*. | `Passed` ✅ |
+| **Incremental Vacuum** | Storage Guard | `PRAGMA incremental_vacuum` mengembalikan ruang kosong ke OS; `diagnostic_db_size_bytes` terbarui. | `Passed` ✅ |
+| **Live Container Crash Injection** | End-to-End Live | Item zombie dipulihkan pasca-restart kontainer di `devops-lab`, dievaluasi, dan email terkirim ke Mailpit. | `Passed` ✅ |
+
+## ✅ Verification
+
+| Method | Expected Result | Actual Result |
 | --- | --- | --- |
-| **Lease Lock Acquisition** | Adapter | `claimNext()` menetapkan `lease_expires_at` (now + 5m) dan `started_at`. |
-| **Stale Re-queue Recovery** | Resiliency | Item `processing` kadaluwarsa dikembalikan ke `queued` dengan `retry_count` bertambah. |
-| **Exhausted Retry Failure** | Crash Loop Guard | Item yang melampaui `maxRetries` (3) ditandai `failed` dan dicatat ke metrik. |
-| **FK Safe Pruning** | Data Lifecycle | Rekaman $>30$ hari dihapus berurutan tanpa melanggar *Foreign Key constraints*. |
-| **Incremental Vacuum** | Storage Guard | `PRAGMA incremental_vacuum` mengembalikan ruang kosong ke OS; `diagnostic_db_size_bytes` terbarui. |
-| **Live Container Crash Injection** | End-to-End Live | Item zombie dipulihkan pasca-restart kontainer di `devops-lab`, dievaluasi, dan email terkirim ke Mailpit. |
+| `bash scripts/validate.sh` | Integritas skema migrasi [1..7], source code, dan dependensi valid | Passed |
+| `node --test test/unit/*.test.js test/integration/*.test.js` | 59/59 unit dan integration test lulus tanpa kegagalan | Passed (59 pass, 0 fail, 552ms) |
+| `bash scripts/test-image.sh` | Struktur image, rootless permission, dan entrypoint valid | Passed |
+| `bash scripts/test-image-component.sh` | Probe runtime database SQLite memvalidasi skema migrasi [1..7] | Passed (Exit code 0) |
+| Live Crash Injection Probe (`devops-lab`) | Event zombie dipulihkan pasca-restart, dievaluasi, dan dilaporkan ke Mailpit | Passed (Event #39 resolved, email delivered) |
+
+## 👥 Operator Validation
+
+Panduan validasi langsung bagi operator dan tim SRE:
+
+1. **Inspeksi Metrik Prometheus (`http://localhost:9090`):**
+   - Kueri `diagnostic_stale_locks_recovered_total` untuk melihat riwayat pemulihan antrean macet.
+   - Kueri `diagnostic_db_size_bytes` untuk memantau ukuran fisik basis data SQLite.
+2. **Inspeksi Database SQLite Persisten:**
+   - Kueri `SELECT id, state, retry_count, lease_expires_at FROM alert_events;` untuk memverifikasi transisi state machine.
+
+## 🖥️ Source-Control Handoff
+
+Setelah penutupan verifikasi teknis ini, berkas yang siap dicommit mencakup:
+- `tomcat-diagnostic-service/migrations/007-stale-lock-recovery-and-retention.sql`
+- `tomcat-diagnostic-service/src/adapters/sqlite-repository.js`
+- `tomcat-diagnostic-service/src/application/application.js`
+- `tomcat-diagnostic-service/src/application/health-metrics.js`
+- `tomcat-diagnostic-service/config/schemas/application-config-v1.schema.json`
+- `tomcat-diagnostic-service/test/unit/stale-lock-and-retention.test.js`
+- `tomcat-diagnostic-service/test/integration/application-lifecycle.test.js`
+- `tomcat-diagnostic-service/test/component/image-runtime-database-probe.js`
+- `tomcat-diagnostic-service/VERSION`
+- `tomcat-diagnostic-service/scripts/validate.sh`
+- `tomcat-monitoring/scripts/deploy-diagnostic-service.sh`
+- `devops-handbook/docs/projects/tomcat-monitoring/engineering-journal/monitoring-platform-integration/TN-007-implement-stale-lock-recovery-and-sqlite-state-resilience.md`
+
+## 🧹 Cleanup & Resource Integrity
+
+1. Data pengujian isolasi crash di-rollback secara bersih dan database kembali ke mode operasional normal.
+2. Kontainer `diagnostic-service` berjalan secara stabil dengan image v0.1.6 pada network `devops-lab`.
 
 ## 🧭 Reproduction Boundary
 
@@ -434,40 +527,6 @@ flowchart TD
   bash scripts/test-image.sh
   bash scripts/test-image-component.sh
   ```
-
-## ✅ Verification
-
-| Method | Expected Result | Actual Result |
-| --- | --- | --- |
-| `bash scripts/validate.sh` | Integritas skema migrasi [1..7], source code, dan dependensi valid | Passed |
-| `node --test test/unit/*.test.js test/integration/*.test.js` | 59/59 unit dan integration test lulus tanpa kegagalan | Passed (59 pass, 0 fail, 552ms) |
-| `bash scripts/test-image.sh` | Struktur image, rootless permission, dan entrypoint valid | Passed |
-| `bash scripts/test-image-component.sh` | Probe runtime database SQLite memvalidasi skema migrasi [1..7] | Passed (Exit code 0) |
-| Live Crash Injection Probe (`devops-lab`) | Event zombie dipulihkan pasca-restart, dievaluasi, dan dilaporkan ke Mailpit | Passed (Event #39 resolved, email delivered) |
-
-## 🖥️ Commands Executed
-
-```bash
-# 1. Validasi Statis Repositori
-bash scripts/validate.sh
-
-# 2. Eksekusi Unit & Integration Tests di Kontainer Terisolasi
-podman run --rm --userns=keep-id --volume "${PWD}:/app:ro,Z" --workdir /app \
-  localhost/nodejs:24.18.0 node --test test/unit/*.test.js test/integration/*.test.js
-
-# 3. Pembangunan dan Pengujian Image v0.1.6
-bash scripts/build.sh
-bash scripts/test-image.sh
-bash scripts/test-image-component.sh
-
-# 4. Deployment ke Lingkungan Devops-Lab
-bash /home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-diagnostic-service.sh
-
-# 5. Simulasi Crash Injection & Verifikasi Live
-podman exec -it diagnostic-service node -e '/* inject stale event #39 */'
-podman restart diagnostic-service
-curl -s http://localhost:9090/metrics | grep diagnostic_stale_locks
-```
 
 ## 🧾 Outcome
 
@@ -492,6 +551,13 @@ Implementasi berikutnya berfokus pada penyelesaian backlog Kategori 5 pada [`fol
 - **[`TASK-TM-013`](../../follow-up-tasks.md#task-tm-013-integrasi-shared-persistent-volume-mount-untuk-log-runtime-tomcat-kesiapan-produksi-tn-019):** Mengonfigurasi shared persistent volume mount untuk file log runtime Tomcat `catalina.out`.
 
 ## 🔗 Related Documentation
+
+- [Follow-up Tasks Backlog](../../follow-up-tasks.md)
+- [Diagnostic MVP Target and Evidence Contract](../../diagnostic-mvp/target-and-evidence-contract.md)
+- [TM-ADR-0015 — Adopt Asynchronous Webhook Ingestion with Durable SQLite Acceptance Pattern](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md)
+- [TM-ADR-0016 — Designate Diagnostic Service as Canonical Incident Notification Authority](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md)
+- [TN-006 — Implement Multi-Domain Diagnostic Dispatcher and Decision Engines](TN-006-implement-multi-domain-diagnostic-dispatcher-and-decision-engines.md)
+
 
 - [Diagnostic MVP Index](../../diagnostic-mvp/index.md)
 - [SQLite Lifecycle Contract](../../diagnostic-mvp/sqlite-lifecycle-contract.md)

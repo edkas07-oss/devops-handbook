@@ -150,27 +150,21 @@ sequenceDiagram
 
 ## 🧭 Implementation Plan
 
-1. **Fase 1 — Diagnostic Service Schema & Core Adapter Enhancement:**
-   - Memperbarui skema `application-config-v1.schema.json` dan `config-loader.js` untuk memuat parameter `prometheus` dan `timeouts.prometheusMs`.
-   - Menghubungkan `PrometheusAdapter` ke `createDefaultEvidenceCollector()` pada `application.js`.
-   - Menambahkan mekanisme fallback cerdas pada pembacaan log lokal untuk membaca berkas log harian Tomcat `catalina.YYYY-MM-DD.log` jika `catalina.out` belum terbuat.
-2. **Fase 2 — Unit & Integration Test Suite Verification:**
-   - Menambahkan pengujian unit terisolasi pada `collector-spool-adapter.test.js` dan `config-loader.test.js`.
-   - Membangun image container baru `localhost/tomcat-diagnostic-service:0.1.7` dan memvalidasi integritas statis (`validate.sh`, `test-image.sh`, `test-image-component.sh`).
-3. **Fase 3 — Shared Persistent Volume Mount & Deployment Rollout:**
-   - Memperbarui `tomcat-jmx-exporter/scripts/run.sh` untuk menyertakan `--volume "/tmp/tomcat-logs:/usr/local/tomcat/logs:z"`.
-   - Menerapkan image `tomcat-diagnostic-service:0.1.7` pada `deploy-diagnostic-service.sh` dengan allowlist `prometheusSelector` lengkap.
-   - Meluncurkan ulang kontainer Tomcat dan Diagnostic Service pada stack `devops-lab`.
-4. **Fase 4 — Empirical Live Verification & Forensic Audit:**
-   - Menguji pengiriman webhook alert firing secara real-time.
-   - Memeriksa persistensi database SQLite pada tabel `evidence_summaries`.
-   - Mengaudit pesan email Laporan 7-Seksi SRE pada Mailpit untuk memverifikasi keterisian Seksi 3 dan Seksi 4.
-
----
+| Tahap | Rencana |
+| --- | --- |
+| **Enhance Schema and Config Loader** | Memperbarui skema `application-config-v1.schema.json` dan `config-loader.js` untuk memuat konfigurasi `prometheus` dan `timeouts.prometheusMs`. |
+| **Integrate Prometheus Adapter into Application Lifecycle** | Menghubungkan `PrometheusAdapter` ke `createDefaultEvidenceCollector()` pada `application.js` dan menambahkan fallback log harian `catalina.YYYY-MM-DD.log`. |
+| **Standardize Persistent Named Volume for Tomcat Logs** | Mengonfigurasi Named Volume Podman `tomcat_logs` pada `tomcat-jmx-exporter` dan mount read-only `:ro,z` pada `diagnostic-service`. |
+| **Execute Test Suites and Build Container Image v0.1.7** | Menambahkan pengujian unit terisolasi, memvalidasi 61 tests passing 100%, menjalankan `validate.sh`, dan membangun image v0.1.7. |
+| **Deploy and Verify Live Evidence Pipeline** | Menerapkan deployment stack `devops-lab`, memicu webhook alert, dan memverifikasi persistensi SQLite serta laporan 7-seksi Mailpit. |
 
 ## ⚙️ Implementation
 
-### 1. Pembaruan Skema Konfigurasi & Config Loader
+<div class="procedure" markdown>
+
+<div class="procedure-step" markdown>
+
+### Tahap 1: Enhance Schema and Config Loader
 
 Pada [`config/schemas/application-config-v1.schema.json`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/config/schemas/application-config-v1.schema.json), properti `prometheus` dan `timeouts.prometheusMs` didefinisikan secara deklaratif:
 
@@ -201,7 +195,16 @@ Pada [`src/application/config-loader.js`](file:///home/eddywiyatno/git/tomcat-di
     smtp: Object.freeze({ ...raw.smtp, timeoutMs: raw.timeouts.smtpMs, ... })
 ```
 
-### 2. Integrasi Pengumpul Bukti Live pada `application.js`
+**Actual Result:** Skema konfigurasi dan pemuat konfigurasi memvalidasi properti Prometheus dengan aman.
+
+!!! success "Expected Result"
+    Konfigurasi `prometheus.baseUrl` dan timeout 5000ms tervalidasi dan dibekukan saat startup.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Tahap 2: Integrate Prometheus Adapter into Application Lifecycle
 
 Pada [`src/application/application.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/application/application.js), fungsi `createDefaultEvidenceCollector` ditingkatkan untuk mengeksekusi kueri paralel terproteksi ke Prometheus API:
 
@@ -229,7 +232,16 @@ Pada [`src/application/application.js`](file:///home/eddywiyatno/git/tomcat-diag
     }
 ```
 
-### 3. Konfigurasi Shared Persistent Named Volume pada Tomcat Runtime
+**Actual Result:** Bukti telemetri metrik dan cuplikan log harian terkumpul secara paralel dan non-blocking.
+
+!!! success "Expected Result"
+    Adapter Prometheus mengumpulkan metrik `up`, `jvm_memory_pool`, dan `tomcat_threads_busy` dengan timeout 5s, serta membaca log harian Tomcat jika `catalina.out` belum ada.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Tahap 3: Standardize Persistent Named Volume for Tomcat Logs
 
 Pada [`tomcat-jmx-exporter/scripts/run.sh`](file:///home/eddywiyatno/git/tomcat-jmx-exporter/scripts/run.sh), direktori `/usr/local/tomcat/logs` dipasang ke Podman Named Volume `${LOG_VOLUME:-tomcat_logs}` dengan label SELinux `:z`:
 
@@ -250,24 +262,131 @@ podman run --detach \
     "${IMAGE_NAME}:${PROJECT_VERSION}"
 ```
 
----
+**Actual Result:** Named Volume `tomcat_logs` terstandarisasi di antara kedua kontainer runtime.
+
+!!! success "Expected Result"
+    Tomcat menulis log ke Named Volume `tomcat_logs`, dan Diagnostic Service membaca volume tersebut secara read-only (`:ro,z`).
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Tahap 4: Execute Test Suites and Build Container Image v0.1.7
+
+Menjalankan pengujian unit, validasi statis, dan pembangunan image:
+
+```bash
+# Eksekusi unit & integration test
+npm test
+
+# Validasi tata kelola statis
+./scripts/validate.sh
+
+# Bangun dan uji image
+./scripts/build.sh
+./scripts/test-image.sh
+```
+
+**Actual Result:** 61 unit tests lulus 100%, image `localhost/tomcat-diagnostic-service:0.1.7` (`sha256:ae212a72419e7c10f6b7d4e1af06a576546143d2f20e335629a21ddc16fcbb25`) berhasil dibangun.
+
+!!! success "Expected Result"
+    Test suite lengkap lulus 100% dan image v0.1.7 siap dideploy.
+
+</div>
+
+<div class="procedure-step" markdown>
+
+### Tahap 5: Deploy and Verify Live Evidence Pipeline
+
+Menerapkan deployment stack `devops-lab` dan memverifikasi aliran bukti ke SQLite dan Mailpit:
+
+```bash
+cd /home/eddywiyatno/git/tomcat-monitoring
+./scripts/deploy-tomcat.sh
+./scripts/deploy-diagnostic-service.sh
+```
+
+**Actual Result:** Layanan berhasil dideploy dengan allowlist `prometheusSelector` lengkap dan named volume mount `tomcat_logs`.
+
+!!! success "Expected Result"
+    Webhook alert `TomcatDown` menghasilkan laporan SRE 7-seksi lengkap dengan Seksi 3 (*Key Metrics Snapshot*) dan Seksi 4 (*Correlated Log Evidence*) terisi.
+
+</div>
+
+</div>
+
+## 🛠️ Troubleshooting
+
+| Attempt | Actual result | Resolution |
+| --- | --- | --- |
+| Pembacaan awal file log pada mode `catalina.sh run` | Log reader melaporkan status `not_found` karena file `catalina.out` tidak dibuat oleh Tomcat container | Menambahkan fallback otomatis ke file log rotasi harian `catalina.YYYY-MM-DD.log` berbasis tanggal observasi insiden. |
+| Pengujian batas waktu kueri Prometheus API saat endpoint lambat | Kueri yang lambat berisiko memblokir keseluruhan siklus worker | Menetapkan `AbortSignal.timeout(5000)` pada kueri Prometheus dan menangani TimeoutError dengan status `timeout` kanonikal tanpa melempar exception fatal. |
+| Penggunaan path host bind-mount untuk log Tomcat | Path host absolut `/tmp/tomcat-logs` rentan terhadap penghapusan berkas saat restart host | Mengganti host bind-mount dengan Podman Named Volume terkelola `tomcat_logs` yang kebal terhadap reboot dan portabel antar host. |
+
+## ⌨️ Commands Executed
+
+### Phase 1: Unit Testing & Static Governance Audit
+
+```bash
+# 1. Eksekusi unit test collector adapter dan config loader
+node --test test/unit/collector-spool-adapter.test.js test/unit/config-loader.test.js
+
+# 2. Eksekusi seluruh unit & integration test
+npm test
+
+# 3. Validasi tata kelola statis
+./scripts/validate.sh
+```
+
+### Phase 2: Container Image Build & Component Testing
+
+```bash
+# 1. Bangun image kontainer v0.1.7
+./scripts/build.sh
+
+# 2. Uji kepatuhan runtime image
+./scripts/test-image.sh
+./scripts/test-image-component.sh
+```
+
+### Phase 3: Deployment & Live Evidence Verification
+
+```bash
+# 1. Deploy ulang runtime Tomcat dan Diagnostic Service v0.1.7
+cd /home/eddywiyatno/git/tomcat-monitoring
+./scripts/deploy-tomcat.sh
+./scripts/deploy-diagnostic-service.sh
+
+# 2. Kirim alert webhook uji dan verifikasi Mailpit
+curl -s http://localhost:8025/api/v1/messages | jq '.messages[0].Subject'
+```
 
 ## 📁 Artifact Manifest
 
-| Component | File Path | Type | Role |
-| --- | --- | :---: | --- |
-| **Diagnostic Service** | [`config/schemas/application-config-v1.schema.json`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/config/schemas/application-config-v1.schema.json) | Schema | Skema validasi konfigurasi Prometheus API & timeout. |
-| **Diagnostic Service** | [`src/adapters/prometheus-adapter.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/adapters/prometheus-adapter.js) | Code | Adapter HTTP GET `/api/v1/query` dengan AbortSignal timeout 5000ms. |
-| **Diagnostic Service** | [`src/application/application.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/src/application/application.js) | Code | Lifecycle composer pengumpul bukti telemetri & fallback log. |
-| **Diagnostic Service** | [`test/unit/collector-spool-adapter.test.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/test/unit/collector-spool-adapter.test.js) | Test | Unit test pengumpulan metrik live & timeout resilience. |
-| **Diagnostic Service** | [`test/unit/config-loader.test.js`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/test/unit/config-loader.test.js) | Test | Unit test pemuatan konfigurasi `prometheus`. |
-| **Diagnostic Service** | [`VERSION`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/VERSION) | Meta | Release tag `0.1.7` (digest `sha256:ae212a72419e7c10f6b7d4e1af06a576546143d2f20e335629a21ddc16fcbb25`). |
-| **Tomcat JMX Exporter** | [`scripts/run.sh`](file:///home/eddywiyatno/git/tomcat-jmx-exporter/scripts/run.sh) | Script | Pemasangan persistent Named Volume `tomcat_logs`. |
-| **Tomcat Monitoring** | [`scripts/deploy-diagnostic-service.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-diagnostic-service.sh) | Script | Deployment runtime Diagnostic Service v0.1.7 dengan allowlist selector & read-only Named Volume mount `tomcat_logs`. |
+### Table Guide
 
----
+Tabel di bawah mengelompokkan berkas berdasarkan peran teknis dan lapisannya:
+- **Berkas (*Path*)**: Lokasi berkas relatif terhadap root repositori.
+- **Layer / Kategori**: Lapisan arsitektural (Schema & Config, Adapter & Application, Tooling & Scripts, Handbook).
+- **Status**: Status berkas (`Baru` = dibuat baru; `Modifikasi` = diperbarui).
+- **Tanggung Jawab Teknis**: Peran fungsional komponen dalam sistem pengumpulan bukti.
 
-## 🧪 Test Scenario Matrix
+### Artifact Manifest Table
+
+| Berkas (*Path*) | Layer / Kategori | Status | Tanggung Jawab Teknis |
+| :--- | :--- | :---: | :--- |
+| `tomcat-diagnostic-service/config/schemas/application-config-v1.schema.json` | Schema & Config | Modifikasi | Skema validasi konfigurasi Prometheus API & timeout. |
+| `tomcat-diagnostic-service/src/application/config-loader.js` | Schema & Config | Modifikasi | Pemuatan dan pembekuan konfigurasi immutable `prometheus`. |
+| `tomcat-diagnostic-service/src/adapters/prometheus-adapter.js` | Adapter & Application | Modifikasi | Adapter HTTP GET `/api/v1/query` dengan AbortSignal timeout 5000ms. |
+| `tomcat-diagnostic-service/src/application/application.js` | Adapter & Application | Modifikasi | Lifecycle composer pengumpul bukti telemetri & fallback log harian. |
+| `tomcat-diagnostic-service/test/unit/collector-spool-adapter.test.js` | Test & Tooling | Modifikasi | Unit test pengumpulan metrik live & timeout resilience. |
+| `tomcat-diagnostic-service/test/unit/config-loader.test.js` | Test & Tooling | Modifikasi | Unit test pemuatan konfigurasi `prometheus`. |
+| `tomcat-diagnostic-service/VERSION` | Metadata | Modifikasi | Release tag `0.1.7` (digest `sha256:ae212a72419e7c10f6b7d4e1af06a576546143d2f20e335629a21ddc16fcbb25`). |
+| `tomcat-jmx-exporter/scripts/run.sh` | Orchestration | Modifikasi | Pemasangan persistent Named Volume `tomcat_logs`. |
+| `tomcat-monitoring/scripts/deploy-diagnostic-service.sh` | Orchestration | Modifikasi | Deployment runtime Diagnostic Service v0.1.7 dengan allowlist selector & read-only Named Volume mount `tomcat_logs`. |
+| `devops-handbook/docs/projects/tomcat-monitoring/engineering-journal/monitoring-platform-integration/TN-008-integrate-live-prometheus-evidence-adapter-and-shared-persistent-logs.md` | Tata Kelola (Handbook) | Baru | Jurnal teknik kanonikal integrasi live Prometheus adapter dan shared persistent log volume. |
+
+## 🧪 Test-Scenario Matrix
 
 | ID | Skenario Pengujian | Komponen | Target Evaluasi | Status |
 | :---: | --- | :---: | --- | :---: |
@@ -279,61 +398,6 @@ podman run --detach \
 | **CT-02** | Image Runtime Contract Probe | `test-image-component.sh` | Verifikasi HTTPS, SQLite startup, dan graceful shutdown pada image v0.1.7 | `Passed` ✅ |
 | **LT-01** | Shared Log Volume Synchronization | `tomcat-jmx-exporter` | Tomcat menulis log langsung ke Named Volume `tomcat_logs` | `Passed` ✅ |
 | **LT-02** | End-to-End Live Evidence Ingestion | `devops-lab` | Metrik live dan cuplikan log tersimpan di SQLite & disajikan di Mailpit | `Passed` ✅ |
-
----
-
-## 🧭 Reproduction Boundary
-
-Pengujian empiris live dapat direproduksi secara mandiri dengan langkah-langkah berikut:
-
-```bash
-# 1. Jalankan unit test suite lengkap
-podman run --rm --userns=keep-id \
-  --volume /home/eddywiyatno/git/tomcat-diagnostic-service:/app:ro,Z \
-  --workdir /app localhost/nodejs:24.18.0 \
-  node --test test/unit/*.test.js test/integration/*.test.js
-
-# 2. Deploy ulang stack Tomcat dan Diagnostic Service v0.1.7
-cd /home/eddywiyatno/git/tomcat-monitoring
-./scripts/deploy-tomcat.sh
-./scripts/deploy-diagnostic-service.sh
-
-# 3. Kirim alert webhook firing ke Diagnostic Service
-curl -k -i \
-  -H "Authorization: Bearer test-token-12345" \
-  -H "Content-Type: application/json" \
-  -X POST https://127.0.0.1:8443/api/v1/alerts/alertmanager \
-  -d '{
-    "version": "4",
-    "groupKey": "test-evidence-group",
-    "status": "firing",
-    "receiver": "lab-diagnostic-service",
-    "groupLabels": {"alertname": "TomcatDown"},
-    "commonLabels": {
-      "alertname": "TomcatDown", "environment": "lab", "host": "tomcat-01",
-      "tomcat_instance": "default", "job": "tomcat-jmx-exporter",
-      "instance": "tomcat-jmx-exporter:9404", "service": "tomcat",
-      "check": "service-availability", "severity": "critical"
-    },
-    "commonAnnotations": {"summary": "Tomcat service is unreachable"},
-    "alerts": [{
-      "status": "firing",
-      "labels": {
-        "alertname": "TomcatDown", "environment": "lab", "host": "tomcat-01",
-        "tomcat_instance": "default", "job": "tomcat-jmx-exporter",
-        "instance": "tomcat-jmx-exporter:9404", "service": "tomcat",
-        "check": "service-availability", "severity": "critical"
-      },
-      "annotations": {"summary": "Tomcat service is unreachable"},
-      "startsAt": "2026-09-10T14:20:00Z",
-      "endsAt": "0001-01-01T00:00:00Z",
-      "generatorURL": "http://prometheus:9090",
-      "fingerprint": "test_evidence_fp_1001"
-    }]
-  }'
-```
-
----
 
 ## ✅ Verification
 
@@ -406,27 +470,84 @@ Cuplikan email laporan resmi pada Mailpit (`ID: 6KT7Md7Mes0ERuRsJYawxX`) membukt
 10-Sep-2026 07:20:20.511 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in [34] milliseconds
 ```
 
----
+## 👥 Operator Validation
 
-## 🖥️ Commands Executed
+Panduan validasi langsung bagi operator dan tim SRE:
+
+1. **Inspeksi Antarmuka Mailpit (`http://localhost:8025`):**
+   - Periksa bahwa email laporan insiden menyajikan rincian metrik Prometheus pada Seksi 3 dan cuplikan log server pada Seksi 4 tanpa label `not_configured` atau `not_found`.
+2. **Inspeksi Database SQLite Persisten:**
+   - Kueri `SELECT * FROM evidence_summaries WHERE result_id = <ID>;` pada volume `diagnostic_data` membuktikan bahwa snapshot bukti live tersimpan secara permanen.
+
+## 🖥️ Source-Control Handoff
+
+Setelah penutupan verifikasi teknis ini, berkas yang siap dicommit mencakup:
+- `tomcat-diagnostic-service/config/schemas/application-config-v1.schema.json`
+- `tomcat-diagnostic-service/src/application/config-loader.js`
+- `tomcat-diagnostic-service/src/adapters/prometheus-adapter.js`
+- `tomcat-diagnostic-service/src/application/application.js`
+- `tomcat-diagnostic-service/test/unit/collector-spool-adapter.test.js`
+- `tomcat-diagnostic-service/test/unit/config-loader.test.js`
+- `tomcat-diagnostic-service/VERSION`
+- `tomcat-jmx-exporter/scripts/run.sh`
+- `tomcat-monitoring/scripts/deploy-diagnostic-service.sh`
+- `devops-handbook/docs/projects/tomcat-monitoring/engineering-journal/monitoring-platform-integration/TN-008-integrate-live-prometheus-evidence-adapter-and-shared-persistent-logs.md`
+
+## 🧹 Cleanup Evidence
+
+1. Named Volume `tomcat_logs` dan `diagnostic_data` dipertahankan sebagai penyimpanan persisten resmi tanpa meninggalkan file sementara di `/tmp`.
+2. Image lama digantikan secara mulus oleh digest immutable `0.1.7`, tanpa menyisakan kontainer orphaned.
+
+## 🧭 Reproduction Boundary
+
+Pengujian empiris live dapat direproduksi secara mandiri dengan langkah-langkah berikut:
 
 ```bash
-# 1. Pembangunan Image Diagnostic Service v0.1.7
-./scripts/build.sh
+# 1. Jalankan unit test suite lengkap
+podman run --rm --userns=keep-id \
+  --volume /home/eddywiyatno/git/tomcat-diagnostic-service:/app:ro,Z \
+  --workdir /app localhost/nodejs:24.18.0 \
+  node --test test/unit/*.test.js test/integration/*.test.js
 
-# 2. Pengujian Image & Validasi Statis
-./scripts/test-image.sh
-./scripts/validate.sh
-
-# 3. Deployment Ulang Stack Monitoring
+# 2. Deploy ulang stack Tomcat dan Diagnostic Service v0.1.7
+cd /home/eddywiyatno/git/tomcat-monitoring
 ./scripts/deploy-tomcat.sh
 ./scripts/deploy-diagnostic-service.sh
 
-# 4. Verifikasi Ingest & Notifikasi Mailpit
-curl -s http://localhost:8025/api/v1/messages | jq '.messages[0].Subject'
+# 3. Kirim alert webhook firing ke Diagnostic Service
+curl -k -i \
+  -H "Authorization: Bearer test-token-12345" \
+  -H "Content-Type: application/json" \
+  -X POST https://127.0.0.1:8443/api/v1/alerts/alertmanager \
+  -d '{
+    "version": "4",
+    "groupKey": "test-evidence-group",
+    "status": "firing",
+    "receiver": "lab-diagnostic-service",
+    "groupLabels": {"alertname": "TomcatDown"},
+    "commonLabels": {
+      "alertname": "TomcatDown", "environment": "lab", "host": "tomcat-01",
+      "tomcat_instance": "default", "job": "tomcat-jmx-exporter",
+      "instance": "tomcat-jmx-exporter:9404", "service": "tomcat",
+      "check": "service-availability", "severity": "critical"
+    },
+    "commonAnnotations": {"summary": "Tomcat service is unreachable"},
+    "alerts": [{
+      "status": "firing",
+      "labels": {
+        "alertname": "TomcatDown", "environment": "lab", "host": "tomcat-01",
+        "tomcat_instance": "default", "job": "tomcat-jmx-exporter",
+        "instance": "tomcat-jmx-exporter:9404", "service": "tomcat",
+        "check": "service-availability", "severity": "critical"
+      },
+      "annotations": {"summary": "Tomcat service is unreachable"},
+      "startsAt": "2026-09-10T14:20:00Z",
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": "http://prometheus:9090",
+      "fingerprint": "test_evidence_fp_1001"
+    }]
+  }'
 ```
-
----
 
 ## 🧾 Outcome
 
@@ -437,16 +558,12 @@ curl -s http://localhost:8025/api/v1/messages | jq '.messages[0].Subject'
 3. **Observabilitas Forensik Menyeluruh:**
    Laporan SRE pada Mailpit kini menyajikan bukti telemetri kuantitatif dan cuplikan log kualitatif yang terkorelasi dalam format kanonikal 7-seksi.
 
----
-
 ## 🎓 Lessons Learned
 
 1. **Format Penamaan File Log JULI Tomcat:**
    Pada mode `catalina.sh run` di dalam kontainer, Tomcat menulis log server ke berkas rotasi harian `catalina.YYYY-MM-DD.log` alih-alih `catalina.out`. Penambahan mekanisme fallback cerdas berbasis tanggal observasi insiden (`observedAt.slice(0, 10)`) memastikan integritas pembacaan log tanpa memerlukan konfigurasi khusus pada container.
 2. **Ketahanan Kueri Multi-Metrik:**
    Penggunaan `Promise.all` dengan pembungkus `try ... catch` pada level adapter dan collector menjamin bahwa jika salah satu seri metrik belum terindeks oleh Prometheus, kueri metrik lainnya tetap berhasil dikumpulkan tanpa membatalkan pemrosesan insiden.
-
----
 
 ## ⏭️ Next Steps
 
@@ -456,8 +573,6 @@ curl -s http://localhost:8025/api/v1/messages | jq '.messages[0].Subject'
    Menyiapkan profil konfigurasi SMTP relay produksi yang mendukung otentikasi TLS terenkripsi dan manajemen secret `0400`.
 3. **TASK-TM-006: Endpoint Audit Log Konfirmasi Tindakan Operator (TM-ADR-0014):**
    Menyediakan API pencatatan umpan balik tindakan operasional manual SRE.
-
----
 
 ## 🔗 Related Documentation
 

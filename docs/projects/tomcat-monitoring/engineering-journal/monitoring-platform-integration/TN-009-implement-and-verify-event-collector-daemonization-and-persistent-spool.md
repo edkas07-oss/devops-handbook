@@ -365,9 +365,58 @@ systemctl --user status tomcat-diagnostic-event-collector.service --no-pager
 
 </div>
 
----
+## 🛠️ Troubleshooting
+
+| Gejala Masalah | Penyebab Utama | Solusi & Tindakan Perbaikan |
+| --- | --- | --- |
+| Service systemd gagal dijalankan (`ExecStart exit 127`) | Path script atau interpreter bash tidak absolut | Gunakan `/bin/bash %h/git/.../src/collector.sh` dengan specifier `%h` pada unit service systemd user. |
+| Daemon terhenti saat menerima sinyal restart systemd | Ketiadaan signal handler untuk `SIGTERM` pada script Bash | Pasang `trap 'echo "..."; exit 0' SIGTERM SIGINT` pada `main()` di `src/collector.sh`. |
+| Container Diagnostic Service gagal membaca file spool | Mode izin direktori induk tidak memungkinkan pembacaan oleh user namespace | Terapkan izin `0700` pada direktori spool `${HOME}/.local/share/tomcat-monitoring/spool` dan jalankan container dengan opsi `--userns=keep-id` (UID 1000). |
+
+## ⌨️ Commands Executed
+
+### Phase 1: Unit & Component Testing
+
+```bash
+# 1. Validasi repositori collector dan pengujian komponen
+cd /home/eddywiyatno/git/tomcat-diagnostic-event-collector
+./scripts/validate.sh
+./test/test-collector.sh
+```
+
+### Phase 2: Daemon Deployment & Service Configuration
+
+```bash
+# 2. Deployment otomasi daemon dan restart Diagnostic Service
+cd /home/eddywiyatno/git/tomcat-monitoring
+./scripts/validate.sh
+./scripts/deploy-event-collector.sh
+./scripts/deploy-diagnostic-service.sh
+```
+
+### Phase 3: Lifecycle Verification & Security Boundary Probing
+
+```bash
+# 3. Pengujian lifecycle container & streaming daemon
+podman stop tomcat-jmx-exporter
+podman start tomcat-jmx-exporter
+
+# 4. Verifikasi isolasi read-only pada Diagnostic Service
+podman exec diagnostic-service ls -la /run/tomcat-diagnostic/spool
+podman exec diagnostic-service touch /run/tomcat-diagnostic/spool/probe-test.tmp
+```
 
 ## 📁 Artifact Manifest
+
+### Table Guide
+
+Tabel di bawah mengelompokkan berkas berdasarkan peran teknis dan lapisannya:
+- **Berkas (*Path*)**: Lokasi berkas relatif terhadap root repositori.
+- **Layer / Kategori**: Lapisan arsitektural (Event Collector, Tooling & Scripts, Handbook).
+- **Status**: Status berkas (`Baru` = dibuat baru; `Modifikasi` = diperbarui).
+- **Tanggung Jawab Teknis**: Peran fungsional komponen dalam sistem pengumpulan bukti event.
+
+### Artifact Manifest Table
 
 | Komponen | Berkas (*Path*) | Tipe | Peran & Tanggung Jawab Teknis |
 | --- | --- | :---: | --- |
@@ -379,10 +428,9 @@ systemctl --user status tomcat-diagnostic-event-collector.service --no-pager
 | **Tomcat Monitoring** | [`scripts/deploy-diagnostic-service.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/deploy-diagnostic-service.sh) | Script | Pemasangan volume mount persistent spool `${HOME}/.local/share/tomcat-monitoring/spool:/run/tomcat-diagnostic/spool:ro,z`. |
 | **Tomcat Monitoring** | [`scripts/validate.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/validate.sh) | Script | Pendaftaran `scripts/deploy-event-collector.sh` ke dalam kontrak statis `REQUIRED_FILES`. |
 | **Tomcat Monitoring** | [`README.md`](file:///home/eddywiyatno/git/tomcat-monitoring/README.md) | Docs | Pembaruan tabel persistensi data dan deskripsi daemon Restricted Event Collector. |
+| **DevOps Handbook** | [`docs/projects/tomcat-monitoring/engineering-journal/monitoring-platform-integration/TN-009-implement-and-verify-event-collector-daemonization-and-persistent-spool.md`](TN-009-implement-and-verify-event-collector-daemonization-and-persistent-spool.md) | Docs | Dokumentasi Technical Note kanonikal 20 seksi. |
 
----
-
-## 🧪 Test Scenario Matrix
+## 🧪 Test-Scenario Matrix
 
 | ID | Skenario Pengujian | Komponen | Target Evaluasi | Status |
 | :---: | --- | :---: | --- | :---: |
@@ -395,41 +443,6 @@ systemctl --user status tomcat-diagnostic-event-collector.service --no-pager
 | **LT-02** | Live Container Lifecycle Streaming | Host Runtime | Event container `stop`/`start` otomatis memicu pembuatan file spool JSON | `Passed` ✅ |
 | **LT-03** | Spool Read-Only Security Boundary | `diagnostic-service` | Container dapat membaca spool namun menolak penulisan (`Read-only file system`) | `Passed` ✅ |
 | **LT-04** | End-to-End Spool Ingestion to SQLite | `devops-lab` | Rekaman bukti `source: "collector"` tersimpan di `evidence_summaries` | `Passed` ✅ |
-
----
-
-## 🧭 Reproduction Boundary
-
-Pengujian empiris live dapat direproduksi secara mandiri dengan langkah-langkah berikut:
-
-```bash
-# 1. Validasi statis dan test suite komponen collector
-cd /home/eddywiyatno/git/tomcat-diagnostic-event-collector
-./scripts/validate.sh
-./test/test-collector.sh
-
-# 2. Deploy Event Collector Daemon dan Diagnostic Service
-cd /home/eddywiyatno/git/tomcat-monitoring
-./scripts/deploy-event-collector.sh
-./scripts/deploy-diagnostic-service.sh
-
-# 3. Verifikasi status daemon di systemd user
-systemctl --user status tomcat-diagnostic-event-collector.service --no-pager
-
-# 4. Uji streaming event otomatis (stop & start container)
-podman stop tomcat-jmx-exporter
-sleep 3
-ls -la ~/.local/share/tomcat-monitoring/spool/
-podman start tomcat-jmx-exporter
-sleep 3
-ls -la ~/.local/share/tomcat-monitoring/spool/
-
-# 5. Uji batas keamanan read-only dari dalam container
-podman exec diagnostic-service ls -la /run/tomcat-diagnostic/spool
-podman exec diagnostic-service touch /run/tomcat-diagnostic/spool/probe-test.tmp # Wajib gagal: Read-only file system
-```
-
----
 
 ## ✅ Verification
 
@@ -558,17 +571,29 @@ CONFIRMED: Read-only filesystem boundary enforced.
 ]
 ```
 
----
+## 👥 Operator Validation
 
-## 🛠️ Troubleshooting
+Panduan validasi langsung bagi operator dan tim SRE:
 
-| Gejala Masalah | Penyebab Utama | Solusi & Tindakan Perbaikan |
-| --- | --- | --- |
-| Service systemd gagal dijalankan (`ExecStart exit 127`) | Path script atau interpreter bash tidak absolut | Gunakan `/bin/bash %h/git/.../src/collector.sh` dengan specifier `%h` pada unit service systemd user. |
-| Daemon terhenti saat menerima sinyal restart systemd | Ketiadaan signal handler untuk `SIGTERM` pada script Bash | Pasang `trap 'echo "..."; exit 0' SIGTERM SIGINT` pada `main()` di `src/collector.sh`. |
-| Container Diagnostic Service gagal membaca file spool | Mode izin direktori induk tidak memungkinkan pembacaan oleh user namespace | Terapkan izin `0700` pada direktori spool `${HOME}/.local/share/tomcat-monitoring/spool` dan jalankan container dengan opsi `--userns=keep-id` (UID 1000). |
+1. **Inspeksi Status Daemon:**
+   - Jalankan `systemctl --user status tomcat-diagnostic-event-collector.service` untuk memastikan daemon aktif.
+2. **Inspeksi Berkas Spool:**
+   - Periksa bahwa berkas spool dibuat dengan izin `0700` di `${HOME}/.local/share/tomcat-monitoring/spool/`.
+3. **Inspeksi Laporan Insiden:**
+   - Periksa bahwa email insiden di Mailpit (`http://localhost:8025`) memuat data status kontainer dan runtime OOM langsung dari daemon collector.
 
----
+## 🖥️ Source-Control Handoff
+
+Setelah penutupan verifikasi teknis ini, berkas yang siap dicommit mencakup:
+- `tomcat-diagnostic-event-collector/CONFIG`
+- `tomcat-diagnostic-event-collector/src/collector.sh`
+- `tomcat-diagnostic-event-collector/test/test-collector.sh`
+- `tomcat-diagnostic-event-collector/README.md`
+- `tomcat-monitoring/scripts/deploy-event-collector.sh`
+- `tomcat-monitoring/scripts/deploy-diagnostic-service.sh`
+- `tomcat-monitoring/scripts/validate.sh`
+- `tomcat-monitoring/README.md`
+- `devops-handbook/docs/projects/tomcat-monitoring/engineering-journal/monitoring-platform-integration/TN-009-implement-and-verify-event-collector-daemonization-and-persistent-spool.md`
 
 ## 🧹 Cleanup & Resource Integrity
 
@@ -579,32 +604,36 @@ CONFIRMED: Read-only filesystem boundary enforced.
 | Spool Directory (`~/.local/share/.../spool`) | Utuh & Terproteksi (0700) | `stat -c "%a" ~/.local/share/tomcat-monitoring/spool` $\rightarrow$ `700` |
 | Temporary Test Spool (`/tmp/test-spool-*`) | Dibersihkan Otomatis | Handler `trap ... EXIT` pada `test-collector.sh` membersihkan direktori uji |
 
----
+## 🧭 Reproduction Boundary
 
-## 🖥️ Commands Executed
+Pengujian empiris live dapat direproduksi secara mandiri dengan langkah-langkah berikut:
 
 ```bash
-# 1. Validasi repositori collector dan pengujian komponen
+# 1. Validasi statis dan test suite komponen collector
 cd /home/eddywiyatno/git/tomcat-diagnostic-event-collector
 ./scripts/validate.sh
 ./test/test-collector.sh
 
-# 2. Deployment otomasi daemon dan restart Diagnostic Service
+# 2. Deploy Event Collector Daemon dan Diagnostic Service
 cd /home/eddywiyatno/git/tomcat-monitoring
-./scripts/validate.sh
 ./scripts/deploy-event-collector.sh
 ./scripts/deploy-diagnostic-service.sh
 
-# 3. Pengujian lifecycle container & streaming daemon
+# 3. Verifikasi status daemon di systemd user
+systemctl --user status tomcat-diagnostic-event-collector.service --no-pager
+
+# 4. Uji streaming event otomatis (stop & start container)
 podman stop tomcat-jmx-exporter
+sleep 3
+ls -la ~/.local/share/tomcat-monitoring/spool/
 podman start tomcat-jmx-exporter
+sleep 3
+ls -la ~/.local/share/tomcat-monitoring/spool/
 
-# 4. Verifikasi isolasi read-only pada Diagnostic Service
+# 5. Uji batas keamanan read-only dari dalam container
 podman exec diagnostic-service ls -la /run/tomcat-diagnostic/spool
-podman exec diagnostic-service touch /run/tomcat-diagnostic/spool/probe-test.tmp
+podman exec diagnostic-service touch /run/tomcat-diagnostic/spool/probe-test.tmp # Wajib gagal: Read-only file system
 ```
-
----
 
 ## 🧾 Outcome
 
@@ -615,8 +644,6 @@ podman exec diagnostic-service touch /run/tomcat-diagnostic/spool/probe-test.tmp
 3. **Integritas Boundary Read-Only Terjaga:**
    Diagnostic Service membaca bukti spool secara *read-only* (`ro,z`) tanpa memiliki celah kontrol terhadap host maupun container runtime.
 
----
-
 ## 🎓 Lessons Learned
 
 1. **Efektivitas Event-Driven Daemon Berbasis Streaming CLI:**
@@ -626,8 +653,6 @@ podman exec diagnostic-service touch /run/tomcat-diagnostic/spool/probe-test.tmp
 3. **Pemisahan Tanggung Jawab Pengumpulan Bukti Host:**
    Memisahkan collector sebagai host-side daemon mandiri menjaga container Diagnostic Service tetap berada pada batas keamanan minimum (*least privilege*), tanpa perlu mount Podman socket atau privilege eskalasi.
 
----
-
 ## ⏭️ Next Steps
 
 1. **TASK-TM-015: Konfigurasi Enterprise SMTP Relay & Otentikasi Terenkripsi:**
@@ -636,8 +661,6 @@ podman exec diagnostic-service touch /run/tomcat-diagnostic/spool/probe-test.tmp
    Menyediakan antarmuka API pencatatan umpan balik tindakan operasional manual SRE.
 3. **TASK-TM-009: Penyediaan Dashboard Grafana Terpusat untuk Tomcat & Monitoring Stack:**
    Membangun template dashboard visualisasi Grafana yang memadukan metrik kesehatan runtime Tomcat, JVM, dan infrastruktur monitoring.
-
----
 
 ## 🔗 Related Documentation
 

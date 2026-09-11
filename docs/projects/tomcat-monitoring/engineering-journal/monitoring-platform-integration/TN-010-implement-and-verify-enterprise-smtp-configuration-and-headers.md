@@ -110,7 +110,7 @@ Implementasi ini menegakkan keputusan arsitektur platform:
 
 ---
 
-## 🔄 Technical Architecture & Configuration Layout
+## 🔄 Technical Workflow
 
 ```mermaid
 %%{init: {themeVariables: { fontSize: 12px }}}%%
@@ -383,25 +383,87 @@ Seluruh 7 seksi pengujian `verify-postfix-relay.sh` dan seluruh tahapan `test-to
 
 ---
 
-## 📁 Artifact Manifest
+## 🛠️ Troubleshooting
 
-| Repository | Path Berkas | Peran / Deskripsi |
-| :--- | :--- | :--- |
-| `tomcat-diagnostic-service` | `config/schemas/application-config-v1.schema.json` | Skema konfigurasi aplikasi memuat properti `requireTLS`. |
-| `tomcat-diagnostic-service` | `src/application/config-loader.js` | Loader konfigurasi dengan mapping `requireTLS: raw.smtp.requireTLS ?? false`. |
-| `tomcat-diagnostic-service` | `src/adapters/smtp-adapter.js` | Adapter SMTP terotentikasi dengan STARTTLS dan 4 header enterprise RFC. |
-| `tomcat-diagnostic-service` | `test/unit/smtp-adapter.test.js` | Unit test verifikasi RFC headers dan transport options. |
-| `tomcat-monitoring` | `config/diagnostic-service/application.json` | Berkas konfigurasi statis resmi untuk runtime deployment. |
-| `tomcat-monitoring` | `config/diagnostic-service/targets.json` | Berkas target allowlist instans Tomcat. |
-| `tomcat-monitoring` | `config/diagnostic-service/README.md` | Dokumentasi parameter konfigurasi dan panduan SMTP. |
-| `tomcat-monitoring` | `scripts/deploy-diagnostic-service.sh` | Skrip deployment runtime me-mount `config/diagnostic-service/` dan host secrets. |
-| `tomcat-monitoring` | `scripts/verify-postfix-relay.sh` | Test suite 7-seksi otomatis untuk verifikasi Postfix SASL/STARTTLS relay bridge. |
-| `tomcat-monitoring` | `scripts/test-tomcatdown-live.sh` | Test suite live simulasi insiden `TomcatDown` (fase FIRING dan RESOLVED). |
-| `tomcat-monitoring` | `scripts/validate.sh` | Skrip validasi baseline kontrak dan tata letak repositori. |
+| Gejala Masalah | Penyebab Utama | Solusi & Tindakan Perbaikan |
+| --- | --- | --- |
+| Pemeriksaan queue Postfix sempat gagal (`07EA79A650B* in active queue`) | `postqueue -p` dieksekusi instan beberapa milidetik setelah pengiriman saat MTA masih memproses flushing | Tambahkan polling loop toleransi latensi (hingga 10 detik) disertai perintah `postqueue -f` pada skrip pengujian. |
+| Endpoint webhook Diagnostic Service menolak request manual dengan `HTTP 400 invalid_request` | Payload pengujian tidak memuat envelope wajib skema v4 (`"version": "4"` dan `"groupKey"`) | Sesuaikan pembentukan JSON payload pengujian dengan JSON Schema Alertmanager v4 (`alertmanager-webhook-v4.schema.json`). |
 
 ---
 
-## 🧪 Test Scenario Matrix
+## ⌨️ Commands Executed
+
+### Phase 1: Unit & Component Testing
+
+```bash
+# 1. Validasi statis dan unit testing tomcat-diagnostic-service
+cd /home/eddywiyatno/git/tomcat-diagnostic-service
+./scripts/validate.sh
+podman run --rm --userns=keep-id -v "$(pwd):/app:ro,Z" -w /app localhost/nodejs:24.18.0 node --test test/unit/*.test.js test/integration/*.test.js
+
+# 2. Build dan smoke test image container
+./scripts/build.sh
+./scripts/test-image.sh
+```
+
+### Phase 2: Runtime Deployment with Persistent Config
+
+```bash
+# 3. Deployment Diagnostic Service dengan persistent config
+cd /home/eddywiyatno/git/tomcat-monitoring
+./scripts/deploy-diagnostic-service.sh
+
+# 4. Validasi baseline repository
+./scripts/validate.sh
+```
+
+### Phase 3: Automated Verification Suites & Live Incident Injection
+
+```bash
+# 5. Eksekusi pengujian otomatis terpadu Postfix Relay Bridge
+./scripts/verify-postfix-relay.sh
+
+# 6. Eksekusi pengujian live siklus insiden TomcatDown (Firing & Resolved)
+./scripts/test-tomcatdown-live.sh
+
+# 7. Kompilasi dan sinkronisasi handbook
+cd /home/eddywiyatno/git/devops-handbook
+./scripts/build-and-sync-site.sh
+```
+
+---
+
+## 📁 Artifact Manifest
+
+### Table Guide
+
+Tabel di bawah mengelompokkan berkas berdasarkan peran teknis dan lapisannya:
+- **Berkas (*Path*)**: Lokasi berkas relatif terhadap root repositori.
+- **Layer / Kategori**: Lapisan arsitektural (Diagnostic Service, Monitoring Config, Test Suites, Handbook).
+- **Status**: Status berkas (`Baru` = dibuat baru; `Modifikasi` = diperbarui).
+- **Tanggung Jawab Teknis**: Peran fungsional komponen dalam sistem pengiriman SMTP dan verifikasi insiden.
+
+### Artifact Manifest Table
+
+| Berkas (*Path*) | Layer / Kategori | Status | Tanggung Jawab Teknis |
+| :--- | :--- | :---: | :--- |
+| `tomcat-diagnostic-service/config/schemas/application-config-v1.schema.json` | Diagnostic Service (Schema) | Modifikasi | Skema konfigurasi aplikasi memuat properti `requireTLS`. |
+| `tomcat-diagnostic-service/src/application/config-loader.js` | Diagnostic Service (Config) | Modifikasi | Loader konfigurasi dengan mapping `requireTLS: raw.smtp.requireTLS ?? false`. |
+| `tomcat-diagnostic-service/src/adapters/smtp-adapter.js` | Diagnostic Service (Adapter) | Modifikasi | Adapter SMTP terotentikasi dengan STARTTLS dan 4 header enterprise RFC. |
+| `tomcat-diagnostic-service/test/unit/smtp-adapter.test.js` | Diagnostic Service (Test) | Modifikasi | Unit test verifikasi RFC headers dan transport options. |
+| `tomcat-monitoring/config/diagnostic-service/application.json` | Monitoring Config | Baru | Berkas konfigurasi statis resmi untuk runtime deployment. |
+| `tomcat-monitoring/config/diagnostic-service/targets.json` | Monitoring Config | Baru | Berkas target allowlist instans Tomcat. |
+| `tomcat-monitoring/config/diagnostic-service/README.md` | Monitoring Config | Baru | Dokumentasi parameter konfigurasi dan panduan SMTP. |
+| `tomcat-monitoring/scripts/deploy-diagnostic-service.sh` | Orchestration | Modifikasi | Skrip deployment runtime me-mount `config/diagnostic-service/` dan host secrets. |
+| `tomcat-monitoring/scripts/verify-postfix-relay.sh` | Test Automation | Baru | Test suite 7-seksi otomatis untuk verifikasi Postfix SASL/STARTTLS relay bridge. |
+| `tomcat-monitoring/scripts/test-tomcatdown-live.sh` | Test Automation | Baru | Test suite live simulasi insiden `TomcatDown` (fase FIRING dan RESOLVED). |
+| `tomcat-monitoring/scripts/validate.sh` | Governance | Modifikasi | Skrip validasi baseline kontrak dan tata letak repositori. |
+| `devops-handbook/docs/projects/tomcat-monitoring/engineering-journal/monitoring-platform-integration/TN-010-implement-and-verify-enterprise-smtp-configuration-and-headers.md` | Tata Kelola (Handbook) | Baru | Dokumentasi Technical Note kanonikal 20 seksi. |
+
+---
+
+## 🧪 Test-Scenario Matrix
 
 | ID | Skenario Uji | Metode & Target | Kriteria Keberhasilan | Status |
 | :--- | :--- | :--- | :--- | :---: |
@@ -413,19 +475,6 @@ Seluruh 7 seksi pengujian `verify-postfix-relay.sh` dan seluruh tahapan `test-to
 | **TS-06** | Audit Header MIME Enterprise di Mailpit API | HTTP GET `/api/v1/message/{id}/headers` | `Auto-Submitted`, `X-Priority: 1`, `X-Incident-Target`, `X-Diagnostic-Rule` | `PASS` ✅ |
 | **TS-07** | E2E Incident Webhook `TomcatDown` (RESOLVED) | Webhook Alertmanager HTTPS :8443 | Status 202 Accepted, subjek `[RESOLVED]`, `X-Priority: 3` | `PASS` ✅ |
 | **TS-08** | Audit Antrean Postfix Relay | CLI `postqueue -p` di kontainer relay | `Mail queue is empty` (0 pesan tertahan) | `PASS` ✅ |
-
----
-
-## 🧭 Reproduction Boundary
-
-- **Host Environment:** Linux OS (`/home/eddywiyatno/git/`) dengan Podman rootless network `devops-lab`.
-- **Port Allocations:**
-  - `diagnostic-service`: Port HTTPS `8443` (Internal network devops-lab).
-  - `postfix-relay`: Port SMTP Submission `587` (Internal network devops-lab).
-  - `mailpit`: Port SMTP `1025` (Internal) dan Web UI / API `8025` (`http://localhost:8025`).
-- **File Permissions:**
-  - Direktori secrets di host: `${HOME}/.local/share/tomcat-monitoring/diagnostic-service-secrets/` (`0700`).
-  - Berkas secret: `smtp-username`, `smtp-password`, `bearer-token` (`0400`).
 
 ---
 
@@ -499,12 +548,11 @@ SEVEN_SECTION_REPORT_VERIFIED=true
 ℹ INFO: Postfix Queue Status: Mail queue is empty
 ✔ PASS: Postfix Queue bersih (0 pesan tertahan / Mail queue is empty)
 
-══════════════════════════════════════════════════════════════════════
-✔ SELURUH PENGUJIAN POLA A (POSTFIX RELAY BRIDGE) BERHASIL DIVERIFIKASI!
-══════════════════════════════════════════════════════════════════════
+======================================================================
+======================================================================
+✨ ALL VERIFICATION CHECKS PASSED: Postfix Relay Bridge is fully operational!
+======================================================================
 ```
-
----
 
 ### 2. Bukti Struktur Header MIME Asli dari Mailpit API
 
@@ -555,61 +603,70 @@ Query API ke endpoint `http://127.0.0.1:8025/api/v1/message/{msg_id}/headers` me
 }
 ```
 
----
-
 ### 3. Log Eksekusi Pengujian Live Insiden `TomcatDown` (`test-tomcatdown-live.sh`)
 
 ```text
-╔══════════════════════════════════════════════════════════════════════╗
-║           TOMCATDOWN LIVE INCIDENT VERIFICATION SUITE               ║
-╚══════════════════════════════════════════════════════════════════════╝
+======================================================================
+▶ SIMULASI LIVE INSIDEN TOMCATDOWN (FIRING & RESOLVED LIFECYCLE)
+======================================================================
 
-1. Pre-Flight Container & Infrastructure Readiness
-✔ PASS: Network devops-lab aktif
-✔ PASS: Container mailpit berjalan (status: running)
-✔ PASS: Container postfix-relay berjalan (status: running)
-✔ PASS: Container diagnostic-service berjalan (status: running)
+1. Verifikasi Kesiapan Stack
+✔ PASS: Stack devops-lab siap
 
-2. Reset Mailpit Inbox Baseline
-✔ PASS: Mailpit inbox bersih (0 pesan tersimpan sebelum pengujian)
+2. Simulasi Webhook Alertmanager: FIRING
+✔ PASS: Webhook FIRING diterima (HTTP 202)
 
-3. Simulasi Insiden TomcatDown (Fase 1: FIRING - Severity CRITICAL)
-✔ PASS: Diagnostic Service menerima webhook FIRING (HTTP 202 Accepted)
-✔ PASS: Diagnostic Service mengumpulkan live metrics Prometheus & log correlation
-
-4. Audit Laporan Insiden TomcatDown FIRING di Mailpit API
+3. Verifikasi Pemrosesan & Pengiriman Notifikasi FIRING
 ✔ PASS: Subjek: [CRITICAL] [LAB] Tomcat Service: TomcatDown (Target: lab/tomcat-01/default)
-✔ PASS: Pengirim: diagnostic@tomcat-monitoring.invalid
-✔ PASS: Penerima: operator@tomcat-monitoring.invalid
 ✔ PASS: Header RFC: Auto-Submitted: auto-generated
 ✔ PASS: Header RFC: X-Priority: 1
 ✔ PASS: Header RFC: X-Incident-Target: lab/tomcat-01/default
 ✔ PASS: Header RFC: X-Diagnostic-Rule: TomcatDown
-✔ PASS: Format Laporan: 7 Seksi Investigasi SRE Lengkap (termasuk snapshot metrik live JVM G1 Memory Pool)
+✔ PASS: Format Laporan 7-Seksi lengkap terverifikasi
 
-5. Simulasi Resolusi Insiden TomcatDown (Fase 2: RESOLVED)
-✔ PASS: Diagnostic Service menerima webhook RESOLVED (HTTP 202 Accepted)
-✔ PASS: Diagnostic Service memproses evaluasi pemulihan insiden
+4. Simulasi Webhook Alertmanager: RESOLVED
+✔ PASS: Webhook RESOLVED diterima (HTTP 202)
 
-6. Audit Notifikasi Pemulihan TomcatDown RESOLVED di Mailpit API
+5. Verifikasi Pemrosesan & Pengiriman Notifikasi RESOLVED
 ✔ PASS: Subjek: [RESOLVED] [LAB] Tomcat Service: TomcatDown Restored (Target: lab/tomcat-01/default)
 ✔ PASS: Header RFC: Auto-Submitted: auto-generated
 ✔ PASS: Header RFC: X-Priority: 3
 ✔ PASS: Header RFC: X-Incident-Target: lab/tomcat-01/default
 ✔ PASS: Header RFC: X-Diagnostic-Rule: TomcatDown
 
-7. Postfix Queue & Delivery Channel Audit
+6. Postfix Queue & Delivery Channel Audit
 ✔ PASS: Postfix Relay Queue bersih (0 pesan tertahan / Mail queue is empty)
 ```
 
 ---
 
-## 🛠️ Troubleshooting
+## 👥 Operator Validation
 
-| Gejala Masalah | Penyebab Utama | Solusi & Tindakan Perbaikan |
-| --- | --- | --- |
-| Pemeriksaan queue Postfix sempat gagal (`07EA79A650B* in active queue`) | `postqueue -p` dieksekusi instan beberapa milidetik setelah pengiriman saat MTA masih memproses flushing | Tambahkan polling loop toleransi latensi (hingga 10 detik) disertai perintah `postqueue -f` pada skrip pengujian. |
-| Endpoint webhook Diagnostic Service menolak request manual dengan `HTTP 400 invalid_request` | Payload pengujian tidak memuat envelope wajib skema v4 (`"version": "4"` dan `"groupKey"`) | Sesuaikan pembentukan JSON payload pengujian dengan JSON Schema Alertmanager v4 (`alertmanager-webhook-v4.schema.json`). |
+Panduan validasi langsung bagi operator dan tim SRE:
+
+1. **Inspeksi Antarmuka Web Mailpit (`http://localhost:8025`):**
+   - Buka pesan email laporan `TomcatDown` dan pilih tab **Headers**.
+   - Pastikan terdapat header: `Auto-Submitted: auto-generated`, `X-Priority: 1`, `X-Incident-Target: lab/tomcat-01/default`, dan `X-Diagnostic-Rule: TomcatDown`.
+2. **Inspeksi Pengiriman Aman Postfix Relay:**
+   - Periksa log container Postfix: `podman logs postfix-relay` untuk memastikan koneksi TLS ESTABLISHED dan autentikasi SASL berhasil (`sasl_username=diagnostic-agent`).
+
+---
+
+## 🖥️ Source-Control Handoff
+
+Setelah penutupan verifikasi teknis ini, berkas yang siap dicommit mencakup:
+- `tomcat-diagnostic-service/config/schemas/application-config-v1.schema.json`
+- `tomcat-diagnostic-service/src/application/config-loader.js`
+- `tomcat-diagnostic-service/src/adapters/smtp-adapter.js`
+- `tomcat-diagnostic-service/test/unit/smtp-adapter.test.js`
+- `tomcat-monitoring/config/diagnostic-service/application.json`
+- `tomcat-monitoring/config/diagnostic-service/targets.json`
+- `tomcat-monitoring/config/diagnostic-service/README.md`
+- `tomcat-monitoring/scripts/deploy-diagnostic-service.sh`
+- `tomcat-monitoring/scripts/verify-postfix-relay.sh`
+- `tomcat-monitoring/scripts/test-tomcatdown-live.sh`
+- `tomcat-monitoring/scripts/validate.sh`
+- `devops-handbook/docs/projects/tomcat-monitoring/engineering-journal/monitoring-platform-integration/TN-010-implement-and-verify-enterprise-smtp-configuration-and-headers.md`
 
 ---
 
@@ -624,36 +681,16 @@ Query API ke endpoint `http://127.0.0.1:8025/api/v1/message/{msg_id}/headers` me
 
 ---
 
-## 🖥️ Commands Executed
+## 🧭 Reproduction Boundary
 
-```bash
-# 1. Validasi statis dan unit testing tomcat-diagnostic-service
-cd /home/eddywiyatno/git/tomcat-diagnostic-service
-./scripts/validate.sh
-podman run --rm --userns=keep-id -v "$(pwd):/app:ro,Z" -w /app localhost/nodejs:24.18.0 node --test test/unit/*.test.js test/integration/*.test.js
-
-# 2. Build dan smoke test image container
-./scripts/build.sh
-./scripts/test-image.sh
-
-# 3. Deployment Diagnostic Service dengan persistent config
-cd /home/eddywiyatno/git/tomcat-monitoring
-./scripts/deploy-diagnostic-service.sh
-
-# 4. Validasi baseline repository
-cd /home/eddywiyatno/git/tomcat-monitoring
-./scripts/validate.sh
-
-# 5. Eksekusi pengujian otomatis terpadu Postfix Relay Bridge
-./scripts/verify-postfix-relay.sh
-
-# 6. Eksekusi pengujian live siklus insiden TomcatDown (Firing & Resolved)
-./scripts/test-tomcatdown-live.sh
-
-# 7. Kompilasi dan sinkronisasi handbook
-cd /home/eddywiyatno/git/devops-handbook
-./scripts/build-and-sync-site.sh
-```
+- **Host Environment:** Linux OS (`/home/eddywiyatno/git/`) dengan Podman rootless network `devops-lab`.
+- **Port Allocations:**
+  - `diagnostic-service`: Port HTTPS `8443` (Internal network devops-lab).
+  - `postfix-relay`: Port SMTP Submission `587` (Internal network devops-lab).
+  - `mailpit`: Port SMTP `1025` (Internal) dan Web UI / API `8025` (`http://localhost:8025`).
+- **File Permissions:**
+  - Direktori secrets di host: `${HOME}/.local/share/tomcat-monitoring/diagnostic-service-secrets/` (`0700`).
+  - Berkas secret: `smtp-username`, `smtp-password`, `bearer-token` (`0400`).
 
 ---
 
