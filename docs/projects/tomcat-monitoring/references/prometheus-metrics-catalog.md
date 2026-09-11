@@ -227,9 +227,126 @@ Prometheus menggunakan engine penyimpanan **Time Series Database (TSDB)** yang d
 
 ---
 
+## 🛠️ Panduan Operasional SRE: Prosedur Konfigurasi & Retensi (How-To SOP)
+
+Bagian ini merupakan Standard Operating Procedure (SOP) bagi tim SRE untuk memodifikasi parameter runtime Prometheus, menyesuaikan kapasitas retensi, menambah aturan alert, dan memverifikasi kesehatan engine TSDB.
+
+### 1. Prosedur Mengubah Kebijakan Retensi Data (Time & Size Based)
+
+Jika host memiliki keterbatasan kapasitas disk (misal ingin diperkecil ke `7d`) atau kebijakan audit mensyaratkan retensi historis lebih panjang (misal `30d`):
+
+- **Variabel Waktu (`PROMETHEUS_RETENTION_TIME`):** Menentukan lama penyimpanan (contoh: `7d`, `15d`, `30d`, `60d`).
+- **Variabel Ukuran Disk (`PROMETHEUS_RETENTION_SIZE`):** Membatasi kuota maksimum volume TSDB di disk (contoh: `5GB`, `10GB`).
+
+```bash
+# Skenario A: Mengubah retensi menjadi 30 hari
+PROMETHEUS_RETENTION_TIME="30d" ./scripts/deploy-prometheus.sh
+
+# Skenario B: Mengubah retensi menjadi 7 hari dengan batas kapasitas 5 GB
+PROMETHEUS_RETENTION_TIME="7d" PROMETHEUS_RETENTION_SIZE="5GB" ./scripts/deploy-prometheus.sh
+```
+
+> [!NOTE]
+> **Preservasi Data Volume:**
+> Skrip `deploy-prometheus.sh` menggunakan Named Volume Podman `prometheus_data`. Menjalankan skrip ini **TIDAK akan menghapus atau memformat ulang** data historis yang sudah tersimpan sebelumnya. Data yang masih berada dalam rentang retensi baru akan tetap terjaga secara utuh.
+
+---
+
+### 2. Prosedur Mengubah Scrape Interval & Timeout
+
+Untuk mempercepat resolusi deteksi anomali atau menghemat bandwidth jaringan scrape:
+
+1. Buka dan sesuaikan berkas konfigurasi [`config/prometheus/prometheus.yml`](file:///home/eddywiyatno/git/tomcat-monitoring/config/prometheus/prometheus.yml):
+   ```yaml
+   global:
+     scrape_interval: 30s    # Default global interval (dapat diubah ke 15s)
+     scrape_timeout: 10s     # Default global timeout
+   
+   scrape_configs:
+     - job_name: "tomcat-jmx-exporter"
+       scrape_interval: 15s  # Khusus job JMX Exporter
+   ```
+2. Validasi sintaks konfigurasi menggunakan promtool:
+   ```bash
+   promtool check config config/prometheus/prometheus.yml
+   ```
+3. Terapkan perubahan tanpa restart container (*Zero Downtime*) dengan langkah Hot-Reload di bawah.
+
+---
+
+### 3. Prosedur Menambah atau Mengubah Alert Rules
+
+Jika tim SRE ingin menyesuaikan ambang batas (*threshold*) alert atau menambahkan aturan deteksi baru:
+
+1. Modifikasi atau tambahkan aturan pada direktori `config/prometheus/rules/` (misalnya [`jvm-workload-performance.yml`](file:///home/eddywiyatno/git/tomcat-monitoring/config/prometheus/rules/jvm-workload-performance.yml)).
+2. Jalankan unit test promtool untuk memverifikasi logika transisi firing/resolved:
+   ```bash
+   promtool test rules config/prometheus/tests/*.test.yml
+   ```
+3. Jalankan validator statis repositori:
+   ```bash
+   ./scripts/validate-prometheus.sh
+   ```
+4. Terapkan perubahan ke runtime via Hot-Reload.
+
+---
+
+### 4. Prosedur Menerapkan Perubahan (Hot-Reload vs Redeployment)
+
+#### A. Metode Hot-Reload (Rekomendasi Utama — Zero Downtime)
+Gunakan metode ini ketika hanya memperbarui `prometheus.yml` atau berkas rule di `rules/*.yml`:
+
+```bash
+# 1. Sinkronkan berkas konfigurasi ke Named Volume Prometheus
+./scripts/initialize-prometheus-volumes.sh ~/.local/share/tomcat-monitoring/jmx-exporter-tls/server.crt
+
+# 2. Trigger reload via endpoint HTTP lifecycle Prometheus
+curl -X POST http://127.0.0.1:9090/-/reload
+```
+
+*Verifikasi log runtime:*
+```bash
+podman logs --tail 20 prometheus | grep "Completed loading of configuration file"
+```
+
+#### B. Metode Redeployment (Jika Mengubah Retensi atau Opsi Container)
+Gunakan metode ini jika mengubah variabel retensi (`PROMETHEUS_RETENTION_TIME`/`PROMETHEUS_RETENTION_SIZE`) atau port binding:
+
+```bash
+./scripts/deploy-prometheus.sh
+```
+
+---
+
+### 5. Prosedur Inspeksi Kapasitas & TSDB Health Check
+
+Untuk memastikan engine TSDB berjalan optimal dan tidak mengalami kebocoran kapasitas:
+
+1. **Pemeriksaan via Prometheus Web UI:**
+   Buka browser ke `http://<host>:9090/status` lalu pilih tab **TSDB Status**. Halaman ini menyajikan metrik kardinalitas label tertinggi dan rincian chunk block aktif.
+2. **Kueri PromQL Diagnostik TSDB:**
+   ```promql
+   # Laju penambahan sampel per detik ke Head Block
+   rate(prometheus_tsdb_head_samples_appended_total[5m])
+   
+   # Total ukuran penyimpanan blok TSDB di disk (Bytes)
+   prometheus_tsdb_storage_blocks_bytes
+   
+   # Jumlah tombstone / rekam jejak penghapusan data kadaluwarsa
+   prometheus_tsdb_tombstones_applied_total
+   ```
+3. **Pemeriksaan Ukuran Disk Mountpoint di Host:**
+   ```bash
+   mountpoint=$(podman volume inspect prometheus_data --format '{{.Mountpoint}}')
+   du -sh "${mountpoint}"
+   ```
+
+---
+
 ## 🔗 Related Documentation
 
 - [Diagnostic Service REST API Reference](diagnostic-service-rest-api-reference.md)
-- [Application Health Alert Rules Contract](../../diagnostic-mvp/requirements-traceability.md)
+- [Application Health Alert Rules Contract](../diagnostic-mvp/requirements-traceability.md)
 - [Tomcat Monitoring Architecture Decision Records](../../../adr/tomcat-monitoring/index.md)
 - [Runbook: AI Knowledge Enrichment & Declarative Rule Management](../operations/ai-knowledge-enrichment-and-rule-management-runbook.md)
+
