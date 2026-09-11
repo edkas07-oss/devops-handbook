@@ -289,6 +289,8 @@ podman run --rm -v /home/eddywiyatno/git/tomcat-diagnostic-service:/app:ro,z -w 
 | [`tomcat-diagnostic-event-collector/scripts/validate.sh`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector/scripts/validate.sh) | Source | Event Collector | Validator integritas metadata, schema JSON, sintaks shell, dan tipe variabel konfigurasi. |
 | [`tomcat-diagnostic-event-collector/test/test-collector.sh`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector/test/test-collector.sh) | Source | Event Collector | Test suite komponen: validasi skema, izin file `0600`/`0700`, retensi 24h, dan kuota FIFO cap. |
 | [`tomcat-diagnostic-event-collector/README.md`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector/README.md) | Docs | Event Collector | Dokumentasi arsitektur, siklus hidup spool, dan panduan manajemen `systemd --user`. |
+| [`tomcat-monitoring/config/README.md`](file:///home/eddywiyatno/git/tomcat-monitoring/config/README.md) | Docs | Orchestrator | Matriks ambang batas platform monitoring terpusat (*Platform-Wide Threshold Matrix*). |
+| [`tomcat-monitoring/config/event-collector/README.md`](file:///home/eddywiyatno/git/tomcat-monitoring/config/event-collector/README.md) | Docs | Orchestrator | Panduan konfigurasi event collector dan kontrak retensi spool dari sudut pandang orkestrator. |
 | [`tomcat-monitoring/README.md`](file:///home/eddywiyatno/git/tomcat-monitoring/README.md) | Docs | Orchestrator | Panduan operasional SRE untuk manajemen daemon event collector dan volume log Tomcat. |
 | [`devops-handbook/docs/projects/tomcat-monitoring/follow-up-tasks.md`](file:///home/eddywiyatno/git/devops-handbook/docs/projects/tomcat-monitoring/follow-up-tasks.md) | Docs | Handbook | Pembaruan status backlog `TASK-TM-010` menjadi `Completed` ✅. |
 | [`devops-handbook/docs/projects/tomcat-monitoring/engineering-journal/monitoring-platform-integration/TN-011-implement-and-verify-spool-lifecycle-and-log-retention.md`](TN-011-implement-and-verify-spool-lifecycle-and-log-retention.md) | Docs | Handbook | Technical Note kanonikal 20-seksi implementasi dan bukti verifikasi live. |
@@ -297,14 +299,14 @@ podman run --rm -v /home/eddywiyatno/git/tomcat-diagnostic-service:/app:ro,z -w 
 
 ```mermaid
 flowchart TD
-    CONFIG["<b>CONFIG</b><br/>(Retention & Cap Params SSOT)"] --> CONFIG_DOC["<b>config/README.md</b><br/>(Spec & Tuning SOP)"]
+    CONFIG["<b>collector/CONFIG</b><br/>(Retention & Cap Params SSOT)"] --> CONFIG_DOC["<b>collector/config/README.md</b><br/>(Spec & Tuning SOP)"]
     CONFIG --> COLLECTOR["<b>src/collector.sh</b><br/>(Pruning Engine & Atomic Writer)"]
-    CONFIG --> VALIDATE["<b>scripts/validate.sh</b><br/>(Static Validator)"]
+    CONFIG --> DEPLOY["<b>monitoring/deploy-event-collector.sh</b><br/>(Systemd Unit Generator)"]
+    CONFIG_ORCH["<b>monitoring/config/README.md</b><br/>(Platform Threshold Matrix)"] --> CONFIG_EV["<b>monitoring/config/event-collector/README.md</b>"]
     COLLECTOR --> TEST["<b>test/test-collector.sh</b><br/>(Pruning & Cap Suite)"]
+    DEPLOY --> UNIT["<b>systemd --user</b><br/>(Active Daemon Environment)"]
     COLLECTOR --> SPOOL[("<b>Host Spool Directory</b><br/>~/.local/share/.../spool (0700)")]
     SPOOL --> DS["<b>Diagnostic Service</b><br/>(Bounded CollectorSpoolAdapter)"]
-    README_COL["<b>collector/README.md</b>"] --> SRE["<b>SRE Operations</b>"]
-    README_MON["<b>monitoring/README.md</b>"] --> SRE
 ```
 
 ---
