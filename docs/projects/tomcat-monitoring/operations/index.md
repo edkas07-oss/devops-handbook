@@ -124,4 +124,5 @@ until persistent diagnostic deployment is explicitly approved and verified.
 Untuk prosedur operasional pengelolaan basis pengetahuan diagnosis (*declarative rulepacks*), impor/ekspor katalog master, dan alur pengayaan berbasis AI secara proaktif maupun reaktif, silakan merujuk ke:
 
 * [Runbook: AI Knowledge Enrichment & Declarative Rule Management](ai-knowledge-enrichment-and-rule-management-runbook.md)
+* [Tomcat Diagnostic Service REST API Reference](../references/diagnostic-service-rest-api-reference.md)
 
