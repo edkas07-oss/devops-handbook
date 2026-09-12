@@ -188,19 +188,19 @@ Pemeriksaan seluruh test runner pada ketiga repositori mengonfirmasi eksekusi no
 
 ```mermaid
 flowchart TD
-    subgraph Repositories["Platform Repositories Under Audit"]
-        DS["tomcat-diagnostic-service<br/>(Backend Analytics)"]
-        EC["tomcat-diagnostic-event-collector<br/>(Host Daemon)"]
-        TM["tomcat-monitoring<br/>(Stack Orchestrator)"]
+    subgraph Repositories["Repositori Platform"]
+        DS["Diagnostic Service<br/>(Backend Analytics)"]
+        EC["Event Collector<br/>(Host Daemon)"]
+        TM["Tomcat Monitoring<br/>(Stack Orchestrator)"]
     end
 
-    subgraph AuditResults["Audit Results Across 6 Pillars"]
-        P1["1. Path-Agnostic<br/>🔴 TM Gap | 🟡 EC Gap | 🟢 DS Pass"]
-        P2["2. Registry Portability<br/>🟡 DS Gap | 🟡 TM Gap | ⚪ EC N/A"]
-        P3["3. Zero Secret Leakage<br/>🟢 DS Pass | 🟢 EC Pass | 🟡 TM Gap"]
-        P4["4. Headless Test Runner<br/>🟢 DS Pass | 🟢 EC Pass | 🟢 TM Pass"]
-        P5["5. Rollback Resilience<br/>🟡 TM Gap | ⚪ DS/EC N/A"]
-        P6["6. Security & Tooling<br/>🟢 DS Pass | 🟢 EC Pass | 🟢 TM Pass"]
+    subgraph AuditResults["Hasil Evaluasi 6 Pilar"]
+        P1["1. Path-Agnostic<br/>🔴 TM | 🟡 EC | 🟢 DS"]
+        P2["2. Registry Portability<br/>🟡 DS | 🟡 TM | ⚪ EC"]
+        P3["3. Zero Secret Leakage<br/>🟢 DS | 🟢 EC | 🟡 TM"]
+        P4["4. Headless Test Runner<br/>🟢 DS | 🟢 EC | 🟢 TM"]
+        P5["5. Rollback Resilience<br/>🟡 TM | ⚪ DS/EC"]
+        P6["6. Security & Tooling<br/>🟢 DS | 🟢 EC | 🟢 TM"]
     end
 
     DS --> AuditResults
