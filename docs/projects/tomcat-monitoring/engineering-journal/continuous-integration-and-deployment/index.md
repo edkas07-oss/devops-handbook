@@ -35,6 +35,7 @@ Membangun ekosistem otomasi CI/CD terintegrasi yang andal, aman, dan siap pakai 
 | **Repository Standardization** | Standarisasi skrip operasional, parameterisasi build OCI, eliminasi hardcoded path, dan automated rollback recovery trap pada 3 repositori (TASK-TM-020) | Completed (TN-003) |
 | **Diagnostic Service CI Pipeline** | Implementasi declarative Jenkinsfile 7 tahapan quality gates, rootless Podman build, 62 unit/schema tests, dan ephemeral smoke test (TASK-TM-021) | Completed (TN-004) |
 | **Event Collector CI Pipeline** | Implementasi declarative Jenkinsfile 4 tahapan quality gates, verifikasi rootless agent, governance validator, dan spool pruning test (TASK-TM-022) | Completed (TN-005) |
+| **Monitoring Stack CD Hub Pipeline** | Implementasi declarative Jenkinsfile 4 tahapan orkestrasi stack, zero-touch deployment multi-kontainer, dan live verification suite (TASK-TM-023) | Completed (TN-006) |
 
 ---
 
@@ -59,6 +60,10 @@ Membangun ekosistem otomasi CI/CD terintegrasi yang andal, aman, dan siap pakai 
 5. **[TN-005 — Implement Production-Ready CI Pipeline for Tomcat Diagnostic Event Collector](TN-005-implement-production-ready-ci-pipeline-for-event-collector.md)**
 
     Mendokumentasikan implementasi berkas deklaratif `Jenkinsfile` pada repositori `tomcat-diagnostic-event-collector` berbasis 4 tahapan quality gates (checkout, agent verification, static lint & ShellCheck governance, dan spool lifecycle & pruning tests) di atas runtime Rootless Podman DooD.
+
+6. **[TN-006 — Implement Stack Orchestration CD Pipeline for Tomcat Monitoring](TN-006-implement-stack-orchestration-cd-pipeline-for-tomcat-monitoring.md)**
+
+    Mendokumentasikan implementasi berkas deklaratif `Jenkinsfile` pada repositori `tomcat-monitoring` berbasis 4 tahapan orkestrasi stack (checkout & platform validation, verify agent & network isolation, zero-touch deployment multi-kontainer, dan live verification suite & incident simulation) di atas runtime Rootless Podman DooD.
 
 ---
 
