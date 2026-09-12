@@ -17,68 +17,103 @@
 
 ## 🎯 Objective
 
-Menetapkan arsitektur resmi dan spesifikasi alur kerja **Continuous Integration and Continuous Deployment (CI/CD) Pipeline berbasis Jenkins** untuk seluruh ekosistem Tomcat Monitoring, serta menyusun peta jalan implementasi (*implementation roadmap*) bertahap (TN-002 s.d. TN-005) berstandar kesiapan produksi enterprise (*production-ready*).
+Menuntaskan backlog **`TASK-TM-019` (Perancangan Arsitektur Jenkins CI/CD Pipeline & Implementation Roadmap)** dengan merumuskan arsitektur resmi *Continuous Integration and Continuous Deployment* (CI/CD) berbasis Jenkins Pipeline as Code untuk seluruh ekosistem Tomcat Monitoring (`tomcat-diagnostic-service`, `tomcat-diagnostic-event-collector`, dan `tomcat-monitoring`), menetapkan standar kesiapan produksi enterprise (*production-ready*), serta menyusun peta jalan implementasi (*implementation roadmap*) bertahap yang siap diterapkan (*plug-and-play*) di lingkungan kerja/kantor.
+
+**Target Utama & Kriteria Keberhasilan:**
+
+1. **Perancangan Arsitektur Decoupled Component CI + Orchestrated Stack CD Hub:**
+   - Menetapkan batas tanggung jawab (*boundary of responsibility*) pemisahan antara Component CI pada repositori mikrokomponen dan Stack CD Hub pada repositori orkestrator platform.
+   - Menjamin siklus umpan balik cepat (*fast feedback loop*) untuk pengujian kode komponen dan orkestrasi deployment terpadu untuk pengujian integrasi multi-kontainer.
+2. **Pembakuan 6 Pilar Kesiapan Produksi Enterprise (*Production-Ready Baseline*):**
+   - Menetapkan prinsip arsitektur yang mencakup: portabilitas registry (*parameterized & registry-agnostic*), tata kelola rahasia (*zero secret leakage*), isolasi keamanan non-root (*Rootless Podman via DooD*), gerbang kualitas bertingkat (*multi-stage quality gates*), deployment atomik & rollback otomatis, serta kemandirian dokumentasi operasional SRE.
+   - Memastikan seluruh kode dan pipeline dapat langsung digunakan (*plug-and-play*) di lingkungan perusahaan tanpa memerlukan refaktor arsitektur atau keterikatan path statis.
+3. **Spesifikasi Gerbang Kualitas & Kontrak Tahapan (*Quality Gates & Stage Contracts*):**
+   - Merumuskan kontrak tahapan pipeline secara rinci untuk masing-masing repositori, mencakup verifikasi statis, pengujian unit Node.js (62 tests), pembangunan OCI image, pengujian asap kontainer temporer (*ephemeral smoke test*), hingga simulasi insiden *live* pasca-deploy.
+   - Menetapkan kriteria kelulusan (*exit criteria*) dan penanganan kegagalan (*fail-fast & rollback*) pada setiap tahapan pipeline.
+4. **Perancangan Tata Kelola Eksekusi DooD & Injeksi Kredensial Terisolasi:**
+   - Menetapkan pola eksekusi job Jenkins Agent (`builder-01`) menggunakan Docker-out-of-Docker berbasis Rootless Podman via Unix socket tanpa membutuhkan eskalasi hak akses `sudo`.
+   - Menetapkan mekanisme injeksi kredensial dinamis via Jenkins Credentials Store (`withCredentials`) guna menjamin kepatuhan *Zero `/tmp` Policy*.
+5. **Penyusunan Peta Jalan Implementasi Bertahap (*Implementation Roadmap TN-002 s.d. TN-005*):**
+   - Menyusun urutan implementasi teknis yang terukur: TN-002 (CI Diagnostic Service), TN-003 (CI Event Collector), TN-004 (CD Stack Orchestrator), dan TN-005 (End-to-End Live Verification & SRE Runbook).
+   - Menetapkan deliverable teknis yang jelas untuk setiap Technical Note.
 
 ---
 
 ## 🌍 Background
 
-Pekerjaan rekayasa platform monitoring Tomcat telah menyelesaikan fase fondasi observabilitas runtime, persistensi database SQLite lokal, pemantauan mandiri (*self-monitoring*), penegakan siklus hidup direktori spool host ([TN-011](../monitoring-platform-integration/TN-011-implement-and-verify-spool-lifecycle-and-log-retention.md)), dan pembuktian pengiriman laporan investigasi 7-seksi SRE melalui *Enterprise SMTP Relay* terotentikasi dan terenkripsi STARTTLS ([TN-010](../monitoring-platform-integration/TN-010-implement-and-verify-enterprise-smtp-configuration-and-headers.md)).
+Pekerjaan rekayasa platform Tomcat Monitoring telah menyelesaikan fase fondasi observabilitas runtime, persistensi database SQLite lokal, pemantauan mandiri (*self-monitoring*), penegakan siklus hidup direktori spool host ([TN-011](../monitoring-platform-integration/TN-011-implement-and-verify-spool-lifecycle-and-log-retention.md)), dan pembuktian pengiriman laporan investigasi 7-seksi SRE melalui *Enterprise SMTP Relay* terotentikasi dan terenkripsi STARTTLS ([TN-010](../monitoring-platform-integration/TN-010-implement-and-verify-enterprise-smtp-configuration-and-headers.md)).
 
-Meskipun keandalan fungsional telah terbukti di runtime, proses pengujian kode, pembangunan kontainer, dan deployment stack multi-kontainer saat ini masih dijalankan secara manual menggunakan skrip ad-hoc. Untuk mengoperasikan platform ini pada skala produksi enterprise, diperlukan sistem otomasi pengiriman perangkat lunak (*software delivery automation*) terstandarisasi berbasis Jenkins Pipeline as Code.
+Meskipun keandalan fungsional telah terbukti di runtime, proses pengujian kode, pembangunan kontainer, dan deployment stack multi-kontainer saat ini masih dijalankan secara manual menggunakan skrip ad-hoc pada terminal pengembang. Untuk mengoperasikan platform ini pada skala produksi enterprise dan memastikan implementasi di kantor dapat langsung digunakan secara *plug-and-play*, evaluasi operasional mengidentifikasi sejumlah celah kesiapan produksi (*production readiness gaps*):
 
-Otomasi ini dirancang agar memenuhi kepatuhan standar industri:
-1. Menghindari keterikatan terhadap jalur direktori statis pada host (*path-agnostic*).
-2. Menghilangkan penyimpanan rahasia (*credentials*) dalam repositori Git atau berkas konfigurasi teks datar (*zero secret leakage*).
-3. Memastikan setiap perubahan kode diverifikasi melalui gerbang kualitas (*quality gates*) bertingkat secara otomatis sebelum dideploy ke runtime aktif.
+1. **Ketiadaan Otomasi CI/CD Terstandarisasi (*Manual Delivery Overhead*):**
+   Pengujian unit, validasi skema JSON, pembangunan image kontainer, dan peluncuran layanan masih dijalankan secara manual. Pendekatan ini meningkatkan risiko kelalaian manusia (*human error*), memperlambat siklus rilis, dan tidak menjamin reproduksibilitas artefak rilis.
+2. **Keterikatan Jalur Direktori dan Registry Statis (*Path & Registry Hardcoding*):**
+   Skrip build lokal sebelumnya mengasumsikan eksekusi pada direktori pengguna tertentu dan memprogram tag image ke `localhost/...`. Di lingkungan kantor/enterprise, pipeline harus mampu mendorong image ke *Enterprise Container Registry* internal (seperti Harbor, Nexus, atau JFrog Artifactory) melalui parameterisasi yang fleksibel.
+3. **Kepatuhan Keamanan & Tata Kelola Rahasia (*Zero Secret Leakage & Non-Root Execution*):**
+   Standar keamanan enterprise melarang penyimpanan kata sandi (seperti SMTP SASL password) atau token dalam repositori Git maupun berkas teks statis. Kredensial harus diinjeksi secara dinamis saat runtime melalui Jenkins Credentials Store. Selain itu, proses build wajib berjalan di bawah akun non-root (Rootless Podman) untuk mencegah eskalasi privilese ke host OS.
+4. **Kebutuhan Gerbang Kualitas Bertingkat (*Multi-Stage Quality Gates*):**
+   Belum adanya mekanisme otomatis yang memverifikasi integritas kode secara *fail-fast* sebelum menyentuh runtime aktif. Pipeline membutuhkan gerbang bertahap: *Static Linting* $\rightarrow$ *Unit & Schema Testing* $\rightarrow$ *OCI Image Packaging* $\rightarrow$ *Ephemeral Container Smoke Testing* $\rightarrow$ *Live Stack Integration*.
+5. **Ketiadaan Mekanisme Atomic Deployment & Automated Rollback:**
+   Proses deployment manual berisiko menimbulkan *downtime* pemantauan apabila kontainer versi baru gagal beroperasi pasca-deploy. Diperlukan otomasi *pre-flight snapshot* dan *automated rollback* ke status stabil sebelumnya jika pengujian pasca-deploy mengalami kegagalan.
 
 ---
 
 ## 📚 Scope
 
-- Identifikasi kebutuhan, batasan, dan dependensi pipeline CI/CD pada ketiga repositori komponen platform (`tomcat-diagnostic-service`, `tomcat-diagnostic-event-collector`, dan `tomcat-monitoring`).
+Pekerjaan perancangan arsitektur dan penyusunan roadmap CI/CD mencakup:
+
+- Identifikasi karakteristik arsitektur, batasan teknis, dan dependensi pipeline pada 3 repositori platform (`tomcat-diagnostic-service`, `tomcat-diagnostic-event-collector`, dan `tomcat-monitoring`).
 - Penetapan model arsitektur *Decoupled Component CI + Orchestrated Stack CD Hub*.
-- Penetapan 6 Pilar Standar Kesiapan Produksi Enterprise.
-- Perumusan spesifikasi gerbang kualitas (*Quality Gates Specification*) dan kontrak tahapan pipeline.
-- Tata kelola keamanan eksekusi DooD (*Docker-out-of-Docker*) via Rootless Podman pada dedicated Jenkins Agent (`builder-01`).
-- Perancangan mekanisme *Zero-Downtime Deployment* dan *Automated Rollback*.
-- Penyusunan Peta Jalan Implementasi bertahap (TN-002 s.d. TN-005).
-- *Exclusions*: Penulisan berkas fisik `Jenkinsfile` dan eksekusi job runtime live (dijadwalkan pada Technical Note berikutnya).
+- Perumusan 6 Pilar Standar Kesiapan Produksi Enterprise (*Enterprise Production-Ready Baseline*).
+- Perumusan spesifikasi gerbang kualitas (*Quality Gates Specification*) dan kontrak tahapan pipeline (*stage contracts*).
+- Perancangan tata kelola eksekusi DooD (*Docker-out-of-Docker*) berbasis Rootless Podman pada dedicated Jenkins Agent (`builder-01`).
+- Perancangan mekanisme penggantian kontainer atomik (*Atomic Container Replacement*) dan pemulihan otomatis (*Automated Rollback*).
+- Penyusunan Peta Jalan Implementasi bertahap (TN-002 s.d. TN-005) beserta sasaran deliverable.
+- *Exclusions*: Penulisan berkas fisik `Jenkinsfile` pada repositori dan eksekusi job runtime live di Jenkins Controller (dijadwalkan pada Technical Note implementasi berikutnya).
 
 ---
 
 ## 📥 Inputs
 
-1. **Sumber Konfigurasi Repositori Eksisting:**
-   - Repositori [`tomcat-monitoring`](file:///home/eddywiyatno/git/tomcat-monitoring): skrip orkestrasi platform, konfigurasi Prometheus, Alertmanager, Postfix relay, dan rangkaian uji integrasi live.
-   - Repositori [`tomcat-diagnostic-service`](file:///home/eddywiyatno/git/tomcat-diagnostic-service): kode sumber layanan backend Node.js 24 ESM, unit/integration test suites (`npm test`), skema validator AJV, dan `Containerfile`.
-   - Repositori [`tomcat-diagnostic-event-collector`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector): skrip daemon bash dan rangkaian uji siklus hidup spool.
+1. **Sumber Konfigurasi dan Repositori Eksisting:**
+   - Repositori [`tomcat-monitoring`](file:///home/eddywiyatno/git/tomcat-monitoring): skrip orkestrasi platform, konfigurasi Prometheus, Alertmanager, Postfix relay, dan rangkaian uji integrasi live ([`scripts/validate.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/validate.sh), [`scripts/test-tomcatdown-live.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/test-tomcatdown-live.sh), [`scripts/verify-postfix-relay.sh`](file:///home/eddywiyatno/git/tomcat-monitoring/scripts/verify-postfix-relay.sh)).
+   - Repositori [`tomcat-diagnostic-service`](file:///home/eddywiyatno/git/tomcat-diagnostic-service): kode sumber layanan backend Node.js 24 ESM, unit/integration test suites 62 tests ([`package.json`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/package.json)), skema validator AJV Draft 2020-12, dan [`Containerfile`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/Containerfile).
+   - Repositori [`tomcat-diagnostic-event-collector`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector): skrip daemon bash ([`src/collector.sh`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector/src/collector.sh)), unit test siklus hidup spool ([`test/test-collector.sh`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector/test/test-collector.sh)), dan service definition `systemd --user`.
 2. **Standar Rekayasa dan Pipeline as Code di Handbook:**
-   - Standar Pipeline as Code pada Personal Site ([PS-ADR-0007](../../../../adr/personal-site/adr-records/PS-ADR-0007.md), [PS-ADR-0008](../../../../adr/personal-site/adr-records/PS-ADR-0008.md)).
-   - Image Jenkins Controller kustom dengan runtime Podman ([`jenkins-podman`](file:///home/eddywiyatno/git/jenkins-podman)).
+   - Standar Pipeline as Code pada Personal Site ([PS-ADR-0007 — Use Pipeline as Code](../../../../adr/personal-site/adr-records/PS-ADR-0007.md)).
+   - Standar Stage-Based CI Pipeline ([PS-ADR-0008 — Adopt Stage-Based CI Pipeline](../../../../adr/personal-site/adr-records/PS-ADR-0008.md)).
+   - Image Jenkins Controller kustom dengan toolchain Podman ([`jenkins-podman`](file:///home/eddywiyatno/git/jenkins-podman)).
 3. **Standar Dokumentasi Handbook:**
-   - [Engineering Journal Standards](../../../standards/engineering-journal-standards.md) dan [Writing Standards](../../../standards/writing-standards.md).
+   - [Engineering Journal Standards](../../../standards/engineering-journal-standards.md) (Activity Type: *Discovery and Assessment*).
+   - [Writing Standards](../../../standards/writing-standards.md).
 
 ---
 
 ## 🔍 Findings
 
 ### 1. Karakteristik Multi-Repositori Platform
-Platform Tomcat Monitoring tersusun atas 3 repositori mandiri dengan siklus rilis dan tanggung jawab yang berbeda:
+Platform Tomcat Monitoring tersusun atas 3 repositori mandiri dengan siklus rilis, toolchain, dan cakupan tanggung jawab yang berbeda:
 
 | Repositori | Karakteristik Layanan | Toolchain & Test Suite | Peran dalam CI/CD |
 | :--- | :--- | :--- | :--- |
-| **`tomcat-diagnostic-service`** | Layanan backend mikro (Node.js 24 ESM, SQLite, AJV, Nodemailer) | • Unit & component tests (`npm test` / 62 tests)<br>• Schema validator (`scripts/validate.sh`)<br>• OCI Buildah (`Containerfile`) | **Component CI:** Linting, Unit Testing, OCI Image Build & Tagging, Ephemeral Container Smoke Test. |
+| **`tomcat-diagnostic-service`** | Layanan backend mikro (Node.js 24 ESM, SQLite, AJV, Nodemailer) | • Unit & component tests (`npm test` / 62 tests)<br>• Schema validator (`scripts/validate.sh`)<br>• OCI Buildah (`Containerfile`) | **Component CI:** Static Linting, Unit Testing, OCI Image Build & Tagging, Ephemeral Container Smoke Test, Registry Publishing. |
 | **`tomcat-diagnostic-event-collector`** | Daemon pengawas event Podman host (Bash script & `systemd --user`) | • Baseline validator (`scripts/validate.sh`)<br>• Spool lifecycle & pruning test (`test/test-collector.sh`) | **Component CI:** ShellCheck static analysis, syntax validation, dan mock spool retention test. |
-| **`tomcat-monitoring`** | Orkestrator platform multi-kontainer (Prometheus, Alertmanager, Postfix, JMX Exporter) | • Platform validator (`scripts/validate.sh`)<br>• Live test suite (`test-tomcatdown-live.sh`, `verify-postfix-relay.sh`) | **Stack CD Hub:** Integrasi network/volume, deployment multi-kontainer, live incident simulation, dan automated rollback. |
+| **`tomcat-monitoring`** | Orkestrator platform multi-kontainer (Prometheus, Alertmanager, Postfix, JMX Exporter) | • Platform validator (`scripts/validate.sh`)<br>• Live test suite (`test-tomcatdown-live.sh`, `verify-postfix-relay.sh`) | **Stack CD Hub:** Integrasi network/volume, deployment multi-kontainer atomik, live incident simulation, dan automated rollback. |
 
-### 2. Kebutuhan Kesiapan Produksi Enterprise
-Implementasi skala enterprise mewajibkan pipeline memenuhi kriteria:
-- **Portabilitas Registry:** Mendukung registry lokal (`localhost`) maupun Enterprise Container Registry internal (Harbor, Nexus OSS, JFrog Artifactory) melalui parameter build.
-- **Kepatuhan Zero Secret Leakage:** Tidak ada password SMTP SASL, token bearer, atau private key yang dicatat dalam Git atau file konfigurasi statis. Seluruh secret diinjeksi via Jenkins Credentials Store.
-- **Isolasi Keamanan Rootless:** Eksekusi pipeline berjalan di bawah user non-root (`eddywiyatno`) melalui Rootless Podman pada dedicated agent (`builder-01`), mencegah eskalasi privilege ke host OS.
-- **Pengujian Bertingkat (*Quality Gates*):** Verifikasi kode secara *fail-fast* melalui static linting, unit test, schema validation, dan ephemeral smoke test sebelum menyentuh kontainer live.
-- **Ketahanan Deployment (*Zero-Downtime & Rollback*):** Penerapan penggantian kontainer atomik (*atomic container replacement*) dan pemulihan otomatis (*automated rollback*) ke snapshot sebelumnya jika validasi pasca-deploy gagal.
+### 2. Kebutuhan Kesiapan Produksi Enterprise (*Production-Ready Baseline*)
+Untuk menjamin seluruh komponen dan pipeline dapat langsung digunakan (*plug-and-play*) di lingkungan kerja target tanpa hambatan operasional, arsitektur CI/CD wajib memenuhi kriteria enterprise:
+
+1. **Portabilitas Registry (*Registry-Agnostic*):** Mendukung fleksibilitas deployment ke local Podman storage maupun remote Enterprise Container Registry internal (Harbor, Nexus OSS, JFrog Artifactory) melalui parameterisasi terstandarisasi (`REGISTRY_HOST`, `IMAGE_TAG`, `PUSH_IMAGE`).
+2. **Kepatuhan Zero Secret Leakage:** Seluruh kata sandi SASL SMTP, token akses, dan sertifikat TLS diinjeksi saat runtime melalui Jenkins Credentials Store (`withCredentials`). Tidak ada rahasia yang disimpan dalam workspace Git atau berkas statis.
+3. **Isolasi Keamanan Rootless (*Non-Root DooD*):** Eksekusi pipeline pada dedicated Jenkins Agent (`builder-01`) berjalan sepenuhnya di bawah user non-root (`eddywiyatno`) melalui Rootless Podman socket, mengeliminasi risiko eskalasi hak akses ke host OS.
+4. **Verifikasi Kualitas Berlapis (*Quality Gates*):** Setiap perubahan diverifikasi secara otomatis dari tingkat unit test, linting, validasi skema JSON, pembangunan image kontainer, hingga pengujian asap kontainer (*ephemeral container smoke test*).
+5. **Ketahanan Deployment (*Zero-Downtime & Automated Rollback*):** Penggantian kontainer dilakukan secara atomik dengan pembuatan snapshot cadangan (*pre-flight snapshot*) dan pemulihan otomatis (*automated rollback*) jika health check pasca-deploy gagal.
+
+### 3. Evaluasi Pola Eksekusi Jenkins Agent: DooD via Rootless Podman
+Evaluasi terhadap metode eksekusi kontainer di dalam pipeline Jenkins:
+
+- **Docker-in-Docker (DinD):** Memerlukan kontainer Jenkins berjalan dengan mode `--privileged` yang membuka celah keamanan serius pada host server. *(Ditolak)*
+- **Docker-out-of-Docker (DooD) via Rootless Podman:** Jenkins Agent mengakses Podman socket milik user non-root (`unix:///run/user/$UID/podman/podman.sock`). Pola ini aman, berkinerja tinggi, dan memanfaatkan cache image host secara efisien tanpa hak akses root. *(Terpilih ⭐)*
 
 ---
 
@@ -87,7 +122,7 @@ Implementasi skala enterprise mewajibkan pipeline memenuhi kriteria:
 | Item | Asumsi Arsitektur | Validasi / Keterangan |
 | :--- | :--- | :--- |
 | **A1 — Jenkins Infrastructure** | Jenkins Controller dan Dedicated Agent (`builder-01`) tersedia dan terhubung via SSH Launcher. | Jenkins Controller siap di `jenkins-podman` dan agent berjalan sebagai user host. |
-| **A2 — Rootless Podman Runtime** | Agent eksekusi memiliki hak akses lokal ke daemon Rootless Podman tanpa eskalasi `sudo`. | User `eddywiyatno` terkonfigurasi subuid/subgid dan runtime Podman aktif. |
+| **A2 — Rootless Podman Runtime** | Agent eksekusi memiliki hak akses lokal ke daemon Rootless Podman tanpa eskalasi `sudo`. | User `eddywiyatno` terkonfigurasi subuid/subgid dan runtime Podman socket aktif. |
 | **A3 — Storage & Permission Boundary** | Host runtime menyediakan direktori persisten dengan izin `0700` untuk spool dan `0400` untuk berkas rahasia sertifikat. | Sesuai *Zero `/tmp` Policy* yang telah dibuktikan pada TN-010 dan TN-011. |
 | **A4 — Credential Isolation** | Rahasia operasional (seperti kredensial SASL) dikelola terpusat di Jenkins Credentials Store. | Injeksi rahasia dilakukan saat runtime via direktif `withCredentials`. |
 
@@ -106,6 +141,12 @@ Memisahkan CI pada masing-masing repositori komponen dan memusatkan CD pada repo
 - **Kelebihan:** Memisahkan tanggung jawab secara bersih, memberikan feedback cepat (hitungan detik) untuk perubahan unit, dan mendukung pengujian integrasi multi-kontainer menyeluruh secara independen.
 - **Kekurangan:** Memerlukan konfigurasi terstruktur untuk masing-masing job pipeline.
 - **Status:** Diterima ✅
+
+### Alternatif 3: Direct In-Host Controller Execution tanpa Dedicated Agent
+Eksekusi seluruh proses build langsung di dalam kontainer Jenkins Controller.
+- **Kelebihan:** Tidak memerlukan dedicated build agent.
+- **Kekurangan:** Membebani master controller (*noisy neighbor problem*), memperbesar risiko stabilitas controller, dan melanggar prinsip *best practice* Jenkins enterprise.
+- **Status:** Ditolak ❌
 
 ---
 
@@ -224,34 +265,35 @@ flowchart LR
 
 ---
 
-## ⚖️ Execution Decision
+## 🤝 Decision Handoff
 
-### PS-ADR-0007 — Use Pipeline as Code
-Mengadopsi prinsip penyimpanan seluruh definisi pipeline dalam repositori Git (`Jenkinsfile`) agar konfigurasi dapat ditinjau, diverifikasi, dan dikelola bersama siklus rilis kode sumber.
+### 1. Adopsi Keputusan Arsitektur (*Architecture Decision Records*)
+- **[PS-ADR-0007 — Use Pipeline as Code](../../../../adr/personal-site/adr-records/PS-ADR-0007.md):** Mengadopsi prinsip penyimpanan seluruh definisi pipeline dalam repositori Git (`Jenkinsfile`) agar konfigurasi dapat ditinjau, diverifikasi, dan dikelola bersama siklus rilis kode sumber.
+- **[PS-ADR-0008 — Adopt Stage-Based CI Pipeline](../../../../adr/personal-site/adr-records/PS-ADR-0008.md):** Mengadopsi pembagian tahapan pipeline berbasis stage berurutan (*stage-based quality gates*) dengan prinsip *fail-fast* sebelum rilis diterapkan ke runtime aktif.
 
-### PS-ADR-0008 — Adopt Stage-Based CI Pipeline
-Mengadopsi pembagian tahapan pipeline berbasis stage berurutan (*stage-based quality gates*) dengan prinsip *fail-fast* sebelum rilis diterapkan ke runtime aktif.
+### 2. Serah Terima ke Fase Implementasi (*Handoff to TN-002*)
+Hasil perancangan ini menjadi acuan spesifikasi resmi untuk memulai pekerjaan implementasi pada **TN-002 (Implement Production-Ready CI Pipeline for `tomcat-diagnostic-service`)**.
 
 ---
 
 ## 🧾 Outcome
 
-1. **Arsitektur CI/CD Disahkan:** Model *Decoupled Component CI + Orchestrated Stack CD Hub* resmi menjadi standar arsitektur otomasi Tomcat Monitoring.
-2. **Standar Kesiapan Produksi Dibakukan:** Enam Pilar Kesiapan Produksi Enterprise telah ditetapkan untuk menjamin portabilitas kode dan pipeline di lingkungan kerja target (*Plug-and-Play*).
-3. **Peta Jalan Implementasi Terstruktur:** Roadmap 4 langkah (**TN-002 s.d. TN-005**) telah dirumuskan dengan sasaran deliverables yang terukur.
+1. **Arsitektur CI/CD Disahkan:** Model *Decoupled Component CI + Orchestrated Stack CD Hub* resmi disahkan sebagai standar arsitektur otomasi pengiriman perangkat lunak untuk platform Tomcat Monitoring.
+2. **Standar Kesiapan Produksi Dibakukan:** Enam Pilar Kesiapan Produksi Enterprise telah ditetapkan guna menjamin portabilitas kode dan pipeline di lingkungan kerja target (*Plug-and-Play*).
+3. **Peta Jalan Implementasi Terstruktur:** Roadmap bertahap 4 langkah (**TN-002 s.d. TN-005**) telah dirumuskan dengan sasaran deliverable teknis yang jelas dan terukur.
 
 ---
 
 ## 🎓 Lessons Learned
 
-1. **Pemisahan Tanggung Jawab Komponen dan Orkestrator:** Memisahkan CI komponen dari orkestrator stack memberikan siklus feedback instan bagi developer microservices tanpa mengorbankan integritas pengujian integrasi platform.
-2. **Kesiapan Produksi Sejak Fase Desain:** Menetapkan parameterisasi registry dan tata kelola injeksi secret sejak awal menghindarkan sistem dari refactor saat transisi dari lab ke produksi enterprise.
+1. **Pemisahan Tanggung Jawab Komponen dan Orkestrator:** Memisahkan CI komponen dari orkestrator stack memberikan siklus feedback instan bagi developer microservices tanpa mengorbankan integritas pengujian integrasi platform multi-kontainer.
+2. **Kesiapan Produksi Sejak Fase Desain:** Menetapkan parameterisasi registry dan tata kelola injeksi rahasia (*zero secret leakage*) sejak awal menghindarkan sistem dari refaktor arsitektur saat transisi dari lab ke produksi enterprise.
 
 ---
 
 ## ⏭️ Next Steps
 
-- Memulai eksekusi tahap **TN-002 — Implement Production-Ready CI Pipeline for `tomcat-diagnostic-service`**.
+- Melaksanakan implementasi **TN-002 — Implement Production-Ready CI Pipeline for `tomcat-diagnostic-service`**.
 
 ---
 
