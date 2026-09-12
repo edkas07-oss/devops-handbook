@@ -35,6 +35,7 @@ konsekuensi keputusan arsitektur yang memengaruhi implementasi project.
 | [**TM-ADR-0021**](adr-records/TM-ADR-0021.md){: target="_blank" } | Adopt Layered Failure Resilience, Container Auto-Healing, and Monitoring Domain Separation | Tomcat Monitoring | Infrastructure Resilience and Fault-Tolerance Architecture | Accepted | 2026-09-08 |
 | [**TM-ADR-0022**](adr-records/TM-ADR-0022.md){: target="_blank" } | Adopt JVM Garbage Collection and Concurrency Saturation Signals over Static Raw Thresholds | Tomcat Monitoring | Observability, Alerting Strategy, and Workload Health Architecture | Accepted | 2026-09-08 |
 | [**TM-ADR-0023**](adr-records/TM-ADR-0023.md){: target="_blank" } | Adopt Multi-Domain Diagnostic Dispatcher and Mandatory Per-Alert Decision Engine Governance | Tomcat Monitoring | Diagnostic Rule, Decision Engine, and Observability Governance Architecture | Accepted | 2026-09-09 |
+| [**TM-ADR-0024**](adr-records/TM-ADR-0024.md){: target="_blank" } | Adopt Decoupled Component CI and Orchestrated Stack CD Pipeline Architecture | Tomcat Monitoring | Continuous Integration and Deployment Architecture | Accepted | 2026-09-12 |
 
 ## 🗺️ ADR Mapping
 
@@ -63,6 +64,7 @@ konsekuensi keputusan arsitektur yang memengaruhi implementasi project.
 | TM-ADR-0021 | Adopt Layered Failure Resilience, Container Auto-Healing, and Monitoring Domain Separation | Monitoring Integration TN-002 |
 | TM-ADR-0022 | Adopt JVM Garbage Collection and Concurrency Saturation Signals over Static Raw Thresholds | Monitoring Integration TN-003, TN-004, TN-005 |
 | TM-ADR-0023 | Adopt Multi-Domain Diagnostic Dispatcher and Mandatory Per-Alert Decision Engine Governance | Monitoring Integration TN-006 |
+| TM-ADR-0024 | Adopt Decoupled Component CI and Orchestrated Stack CD Pipeline Architecture | CI/CD TN-001 |
 
 
 ## 📝 Summary

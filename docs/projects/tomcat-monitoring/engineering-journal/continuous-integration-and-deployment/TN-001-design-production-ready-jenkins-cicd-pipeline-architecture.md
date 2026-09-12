@@ -81,6 +81,22 @@ Pekerjaan perancangan arsitektur dan penyusunan roadmap CI/CD mencakup:
 
 ## ⚖️ Execution Decision
 
+### TM-ADR-0024 — Adopt Decoupled Component CI and Orchestrated Stack CD Pipeline Architecture
+
+Refer to:
+
+- **[TM-ADR-0024 — Adopt Decoupled Component CI and Orchestrated Stack CD Pipeline Architecture](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0024.md)**
+
+**Decision**
+
+Mengadopsi model arsitektur *Decoupled Component CI + Orchestrated Stack CD Hub* untuk ekosistem Tomcat Monitoring, memisahkan pipeline CI mikrokomponen (`tomcat-diagnostic-service` dan `tomcat-diagnostic-event-collector`) dari orkestrator platform (`tomcat-monitoring`), serta menegakkan 6 Pilar Kesiapan Produksi Enterprise.
+
+**Reason**
+
+- Memisahkan batas tanggung jawab (*separation of concerns*) dan memberikan umpan balik pengujian unit secara instan (*fast feedback loop*).
+- Menghilangkan kopling erat antar repositori tanpa mengorbankan integritas pengujian integrasi platform multi-kontainer menyeluruh.
+- Menjamin pipeline bersifat *registry-agnostic*, *zero secret leakage*, dan berjalan aman di bawah user non-root melalui Rootless Podman DooD.
+
 ### PS-ADR-0007 — Use Pipeline as Code
 
 Refer to:
@@ -295,6 +311,6 @@ flowchart LR
 - [TN-010 — Implement and Verify Enterprise SMTP Configuration and Headers](../monitoring-platform-integration/TN-010-implement-and-verify-enterprise-smtp-configuration-and-headers.md)
 - [TN-011 — Implement and Verify Host Spool Lifecycle and Runtime Log Retention Governance](../monitoring-platform-integration/TN-011-implement-and-verify-spool-lifecycle-and-log-retention.md)
 - [Follow-up Tasks Backlog](../../follow-up-tasks.md)
-- [Personal Site Continuous Integration Engineering Journal](../../../web-platform/personal-site/engineering-journal/continuous-integration/index.md)
+- [TM-ADR-0024 — Adopt Decoupled Component CI and Orchestrated Stack CD Pipeline Architecture](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0024.md)
 - [PS-ADR-0007 — Use Pipeline as Code](../../../../adr/personal-site/adr-records/PS-ADR-0007.md)
 - [PS-ADR-0008 — Adopt Stage-Based CI Pipeline](../../../../adr/personal-site/adr-records/PS-ADR-0008.md)
