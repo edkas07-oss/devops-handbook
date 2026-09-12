@@ -91,10 +91,10 @@ Audit dilaksanakan secara sistematis dengan alur verifikasi berikut:
 
 ```mermaid
 flowchart TD
-    M1["1. Static Grep Scanning<br/>(Pemeriksaan Path & Secret Leakage)"] --> M2["2. Script Contract & Logic Audit<br/>(Pemeriksaan Skrip Shell & Parameter)"]
-    M2 --> M3["3. Test Runner Determinism Audit<br/>(Evaluasi Headless & Exit Codes)"]
-    M3 --> M4["4. Deployment & Rollback Audit<br/>(Evaluasi Snapshot & Recovery)"]
-    M4 --> M5["5. Gap Matrix & Action Plan Formulation<br/>(Sintesis Rekomendasi Standarisasi)"]
+    M1["1. Static Pattern Scanning<br/>Pemindaian Jalur Statis & Kredensial"] --> M2["2. Script Contract Audit<br/>Validasi Opsi Shell, Parameter & Skema"]
+    M2 --> M3["3. Test Runner Determinism<br/>Verifikasi Eksekusi Headless & Exit Code"]
+    M3 --> M4["4. Deployment & Rollback Audit<br/>Verifikasi Logika Snapshot & Pemulihan"]
+    M4 --> M5["5. Action Plan Formulation<br/>Sintesis Matriks Gap & Rekomendasi Standarisasi"]
 ```
 
 1. **Static Grep Scanning:** Pemindaian pola teks mendalam menggunakan ripgrep (`rg`) dan grep reguler untuk melacak:
@@ -339,9 +339,9 @@ Dengan demikian, seluruh kriteria audit kesiapan operasional telah terpenuhi dan
 
 ```mermaid
 flowchart TD
-    A["Current Verified State<br/>(Hasil Audit Kesiapan TN-002 Selesai & Terpetakan)"] --> B["Next Implementation<br/>(TN-003: Standarisasi 3 Repositori Plug-and-Play)"]
-    B --> C["CI/CD Implementation<br/>(TN-004 s.d. TN-006: Pipeline as Code)"]
-    C --> D["Verification Target<br/>(TN-007: Live End-to-End Pipeline Verification)"]
+    A["Current Verified State<br/>TN-002: Audit Kesiapan Operasional Selesai"] --> B["Prerequisites & Standardization<br/>TN-003: Standarisasi 3 Repositori Platform"]
+    B --> C["Pipeline Implementation<br/>TN-004 s.d. TN-006: Declarative Jenkinsfile"]
+    C --> D["Verification Target<br/>TN-007: Verifikasi Pipeline Live Jenkins"]
 ```
 
 Setelah audit kesiapan operasional selesai dan kesenjangan terpetakan secara terukur, langkah implementasi selanjutnya adalah:
