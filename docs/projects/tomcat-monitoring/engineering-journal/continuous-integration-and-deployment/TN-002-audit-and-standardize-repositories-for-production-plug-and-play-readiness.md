@@ -91,10 +91,10 @@ Audit dilaksanakan secara sistematis dengan alur verifikasi berikut:
 
 ```mermaid
 flowchart TD
-    M1["1. Static Pattern Scanning<br/>Pemindaian Jalur Statis & Kredensial"] --> M2["2. Script Contract Audit<br/>Validasi Opsi Shell, Parameter & Skema"]
-    M2 --> M3["3. Test Runner Determinism<br/>Verifikasi Eksekusi Headless & Exit Code"]
-    M3 --> M4["4. Deployment & Rollback Audit<br/>Verifikasi Logika Snapshot & Pemulihan"]
-    M4 --> M5["5. Action Plan Formulation<br/>Sintesis Matriks Gap & Rekomendasi Standarisasi"]
+    M1["1. Static Scanning<br/>Audit Path & Kredensial"] --> M2["2. Contract Audit<br/>Validasi Shell & Skema"]
+    M2 --> M3["3. Test Runner Audit<br/>Uji Headless & Exit Code"]
+    M3 --> M4["4. Deployment Audit<br/>Uji Snapshot & Rollback"]
+    M4 --> M5["5. Gap Action Plan<br/>Perumusan Remediasi"]
 ```
 
 1. **Static Grep Scanning:** Pemindaian pola teks mendalam menggunakan ripgrep (`rg`) dan grep reguler untuk melacak:
@@ -195,7 +195,7 @@ flowchart TD
     end
 
     subgraph AuditResults["Audit Results Across 6 Pillars"]
-        P1["1. Path-Agnostic<br/>🔴 TM Critical Gap | 🟡 EC Gap | 🟢 DS Pass"]
+        P1["1. Path-Agnostic<br/>🔴 TM Gap | 🟡 EC Gap | 🟢 DS Pass"]
         P2["2. Registry Portability<br/>🟡 DS Gap | 🟡 TM Gap | ⚪ EC N/A"]
         P3["3. Zero Secret Leakage<br/>🟢 DS Pass | 🟢 EC Pass | 🟡 TM Gap"]
         P4["4. Headless Test Runner<br/>🟢 DS Pass | 🟢 EC Pass | 🟢 TM Pass"]
@@ -339,9 +339,9 @@ Dengan demikian, seluruh kriteria audit kesiapan operasional telah terpenuhi dan
 
 ```mermaid
 flowchart TD
-    A["Current Verified State<br/>TN-002: Audit Kesiapan Operasional Selesai"] --> B["Prerequisites & Standardization<br/>TN-003: Standarisasi 3 Repositori Platform"]
-    B --> C["Pipeline Implementation<br/>TN-004 s.d. TN-006: Declarative Jenkinsfile"]
-    C --> D["Verification Target<br/>TN-007: Verifikasi Pipeline Live Jenkins"]
+    A["Current State<br/>TN-002: Audit Kesiapan"] --> B["Prerequisites<br/>TN-003: Standarisasi Repo"]
+    B --> C["Pipeline Delivery<br/>TN-004 s.d. TN-006<br/>Declarative Jenkinsfile"]
+    C --> D["Verification Target<br/>TN-007: Verifikasi Live"]
 ```
 
 Setelah audit kesiapan operasional selesai dan kesenjangan terpetakan secara terukur, langkah implementasi selanjutnya adalah:
