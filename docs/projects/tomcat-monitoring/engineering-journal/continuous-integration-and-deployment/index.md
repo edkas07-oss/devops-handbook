@@ -36,6 +36,7 @@ Membangun ekosistem otomasi CI/CD terintegrasi yang andal, aman, dan siap pakai 
 | **Diagnostic Service CI Pipeline** | Implementasi declarative Jenkinsfile 7 tahapan quality gates, rootless Podman build, 62 unit/schema tests, dan ephemeral smoke test (TASK-TM-021) | Completed (TN-004) |
 | **Event Collector CI Pipeline** | Implementasi declarative Jenkinsfile 4 tahapan quality gates, verifikasi rootless agent, governance validator, dan spool pruning test (TASK-TM-022) | Completed (TN-005) |
 | **Monitoring Stack CD Hub Pipeline** | Implementasi declarative Jenkinsfile 4 tahapan orkestrasi stack, zero-touch deployment multi-kontainer, dan live verification suite (TASK-TM-023) | Completed (TN-006) |
+| **Jenkins Live Execution & E2E Verification** | Eksekusi dan verifikasi live 3 pipeline jobs pada Jenkins Controller, kelulusan 100% quality gates, Postfix STARTTLS+SASL relay, dan simulasi insiden end-to-end (TASK-TM-024) | Completed (TN-007) |
 
 ---
 
@@ -64,6 +65,10 @@ Membangun ekosistem otomasi CI/CD terintegrasi yang andal, aman, dan siap pakai 
 6. **[TN-006 — Implement Stack Orchestration CD Pipeline for Tomcat Monitoring](TN-006-implement-stack-orchestration-cd-pipeline-for-tomcat-monitoring.md)**
 
     Mendokumentasikan implementasi berkas deklaratif `Jenkinsfile` pada repositori `tomcat-monitoring` berbasis 4 tahapan orkestrasi stack (checkout & platform validation, verify agent & network isolation, zero-touch deployment multi-kontainer, dan live verification suite & incident simulation) di atas runtime Rootless Podman DooD.
+
+7. **[TN-007 — Execute and Verify End-to-End CI/CD Pipelines in Jenkins Controller](TN-007-execute-and-verify-end-to-end-cicd-pipelines-in-jenkins-controller.md)**
+
+    Mendokumentasikan eksekusi dan verifikasi *live* ketiga alur pipeline CI/CD pada peladen Jenkins Controller (`http://localhost:8080`), pencapaian status kelulusan 100% *SUCCESS* lintas tahapan, pembuktian isolasi eksekusi non-root DooD pada agen `builder-01`, pengujian tanggap insiden otomatis *TomcatDown*, serta penerimaan laporan 7-seksi SRE dengan 4 header RFC di Mailpit via Postfix Enterprise STARTTLS + SASL Relay Bridge.
 
 ---
 
