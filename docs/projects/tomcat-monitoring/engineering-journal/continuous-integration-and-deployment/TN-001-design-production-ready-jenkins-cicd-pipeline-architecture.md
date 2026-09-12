@@ -17,25 +17,15 @@
 
 ## 🎯 Objective
 
-Menuntaskan backlog **`TASK-TM-019` (Perancangan Arsitektur Jenkins CI/CD Pipeline & Implementation Roadmap)** dengan merumuskan arsitektur resmi *Continuous Integration and Continuous Deployment* (CI/CD) berbasis Jenkins Pipeline as Code untuk seluruh ekosistem Tomcat Monitoring (`tomcat-diagnostic-service`, `tomcat-diagnostic-event-collector`, dan `tomcat-monitoring`), menetapkan standar kesiapan produksi enterprise (*production-ready*), serta menyusun peta jalan implementasi (*implementation roadmap*) bertahap yang siap diterapkan (*plug-and-play*) di lingkungan kerja/kantor.
+Menuntaskan backlog **`TASK-TM-019` (Perancangan Arsitektur Jenkins CI/CD Pipeline & Implementation Roadmap)** dengan merumuskan arsitektur resmi *Continuous Integration and Continuous Deployment* (CI/CD) berbasis Jenkins Pipeline as Code untuk seluruh ekosistem Tomcat Monitoring (`tomcat-diagnostic-service`, `tomcat-diagnostic-event-collector`, dan `tomcat-monitoring`), menetapkan standar kesiapan produksi enterprise (*production-ready*), serta menyusun peta jalan implementasi (*implementation roadmap*) bertahap (TN-002 s.d. TN-005).
 
 **Target Utama & Kriteria Keberhasilan:**
 
-1. **Perancangan Arsitektur Decoupled Component CI + Orchestrated Stack CD Hub:**
-   - Menetapkan batas tanggung jawab (*boundary of responsibility*) pemisahan antara Component CI pada repositori mikrokomponen dan Stack CD Hub pada repositori orkestrator platform.
-   - Menjamin siklus umpan balik cepat (*fast feedback loop*) untuk pengujian kode komponen dan orkestrasi deployment terpadu untuk pengujian integrasi multi-kontainer.
-2. **Pembakuan 6 Pilar Kesiapan Produksi Enterprise (*Production-Ready Baseline*):**
-   - Menetapkan prinsip arsitektur yang mencakup: portabilitas registry (*parameterized & registry-agnostic*), tata kelola rahasia (*zero secret leakage*), isolasi keamanan non-root (*Rootless Podman via DooD*), gerbang kualitas bertingkat (*multi-stage quality gates*), deployment atomik & rollback otomatis, serta kemandirian dokumentasi operasional SRE.
-   - Memastikan seluruh kode dan pipeline dapat langsung digunakan (*plug-and-play*) di lingkungan perusahaan tanpa memerlukan refaktor arsitektur atau keterikatan path statis.
-3. **Spesifikasi Gerbang Kualitas & Kontrak Tahapan (*Quality Gates & Stage Contracts*):**
-   - Merumuskan kontrak tahapan pipeline secara rinci untuk masing-masing repositori, mencakup verifikasi statis, pengujian unit Node.js (62 tests), pembangunan OCI image, pengujian asap kontainer temporer (*ephemeral smoke test*), hingga simulasi insiden *live* pasca-deploy.
-   - Menetapkan kriteria kelulusan (*exit criteria*) dan penanganan kegagalan (*fail-fast & rollback*) pada setiap tahapan pipeline.
-4. **Perancangan Tata Kelola Eksekusi DooD & Injeksi Kredensial Terisolasi:**
-   - Menetapkan pola eksekusi job Jenkins Agent (`builder-01`) menggunakan Docker-out-of-Docker berbasis Rootless Podman via Unix socket tanpa membutuhkan eskalasi hak akses `sudo`.
-   - Menetapkan mekanisme injeksi kredensial dinamis via Jenkins Credentials Store (`withCredentials`) guna menjamin kepatuhan *Zero `/tmp` Policy*.
-5. **Penyusunan Peta Jalan Implementasi Bertahap (*Implementation Roadmap TN-002 s.d. TN-005*):**
-   - Menyusun urutan implementasi teknis yang terukur: TN-002 (CI Diagnostic Service), TN-003 (CI Event Collector), TN-004 (CD Stack Orchestrator), dan TN-005 (End-to-End Live Verification & SRE Runbook).
-   - Menetapkan deliverable teknis yang jelas untuk setiap Technical Note.
+1. **Decoupled Architecture:** Menetapkan batas tanggung jawab pemisahan antara Component CI pada repositori mikrokomponen dan Stack CD Hub pada repositori orkestrator platform.
+2. **Production-Ready Baseline:** Membakukan 6 pilar standar kesiapan produksi enterprise mencakup portabilitas registry (*registry-agnostic*), tata kelola rahasia (*zero secret leakage*), isolasi keamanan non-root DooD Podman, gerbang kualitas bertingkat, automated rollback, dan runbook SRE.
+3. **Stage Contracts & Quality Gates:** Mendefinisikan kontrak tahapan pipeline secara rinci dari verifikasi statis, pengujian unit Node.js (62 tests), pembangunan OCI image, ephemeral container smoke test, hingga live verification pasca-deploy.
+4. **Agent & Secret Governance:** Menetapkan tata kelola eksekusi non-root DooD via Podman socket pada Jenkins Agent (`builder-01`) dan injeksi rahasia terisolasi via Jenkins Credentials Store (`withCredentials`).
+5. **Implementation Roadmap:** Menyusun urutan implementasi teknis dan target deliverable terukur untuk fase CI/CD (TN-002 s.d. TN-005).
 
 ---
 
@@ -89,6 +79,41 @@ Pekerjaan perancangan arsitektur dan penyusunan roadmap CI/CD mencakup:
 
 ---
 
+## ⚖️ Execution Decision
+
+### PS-ADR-0007 — Use Pipeline as Code
+
+Refer to:
+
+- **[PS-ADR-0007 — Use Pipeline as Code](../../../../adr/personal-site/adr-records/PS-ADR-0007.md)**
+
+**Decision**
+
+Menyimpan seluruh definisi pipeline dalam repositori Git masing-masing komponen dan orkestrator (`Jenkinsfile`) menggunakan pendekatan *Pipeline as Code*.
+
+**Reason**
+
+- Menjadikan seluruh definisi workflow dan otomatisasi sebagai bagian integral dari version control Git.
+- Memungkinkan pipeline direview, diaudit, dan direproduksi secara konsisten langsung dari repositori.
+- Mengeliminasi konfigurasi skrip manual pada antarmuka web Jenkins (*Pipeline script from SCM*).
+
+### PS-ADR-0008 — Adopt Stage-Based CI Pipeline
+
+Refer to:
+
+- **[PS-ADR-0008 — Adopt Stage-Based CI Pipeline](../../../../adr/personal-site/adr-records/PS-ADR-0008.md)**
+
+**Decision**
+
+Menerapkan pembagian tahapan pipeline berbasis stage berurutan (*stage-based quality gates*) dengan prinsip *fail-fast*.
+
+**Reason**
+
+- Memberikan umpan balik cepat (*fast feedback loop*) saat terjadi kegagalan pada stage awal sebelum memicu build kontainer.
+- Memisahkan tahapan verifikasi statis, pengujian unit, packaging OCI image, hingga ephemeral container smoke test secara terisolasi dan deterministik.
+
+---
+
 ## 🔍 Findings
 
 ### 1. Karakteristik Multi-Repositori Platform
@@ -125,28 +150,6 @@ Evaluasi terhadap metode eksekusi kontainer di dalam pipeline Jenkins:
 | **A2 — Rootless Podman Runtime** | Agent eksekusi memiliki hak akses lokal ke daemon Rootless Podman tanpa eskalasi `sudo`. | User `eddywiyatno` terkonfigurasi subuid/subgid dan runtime Podman socket aktif. |
 | **A3 — Storage & Permission Boundary** | Host runtime menyediakan direktori persisten dengan izin `0700` untuk spool dan `0400` untuk berkas rahasia sertifikat. | Sesuai *Zero `/tmp` Policy* yang telah dibuktikan pada TN-010 dan TN-011. |
 | **A4 — Credential Isolation** | Rahasia operasional (seperti kredensial SASL) dikelola terpusat di Jenkins Credentials Store. | Injeksi rahasia dilakukan saat runtime via direktif `withCredentials`. |
-
----
-
-## ⚖️ Alternatives
-
-### Alternatif 1: Monolithic Single Pipeline di `tomcat-monitoring`
-Seluruh proses build dan pengujian ketiga repositori digabungkan ke dalam satu file `Jenkinsfile` tunggal.
-- **Kelebihan:** Hanya perlu mengelola satu job Jenkins.
-- **Kekurangan:** Menciptakan kopling erat antar repositori (*tight coupling*), memperlambat siklus feedback bagi developer komponen mikro, dan melanggar prinsip *Single Responsibility*.
-- **Status:** Ditolak ❌
-
-### Alternatif 2: Decoupled Component CI + Orchestrated Stack CD Hub (Terpilih ⭐)
-Memisahkan CI pada masing-masing repositori komponen dan memusatkan CD pada repositori orkestrator stack.
-- **Kelebihan:** Memisahkan tanggung jawab secara bersih, memberikan feedback cepat (hitungan detik) untuk perubahan unit, dan mendukung pengujian integrasi multi-kontainer menyeluruh secara independen.
-- **Kekurangan:** Memerlukan konfigurasi terstruktur untuk masing-masing job pipeline.
-- **Status:** Diterima ✅
-
-### Alternatif 3: Direct In-Host Controller Execution tanpa Dedicated Agent
-Eksekusi seluruh proses build langsung di dalam kontainer Jenkins Controller.
-- **Kelebihan:** Tidak memerlukan dedicated build agent.
-- **Kekurangan:** Membebani master controller (*noisy neighbor problem*), memperbesar risiko stabilitas controller, dan melanggar prinsip *best practice* Jenkins enterprise.
-- **Status:** Ditolak ❌
 
 ---
 
@@ -262,17 +265,6 @@ flowchart LR
 | **TN-003** | **Implement CI Pipeline for `tomcat-diagnostic-event-collector`** | Declarative `Jenkinsfile`, static analysis, lint contract validation, dan mock event spool test. |
 | **TN-004** | **Implement Stack Orchestration CD Pipeline for `tomcat-monitoring`** | Declarative `Jenkinsfile` orkestrasi stack, automated deployment, integrasi network `devops-lab`, dan automated rollback logic. |
 | **TN-005** | **Execute and Verify End-to-End CI/CD Pipelines in Jenkins Controller** | Registrasi jobs di Jenkins Controller, pengujian build live (`SUCCESS`), pembuktian incident injection, dan konsolidasi dokumentasi buku petunjuk SRE di Handbook. |
-
----
-
-## 🤝 Decision Handoff
-
-### 1. Adopsi Keputusan Arsitektur (*Architecture Decision Records*)
-- **[PS-ADR-0007 — Use Pipeline as Code](../../../../adr/personal-site/adr-records/PS-ADR-0007.md):** Mengadopsi prinsip penyimpanan seluruh definisi pipeline dalam repositori Git (`Jenkinsfile`) agar konfigurasi dapat ditinjau, diverifikasi, dan dikelola bersama siklus rilis kode sumber.
-- **[PS-ADR-0008 — Adopt Stage-Based CI Pipeline](../../../../adr/personal-site/adr-records/PS-ADR-0008.md):** Mengadopsi pembagian tahapan pipeline berbasis stage berurutan (*stage-based quality gates*) dengan prinsip *fail-fast* sebelum rilis diterapkan ke runtime aktif.
-
-### 2. Serah Terima ke Fase Implementasi (*Handoff to TN-002*)
-Hasil perancangan ini menjadi acuan spesifikasi resmi untuk memulai pekerjaan implementasi pada **TN-002 (Implement Production-Ready CI Pipeline for `tomcat-diagnostic-service`)**.
 
 ---
 
