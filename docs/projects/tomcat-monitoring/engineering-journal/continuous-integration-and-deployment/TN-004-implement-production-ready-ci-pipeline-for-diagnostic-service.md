@@ -23,14 +23,7 @@ Mengimplementasikan berkas *pipeline* (alur otomasi) deklaratif [`Jenkinsfile`](
 
 1. **Deklarasi Pipeline as Code Deklaratif:** Menyusun berkas `Jenkinsfile` berbasis *Declarative Pipeline Syntax* yang mengeksekusi tahapan CI secara terstruktur pada *dedicated build agent* (kontainer pekerja khusus) berlabel `builder` (berbasis *Rootless Podman* / DooD — *Docker-out-of-Docker via Podman socket*).
 2. **Parameterisasi Fleksibel (6 Pilar Kesiapan Enterprise):** Menyediakan parameter deklaratif `REGISTRY_HOST` (default: `localhost`), `IMAGE_TAG` (default: versi semver), dan `PUSH_IMAGE` (boolean, default: `false`) untuk portabilitas lokal maupun remote *Enterprise Container Registry* (seperti Harbor atau Nexus).
-3. **Penerapan Gerbang Mutu Bertingkat (*Multi-Stage Quality Gates*):**
-   - *Stage 1 — Checkout Source Code:* Mengambil kode sumber dan memverifikasi integritas berkas kunci (`package.json`, `VERSION`, `CONFIG`, `Containerfile`).
-   - *Stage 2 — Verify Build Agent:* Memverifikasi kepatuhan eksekusi non-root (`Rootless: true`).
-   - *Stage 3 — Static Lint & Governance:* Mengeksekusi [`scripts/validate.sh`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/scripts/validate.sh) untuk asersi integritas skema, migrasi SQL, dan pencegahan kebocoran rahasia (*Zero Secret Leakage*).
-   - *Stage 4 — Unit & Schema Testing:* Menjalankan 62 test suites Node.js 24 ESM secara terisolasi via container runtime.
-   - *Stage 5 — Build & Pin OCI Image:* Mengeksekusi [`scripts/build.sh`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/scripts/build.sh) untuk membangun OCI image dengan metadata standar OCI (`org.opencontainers.image.*`).
-   - *Stage 6 — Ephemeral Smoke Test:* Menjalankan pengujian kontainer sementara melalui [`scripts/test-image.sh`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/scripts/test-image.sh) untuk memvalidasi *entrypoint*, user non-root (`USER node`), dependensi npm produksi tanpa devDependencies, dan ketiadaan berkas sensitif.
-   - *Stage 7 — Publish Image (Conditional):* Mendorong image ke registry enterprise jika parameter `PUSH_IMAGE=true`.
+3. **Penerapan Gerbang Mutu Bertingkat (*Multi-Stage Quality Gates*):** Mengintegrasikan 7 tahapan quality gates berurutan secara otomatis mencakup Checkout Source Code, Verifikasi Non-Root Build Agent, Static Lint & Governance ([`scripts/validate.sh`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/scripts/validate.sh)), Unit & Schema Testing (62 suites), Build & Pin OCI Image ([`scripts/build.sh`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/scripts/build.sh)), Ephemeral Smoke Test ([`scripts/test-image.sh`](file:///home/eddywiyatno/git/tomcat-diagnostic-service/scripts/test-image.sh)), dan Publish Image ke registry enterprise secara kondisional.
 4. **Pembersihan Bersih (*Post-Build Workspace Hygiene*):** Penegakan direktif `cleanWs` pada blok `post.always` untuk mencegah penumpukan artefak sementara di build agent.
 
 ---

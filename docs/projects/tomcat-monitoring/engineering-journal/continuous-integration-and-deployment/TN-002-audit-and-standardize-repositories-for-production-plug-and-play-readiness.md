@@ -19,11 +19,11 @@
 
 Menuntaskan backlog **`TASK-TM-020` (Audit Kesiapan Operasional & Standarisasi Repositori Platform)** dengan melaksanakan *readiness audit* (audit kesiapan operasional) dan *gap analysis* (analisis kesenjangan) secara menyeluruh terhadap 3 repositori platform Tomcat Monitoring:
 
-1. [`tomcat-diagnostic-service`](file:///home/eddywiyatno/git/tomcat-diagnostic-service): *backend* (layanan sisi server yang menangani logika dan data) analitik insiden berbasis Node.js 24 ESM, SQLite, dan Nodemailer.
-2. [`tomcat-diagnostic-event-collector`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector): *daemon* (program latar belakang yang berjalan terus-menerus tanpa interaksi pengguna) pemantau *lifecycle* (siklus hidup) kontainer host berbasis Bash script dan unit `systemd --user`.
-3. [`tomcat-monitoring`](file:///home/eddywiyatno/git/tomcat-monitoring): orkestrator platform *multi-container* (banyak kontainer yang saling terhubung) mencakup Prometheus, Alertmanager, Postfix relay, dan rangkaian uji integrasi *live*.
+- [`tomcat-diagnostic-service`](file:///home/eddywiyatno/git/tomcat-diagnostic-service): *backend* (layanan sisi server yang menangani logika dan data) analitik insiden berbasis Node.js 24 ESM, SQLite, dan Nodemailer.
+- [`tomcat-diagnostic-event-collector`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector): *daemon* (program latar belakang yang berjalan terus-menerus tanpa interaksi pengguna) pemantau *lifecycle* (siklus hidup) kontainer host berbasis Bash script dan unit `systemd --user`.
+- [`tomcat-monitoring`](file:///home/eddywiyatno/git/tomcat-monitoring): orkestrator platform *multi-container* (banyak kontainer yang saling terhubung) mencakup Prometheus, Alertmanager, Postfix relay, dan rangkaian uji integrasi *live*.
 
-Audit ini bertujuan memastikan seluruh skrip *build* (pembangunan image), *validation* (pemeriksaan kepatuhan kontrak), *deployers* (skrip peluncur kontainer), dan *test runner* (skrip pengeksekusi pengujian) telah memenuhi standar **Enterprise Production-Ready (Plug-and-Play)** (standar kesiapan produksi korporat yang dapat langsung digunakan tanpa penyesuaian manual) sebelum penulisan berkas *pipeline* (alur otomasi) `Jenkinsfile` (berkas deklarasi pipeline Jenkins) pada tahap implementasi ([TN-004](TN-004-implement-production-ready-ci-pipeline-for-diagnostic-service.md) s.d. [TN-006](TN-006-implement-stack-orchestration-cd-pipeline-for-tomcat-monitoring.md)).
+Audit ini bertujuan memastikan seluruh skrip *build* (pembangunan image), *validation* (pemeriksaan kepatuhan kontrak), *deployers* (skrip peluncur kontainer), dan *test runner* (skrip pengeksekusi pengujian) telah memenuhi standar **Enterprise Production-Ready (Plug-and-Play)** (standar kesiapan produksi korporat yang dapat langsung digunakan tanpa penyesuaian manual) sebelum penulisan berkas *pipeline* (alur otomasi) `Jenkinsfile` (berkas deklarasi pipeline Jenkins) pada tahap implementasi ([TN-004](TN-004-implement-production-ready-ci-pipeline-for-diagnostic-service.md) s.d. [TN-007](TN-007-execute-live-jenkins-pipeline-verification.md)).
 
 **Target Utama & Kriteria Keberhasilan:**
 
@@ -315,7 +315,7 @@ Audit kesiapan operasional terhadap ketiga repositori platform (`tomcat-diagnost
 2. **Kepatuhan Keamanan Terbukti:** Repositori mematuhi standar *Zero Secret Leakage* pada source control dan menjalankan kontainer OCI secara non-root (`USER node`).
 3. **Kesenjangan Teridentifikasi & Terpetakan:** Ditemukan 1 *Critical Gap* (jalur hardcoded host pada `verify-postfix-relay.sh`) dan 4 *Configuration Gaps* (parameterisasi registry dan *auto-rollback recovery trap*) yang seluruhnya memiliki solusi perbaikan terdefinisi dalam *Remediation Action Plan*.
 
-Dengan demikian, seluruh kriteria audit kesiapan operasional telah terpenuhi dan ketiga repositori dinyatakan siap distandarisasi pada Technical Note tersendiri ([TN-003](TN-003-standardize-repositories-for-production-plug-and-play-readiness.md)) sebelum implementasi Declarative `Jenkinsfile` ([TN-004](TN-004-implement-production-ready-ci-pipeline-for-diagnostic-service.md) s.d. [TN-006](TN-006-implement-stack-orchestration-cd-pipeline-for-tomcat-monitoring.md)).
+Dengan demikian, seluruh kriteria audit kesiapan operasional telah terpenuhi dan ketiga repositori dinyatakan siap distandarisasi pada Technical Note tersendiri ([TN-003](TN-003-standardize-repositories-for-production-plug-and-play-readiness.md)) sebelum implementasi Declarative `Jenkinsfile` ([TN-004](TN-004-implement-production-ready-ci-pipeline-for-diagnostic-service.md) s.d. [TN-007](TN-007-execute-live-jenkins-pipeline-verification.md)).
 
 ---
 
@@ -323,7 +323,7 @@ Dengan demikian, seluruh kriteria audit kesiapan operasional telah terpenuhi dan
 
 1. **Audit Kesiapan Operasional Selesai:** Seluruh skrip, konfigurasi, dan alur pengujian pada ketiga repositori platform telah diaudit secara komprehensif terhadap 6 Pilar Kesiapan Produksi Enterprise.
 2. **Kesenjangan (Gaps) Teridentifikasi & Terpetakan:** Ditemukan 1 *Critical Gap* (hardcoded host path pada `verify-postfix-relay.sh`), 4 *Configuration Gaps* (registry parameterization dan auto-rollback trap), dan seluruh test suite terbukti 100% *Headless & Deterministic*.
-3. **Peta Tindakan Perbaikan Siap:** Rencana perbaikan terukur telah dirumuskan secara jelas sebagai fondasi prasyarat sebelum eksekusi standarisasi pada [TN-003](TN-003-standardize-repositories-for-production-plug-and-play-readiness.md) dan implementasi Declarative `Jenkinsfile` pada TN-004 s.d. TN-006.
+3. **Peta Tindakan Perbaikan Siap:** Rencana perbaikan terukur telah dirumuskan secara jelas sebagai fondasi prasyarat sebelum eksekusi standarisasi pada [TN-003](TN-003-standardize-repositories-for-production-plug-and-play-readiness.md) dan implementasi Declarative `Jenkinsfile` pada TN-004 s.d. TN-007.
 
 ---
 

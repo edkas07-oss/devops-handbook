@@ -17,7 +17,7 @@
 
 ## 🎯 Objective
 
-Mengeksekusi rencana tindakan remediasi (*remediation action plan*) hasil audit [TN-002](TN-002-audit-and-standardize-repositories-for-production-plug-and-play-readiness.md) pada 3 repositori platform Tomcat Monitoring ([`tomcat-diagnostic-service`](file:///home/eddywiyatno/git/tomcat-diagnostic-service), [`tomcat-diagnostic-event-collector`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector), dan [`tomcat-monitoring`](file:///home/eddywiyatno/git/tomcat-monitoring)) agar berstatus **Enterprise Production-Ready (Plug-and-Play)** (standar kesiapan produksi korporat yang dapat langsung digunakan tanpa penyesuaian manual) sebelum penulisan deklarasi *pipeline* (alur otomasi) `Jenkinsfile` (berkas deklarasi pipeline Jenkins) pada tahap [TN-004](TN-004-implement-production-ready-ci-pipeline-for-diagnostic-service.md) s.d. [TN-006](TN-006-implement-stack-orchestration-cd-pipeline-for-tomcat-monitoring.md).
+Mengeksekusi rencana tindakan remediasi (*remediation action plan*) hasil audit [TN-002](TN-002-audit-and-standardize-repositories-for-production-plug-and-play-readiness.md) pada 3 repositori platform Tomcat Monitoring ([`tomcat-diagnostic-service`](file:///home/eddywiyatno/git/tomcat-diagnostic-service), [`tomcat-diagnostic-event-collector`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector), dan [`tomcat-monitoring`](file:///home/eddywiyatno/git/tomcat-monitoring)) agar berstatus **Enterprise Production-Ready (Plug-and-Play)** (standar kesiapan produksi korporat yang dapat langsung digunakan tanpa penyesuaian manual) sebelum penulisan deklarasi *pipeline* (alur otomasi) `Jenkinsfile` (berkas deklarasi pipeline Jenkins) pada tahap [TN-004](TN-004-implement-production-ready-ci-pipeline-for-diagnostic-service.md) s.d. [TN-007](TN-007-execute-live-jenkins-pipeline-verification.md).
 
 **Target Utama & Kriteria Keberhasilan:**
 
@@ -277,7 +277,7 @@ Seluruh perintah yang dieksekusi selama aktivitas standarisasi dicatat dalam ind
 
 1. **Standarisasi Repositori Selesai 100%:** Seluruh kesenjangan teknis (*gaps*) yang teridentifikasi pada audit [TN-002](TN-002-audit-and-standardize-repositories-for-production-plug-and-play-readiness.md) telah diselesaikan secara tuntas.
 2. **Kesiapan Plug-and-Play Produksi Enterprise:** Ketiga repositori platform kini sepenuhnya *path-agnostic*, mendukung *registry portability*, menerapkan *automated rollback recovery trap*, dan mematuhi *Zero `/tmp` Policy*.
-3. **Fondasi Pipeline CI/CD Terjamin:** Repositori siap dikonsumsi langsung oleh deklarasi `Jenkinsfile` pada tahap implementasi CI/CD berikutnya ([TN-004](TN-004-implement-production-ready-ci-pipeline-for-diagnostic-service.md) s.d. [TN-006](TN-006-implement-stack-orchestration-cd-pipeline-for-tomcat-monitoring.md)) tanpa risiko kegagalan keterikatan lingkungan lokal.
+3. **Fondasi Pipeline CI/CD Terjamin:** Repositori siap dikonsumsi langsung oleh deklarasi `Jenkinsfile` pada tahap implementasi CI/CD berikutnya ([TN-004](TN-004-implement-production-ready-ci-pipeline-for-diagnostic-service.md) s.d. [TN-007](TN-007-execute-live-jenkins-pipeline-verification.md)) tanpa risiko kegagalan keterikatan lingkungan lokal.
 
 ---
 
