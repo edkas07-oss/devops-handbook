@@ -17,7 +17,7 @@
 
 ## 🎯 Objective
 
-Menuntaskan backlog **`TASK-TM-019` (Perancangan Arsitektur Jenkins CI/CD Pipeline & Implementation Roadmap)** dengan merumuskan arsitektur resmi *Continuous Integration and Continuous Deployment* (CI/CD) berbasis Jenkins Pipeline as Code untuk seluruh ekosistem Tomcat Monitoring (`tomcat-diagnostic-service`, `tomcat-diagnostic-event-collector`, dan `tomcat-monitoring`), menetapkan standar kesiapan produksi enterprise (*production-ready*), serta menyusun peta jalan implementasi (*implementation roadmap*) bertahap (TN-002 s.d. TN-005).
+Menuntaskan backlog **`TASK-TM-019` (Perancangan Arsitektur Jenkins CI/CD Pipeline & Implementation Roadmap)** dengan merumuskan arsitektur resmi *Continuous Integration and Continuous Deployment* (CI/CD) berbasis Jenkins Pipeline as Code untuk seluruh ekosistem Tomcat Monitoring (`tomcat-diagnostic-service`, `tomcat-diagnostic-event-collector`, dan `tomcat-monitoring`), menetapkan standar kesiapan produksi enterprise (*production-ready*), serta menyusun peta jalan implementasi (*implementation roadmap*) bertahap (TN-002 s.d. TN-006).
 
 **Target Utama & Kriteria Keberhasilan:**
 
@@ -25,7 +25,7 @@ Menuntaskan backlog **`TASK-TM-019` (Perancangan Arsitektur Jenkins CI/CD Pipeli
 2. **Production-Ready Baseline:** Membakukan 6 pilar standar kesiapan produksi enterprise mencakup portabilitas registry (*registry-agnostic*), tata kelola rahasia (*zero secret leakage*), isolasi keamanan non-root DooD Podman, gerbang kualitas bertingkat, automated rollback, dan runbook SRE.
 3. **Stage Contracts & Quality Gates:** Mendefinisikan kontrak tahapan pipeline secara rinci dari verifikasi statis, pengujian unit Node.js (62 tests), pembangunan OCI image, ephemeral container smoke test, hingga live verification pasca-deploy.
 4. **Agent & Secret Governance:** Menetapkan tata kelola eksekusi non-root DooD via Podman socket pada Jenkins Agent (`builder-01`) dan injeksi rahasia terisolasi via Jenkins Credentials Store (`withCredentials`).
-5. **Implementation Roadmap:** Menyusun urutan implementasi teknis dan target deliverable terukur untuk fase CI/CD (TN-002 s.d. TN-005).
+5. **Implementation Roadmap:** Menyusun urutan implementasi teknis dan target deliverable terukur untuk fase CI/CD (TN-002 s.d. TN-006).
 
 ---
 
@@ -268,19 +268,21 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    TN01["TN-001<br/>Architecture & Roadmap<br/>(Completed ✅)"] --> TN02["TN-002<br/>Diagnostic Service CI<br/>(Planned 📋)"]
-    TN02 --> TN03["TN-003<br/>Event Collector CI<br/>(Planned 📋)"]
-    TN03 --> TN04["TN-004<br/>Monitoring Stack CD Hub<br/>(Planned 📋)"]
-    TN04 --> TN05["TN-005<br/>End-to-End Live Verification<br/>(Planned 📋)"]
+    TN01["TN-001<br/>Architecture & Roadmap<br/>(Completed ✅)"] --> TN02["TN-002<br/>Repo Plug-and-Play Audit<br/>(Planned 📋)"]
+    TN02 --> TN03["TN-003<br/>Diagnostic Service CI<br/>(Planned 📋)"]
+    TN03 --> TN04["TN-004<br/>Event Collector CI<br/>(Planned 📋)"]
+    TN04 --> TN05["TN-005<br/>Monitoring Stack CD Hub<br/>(Planned 📋)"]
+    TN05 --> TN06["TN-006<br/>End-to-End Live Verification<br/>(Planned 📋)"]
 ```
 
 | ID Dokumen | Judul Technical Note & Sasaran Rekayasa | Deliverables Utama |
 | :--- | :--- | :--- |
 | **TN-001** | **Design Production-Ready Jenkins CI/CD Pipeline Architecture and Implementation Roadmap** | Dokumen arsitektur resmi, standar 6 pilar produksi, spesifikasi quality gates, dan roadmap implementasi. *(Dokumen Ini - Selesai)* |
-| **TN-002** | **Implement Production-Ready CI Pipeline for `tomcat-diagnostic-service`** | Declarative `Jenkinsfile`, parameterisasi registry, skrip build berversi, automated test runner, ephemeral smoke testing, dan verifikasi OCI image. |
-| **TN-003** | **Implement CI Pipeline for `tomcat-diagnostic-event-collector`** | Declarative `Jenkinsfile`, static analysis, lint contract validation, dan mock event spool test. |
-| **TN-004** | **Implement Stack Orchestration CD Pipeline for `tomcat-monitoring`** | Declarative `Jenkinsfile` orkestrasi stack, automated deployment, integrasi network `devops-lab`, dan automated rollback logic. |
-| **TN-005** | **Execute and Verify End-to-End CI/CD Pipelines in Jenkins Controller** | Registrasi jobs di Jenkins Controller, pengujian build live (`SUCCESS`), pembuktian incident injection, dan konsolidasi dokumentasi buku petunjuk SRE di Handbook. |
+| **TN-002** | **Audit and Standardize Repositories for Production Plug-and-Play Readiness** | Audit dan perapihan 3 repositori platform: eliminasi path statis host, verifikasi parameterisasi registry/tag, penegakan *zero secret leakage*, kesiapan headless test runner, dan penyusunan checklist kesiapan sebelum penulisan `Jenkinsfile`. |
+| **TN-003** | **Implement Production-Ready CI Pipeline for `tomcat-diagnostic-service`** | Declarative `Jenkinsfile`, parameterisasi registry, skrip build berversi, automated test runner, ephemeral smoke testing, dan verifikasi OCI image. |
+| **TN-004** | **Implement CI Pipeline for `tomcat-diagnostic-event-collector`** | Declarative `Jenkinsfile`, static analysis, lint contract validation, dan mock event spool test. |
+| **TN-005** | **Implement Stack Orchestration CD Pipeline for `tomcat-monitoring`** | Declarative `Jenkinsfile` orkestrasi stack, automated deployment, integrasi network `devops-lab`, dan automated rollback logic. |
+| **TN-006** | **Execute and Verify End-to-End CI/CD Pipelines in Jenkins Controller** | Registrasi jobs di Jenkins Controller, pengujian build live (`SUCCESS`), pembuktian incident injection, dan konsolidasi dokumentasi buku petunjuk SRE di Handbook. |
 
 ---
 
@@ -288,7 +290,7 @@ flowchart LR
 
 1. **Arsitektur CI/CD Disahkan:** Model *Decoupled Component CI + Orchestrated Stack CD Hub* resmi disahkan sebagai standar arsitektur otomasi pengiriman perangkat lunak untuk platform Tomcat Monitoring.
 2. **Standar Kesiapan Produksi Dibakukan:** Enam Pilar Kesiapan Produksi Enterprise telah ditetapkan guna menjamin portabilitas kode dan pipeline di lingkungan kerja target (*Plug-and-Play*).
-3. **Peta Jalan Implementasi Terstruktur:** Roadmap bertahap 4 langkah (**TN-002 s.d. TN-005**) telah dirumuskan dengan sasaran deliverable teknis yang jelas dan terukur.
+3. **Peta Jalan Implementasi Terstruktur:** Roadmap bertahap 5 langkah (**TN-002 s.d. TN-006**) telah dirumuskan dengan sasaran deliverable teknis yang jelas dan terukur, diawali dengan audit standarisasi repositori (TN-002).
 
 ---
 
@@ -301,7 +303,7 @@ flowchart LR
 
 ## ⏭️ Next Steps
 
-- Melaksanakan implementasi **TN-002 — Implement Production-Ready CI Pipeline for `tomcat-diagnostic-service`**.
+- Melaksanakan tahap **TN-002 — Audit and Standardize Repositories for Production Plug-and-Play Readiness**.
 
 ---
 
