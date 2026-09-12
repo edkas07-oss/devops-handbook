@@ -3,374 +3,208 @@
 | Field | Value |
 | --- | --- |
 | Status | Completed |
-| Activity Type | Discovery and Assessment |
+| Activity Type | Discovery, Assessment, and Architecture Design |
 | Record Type | Live |
 | Project | Tomcat Monitoring |
-| Phase | Continuous Integration and Continuous Deployment |
-| Activity Date | 2026-09-11 |
-| Recorded Date | 2026-09-11 |
+| Phase | Continuous Integration and Deployment |
+| Activity Date | 2026-09-12 |
+| Recorded Date | 2026-09-12 |
 | Owner | Eddy Wiyatno |
-| Working Mode | Read-only |
+| Working Mode | Read-only — documentation and architecture design |
 | Authorization Status | Approved |
 | Approved By | Eddy Wiyatno |
-| Approval Date | 2026-09-11 |
+| Approval Date | 2026-09-12 |
 
 ## 🎯 Objective
 
-Mendokumentasikan secara komprehensif seluruh hasil diskusi arsitektur, evaluasi kebutuhan, dan perancangan strategi **Continuous Integration & Continuous Deployment (CI/CD) Pipeline berbasis Jenkins** untuk platform Tomcat Monitoring.
+Menetapkan fondasi dan spesifikasi arsitektur resmi **Continuous Integration and Continuous Deployment (CI/CD) Pipeline berbasis Jenkins** untuk seluruh ekosistem Tomcat Monitoring.
 
-Tujuan utama perancangan ini adalah menghasilkan spesifikasi arsitektur pipeline berstandar **Enterprise Production-Ready** yang bersifat mandiri (*self-contained*), aman (*zero secret leakage*), modular, dan langsung dapat diterapkan (*Plug-and-Play / Tinggal Pakai*) di lingkungan produksi institusi/kantor target tanpa memerlukan refactor arsitektur ulang.
+Tujuan utama Technical Note ini adalah:
+1. **Architecture Baseline:** Merancang topologi pipeline CI/CD modular (*Decoupled Component CI + Orchestrated Stack CD Hub*) yang memisahkan siklus hidup pengembangan komponen mikro dari orkestrasi deployment stack multi-kontainer.
+2. **Enterprise Production-Readiness:** Menegakkan 6 pilar kesiapan produksi (portabilitas registry, eliminasi kebocoran rahasia via Jenkins Credentials Store, gerbang kualitas bertingkat *fail-fast*, kemasan kontainer OCI yang *immutable*, *zero-downtime deployment* dengan *automated rollback*, serta tata kelola runbook SRE).
+3. **Implementation Roadmap:** Menyusun peta jalan rekayasa bertahap (TN-002 s.d. TN-005) sebagai acuan pelaksanaan implementasi teknis yang aman, terukur, dan langsung siap diterapkan (*Plug-and-Play*) di lingkungan enterprise target.
 
 ---
 
 ## 🌍 Background
 
-Setelah penyelesaian stabilisasi runtime fondasi, integrasi platform monitoring, penegakan isolasi volume host spool ([TN-011](../monitoring-platform-integration/TN-011-implement-and-verify-spool-lifecycle-and-log-retention.md)), dan pembuktian *Enterprise SMTP Relay* terotentikasi ([TN-010](../monitoring-platform-integration/TN-010-implement-and-verify-enterprise-smtp-configuration-and-headers.md)), kebutuhan operasional berikutnya adalah otomasi pengiriman kode dan kontainer secara berkelanjutan (**TASK-TM-019: Otomatisasi CI/CD Pipeline Menggunakan Jenkins**).
+Platform Tomcat Monitoring telah berhasil menyelesaikan fase fondasi pemantauan runtime, integrasi platform observabilitas, penegakan siklus hidup spool daemon host ([TN-011](../monitoring-platform-integration/TN-011-implement-and-verify-spool-lifecycle-and-log-retention.md)), dan validasi pengiriman laporan investigasi 7-seksi SRE melalui *Enterprise SMTP Relay* terenkripsi STARTTLS ([TN-010](../monitoring-platform-integration/TN-010-implement-and-verify-enterprise-smtp-configuration-and-headers.md)).
 
-Dalam diskusi pendahuluan, disepakati bahwa:
-1. Backlog **`TASK-TM-009` (Dashboard Grafana)** dikesampingkan (*descoped*) karena platform difokuskan pada investigasi otonom akar masalah (*autonomous root-cause diagnostics*), penyusunan laporan kanonikal 7-seksi SRE via SMTP Relay, dan query langsung Prometheus TSDB.
-2. Backlog **`TASK-TM-012` (Integrasi TrueSight)** dikesampingkan (*descoped*) karena target lingkungan kantor tidak menyediakan infrastruktur TrueSight dan kebutuhan notifikasi insiden enterprise telah terpenuhi sepenuhnya oleh Enterprise SMTP Relay (Pola A).
-3. Sesi dokumentasi rekayasa CI/CD dipisahkan ke dalam fase mandiri (**Continuous Integration and Deployment**) yang diawali oleh Technical Note ini (**TN-001**) untuk memetakan arsitektur, gerbang kualitas (*quality gates*), tata kelola secret, dan peta jalan implementasi skala produksi.
+Meskipun fungsionalitas sistem telah terbukti handal di runtime, proses pengujian kode, pembangunan kontainer, dan deployment stack multi-kontainer saat ini masih dijalankan secara manual melalui skrip shell ad-hoc. Untuk mengoperasikan platform ini pada skala produksi enterprise, diperlukan sistem otomasi pengiriman perangkat lunak (*Software Delivery Automation*) yang terstandarisasi melalui Jenkins Pipeline as Code.
+
+Otomasi ini harus dirancang sejak awal agar memenuhi standar keamanan dan operabilitas enterprise:
+- Menghindari keterikatan terhadap jalur direktori statis pada host (*Path Agnostic*).
+- Menghilangkan penyimpanan rahasia (*credentials*) dalam repositori Git atau berkas konfigurasi statis.
+- Memastikan setiap perubahan kode diverifikasi secara otomatis melalui serangkaian gerbang kualitas (*quality gates*) sebelum dideploy ke runtime produksi.
 
 ---
 
 ## 📚 Scope
 
-Dokumentasi perancangan arsitektur CI/CD ini mencakup:
-1. **Analisis Kebutuhan & Ekspektasi Produksi Enterprise:** Identifikasi pilar-pilar kesiapan produksi (parameterisasi, keamanan rahasia, *quality gates*, immutability, ketahanan deployment, dan runbook).
-2. **Evaluasi Alternatif Topologi Pipeline:** Perbandingan antara pendekatan *Monolithic Single Pipeline* versus *Decoupled Component CI + Orchestrated Stack CD Hub*.
-3. **Standar Keamanan & Tata Kelola Runtime Jenkins:** Standarisasi eksekusi DooD (*Docker/Podman-out-of-Docker*) via Rootless Podman, isolasi credential via Jenkins Store, dan penegakan *Zero `/tmp` Policy*.
-4. **Desain Detail Tahapan Pipeline (*Stage Quality Gates*):** Linting & validasi kontrak, automated unit/schema testing, build OCI image dengan SHA-256 digest pinning, atomic deployment, live smoke verification, dan automated rollback.
-5. **Peta Jalan Implementasi Bertahap (*Implementation Roadmap*):** Perincian Technical Notes lanjutan (TN-002 s.d. TN-005) untuk eksekusi teknis yang terukur.
+| Kategori | Batasan Pekerjaan |
+| :--- | :--- |
+| **Pekerjaan yang Disetujui (*In-Scope*)** | • Analisis kebutuhan dan inventarisasi repositori komponen platform.<br>• Penetapan topologi pipeline (*Decoupled Component CI + Orchestrated Stack CD Hub*).<br>• Perumusan 6 Pilar Standar Kesiapan Produksi Enterprise.<br>• Spesifikasi detail tahapan dan kontrak gerbang kualitas (*Quality Gates Specification*).<br>• Penetapan tata kelola runtime: DooD (*Docker-out-of-Docker*) via Rootless Podman dan Dedicated Jenkins Agent.<br>• Perancangan mekanisme *Zero-Downtime Deployment* dan *Automated Rollback*.<br>• Penyusunan Peta Jalan Implementasi (TN-002 s.d. TN-005). |
+| **Pekerjaan yang Dikecualikan (*Out-of-Scope*)** | • Penulisan berkas `Jenkinsfile` fisik pada repositori (dijadwalkan pada TN-002 s.d. TN-004).<br>• Eksekusi build live dan pendaftaran job pada Jenkins Controller (dijadwalkan pada TN-005).<br>• Modifikasi kode logika aplikasi atau skema database eksisting. |
 
 ---
 
-## 📥 Inputs
+## 🔍 Current Environment & Architectural Assessment
 
-1. **Kode Sumber & Konfigurasi Repositori Eksisting:**
-   - [`tomcat-monitoring`](file:///home/eddywiyatno/git/tomcat-monitoring): Orchestrator stack monitoring, Prometheus rules, Alertmanager config, skrip deployment (`scripts/deploy-*.sh`), dan skrip pengujian live (`test-tomcatdown-live.sh`, `verify-postfix-relay.sh`).
-   - [`tomcat-diagnostic-service`](file:///home/eddywiyatno/git/tomcat-diagnostic-service): Node.js Express service, unit/integration test suites (`npm test`), JSON Schema validators, rulepacks, dan `Containerfile`.
-   - [`tomcat-diagnostic-event-collector`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector): Bash daemon systemd untuk monitoring event Podman host dan spool lifecycle.
-2. **Standar Pipeline As Code di Handbook:**
-   - Implementasi Jenkins CI/CD pada Personal Site ([PS-ADR-0007](../../../../adr/personal-site/adr-records/PS-ADR-0007.md), [PS-ADR-0008](../../../../adr/personal-site/adr-records/PS-ADR-0008.md), [TN-004 Personal Site CI](../../../web-platform/personal-site/engineering-journal/continuous-integration/TN-004-create-jenkinsfile.md)).
-   - Image Jenkins Controller kustom dengan runtime Podman ([`jenkins-podman`](file:///home/eddywiyatno/git/jenkins-podman)).
-3. **Arahan & Persyaratan Pengguna:**
-   - Mengharuskan rancangan pipeline siap digunakan pada skala produksi enterprise (*production-ready*) tanpa refactor lanjutan saat diimplementasikan di lingkungan kerja/kantor.
-   - Memisahkan dokumentasi CI/CD ke halaman fase tersendiri, dimulai dari **TN-001**.
+Evaluasi kondisi terkini komponen platform menunjukkan karakteristik multi-repositori yang membutuhkan strategi CI/CD terdesentralisasi:
 
----
-
-## 🔍 Findings & Assessment
-
-### 1. Karakteristik Multi-Repositori Platform
-
-Platform Tomcat Monitoring tersusun atas 3 repositori utama dengan siklus hidup (*lifecycle*) dan peran yang berbeda:
-
-```text
-+------------------------------------+-------------------------------------------+-----------------------------------+
-| Repositori                         | Sifat Komponen                            | Frekuensi Rilis & Tanggung Jawab  |
-+------------------------------------+-------------------------------------------+-----------------------------------+
-| tomcat-diagnostic-service          | Layanan backend mikro (Node.js ES Module) | Sering berubah (fitur diagnosa,   |
-|                                    | Memiliki unit tests, schema, migrasi DB   | AI prompt/rules, perbaikan bug)   |
-+------------------------------------+-------------------------------------------+-----------------------------------+
-| tomcat-diagnostic-event-collector  | Host daemon (Bash script + systemd unit)  | Jarang berubah (stabilitas spool  |
-|                                    | Menangkap event lifecycle container lokal | dan retensi berkas)               |
-+------------------------------------+-------------------------------------------+-----------------------------------+
-| tomcat-monitoring                  | Orkestrator Platform & Multi-Container    | Mengatur topologi deploy, alert   |
-|                                    | Prometheus, Alertmanager, Postfix, Tests  | rules, dan verifikasi integrasi   |
-+------------------------------------+-------------------------------------------+-----------------------------------+
-```
-
-### 2. Kebutuhan Kesiapan Produksi (*Enterprise Production-Ready*)
-
-Implementasi skala enterprise mengharuskan pipeline memenuhi kriteria ketat berikut:
-- **Portabilitas Registry:** Tidak terkunci pada `localhost`, tetapi mampu mempublikasikan image ke *Enterprise Container Registry* internal perusahaan (seperti Harbor, Nexus OSS, JFrog Artifactory, atau GitLab Container Registry) melalui parameterisasi.
-- **Kepatuhan Zero Secret Leakage:** Tidak boleh ada password SMTP SASL, secret token, atau private key yang dicatat dalam Git atau file konfigurasi statis. Seluruh secret wajib diinjeksi saat runtime pipeline menggunakan Jenkins Credentials Store.
-- **Isolasi Keamanan Rootless:** Pipeline harus dieksekusi oleh user non-root (`eddywiyatno`) melalui Rootless Podman pada dedicated agent (`builder-01`), mencegah eskalasi hak akses ke host operating system.
-- **Pengujian Berlapis (*Quality Gates*):** Mencegah image cacat ter-deploy dengan memvalidasi shell script, menjalankan unit tests, memvalidasi schema JSON, dan melakukan ephemeral container smoke test sebelum menyentuh kontainer live.
-- **Ketahanan Deployment (*Zero-Downtime & Rollback*):** Menjaga kontinuitas layanan melalui *atomic container replacement* dan pemulihan otomatis (*automated rollback*) ke snapshot container sebelumnya jika verifikasi live gagal.
+| Komponen / Repositori | Karakteristik Layanan | Toolchain & Test Suite | Peran dalam CI/CD |
+| :--- | :--- | :--- | :--- |
+| **`tomcat-diagnostic-service`** | Layanan backend mikro (Node.js 24 ESM, SQLite, AJV, Nodemailer) | • Unit & component tests (`npm test` / 62 tests)<br>• Schema validator (`scripts/validate.sh`)<br>• OCI Buildah (`Containerfile`) | **Component CI:** Linting, Unit Testing, OCI Image Build & Tagging, Ephemeral Container Smoke Test. |
+| **`tomcat-diagnostic-event-collector`** | Daemon pengawas event Podman host (Bash script & `systemd --user`) | • Baseline validator (`scripts/validate.sh`)<br>• Spool lifecycle & pruning test (`test/test-collector.sh`) | **Component CI:** ShellCheck static analysis, syntax validation, dan mock spool retention test. |
+| **`tomcat-monitoring`** | Orkestrator platform multi-kontainer (Prometheus, Alertmanager, Postfix, JMX Exporter) | • Platform validator (`scripts/validate.sh`)<br>• Live test suite (`test-tomcatdown-live.sh`, `verify-postfix-relay.sh`) | **Stack CD Hub:** Integrasi network/volume, deployment multi-kontainer, live incident simulation, dan automated rollback. |
+| **`jenkins-podman`** | Infrastruktur orkestrasi CI/CD controller | • Jenkins LTS<br>• Rootless Podman runtime | **CI/CD Controller:** Mengelola job deklaratif, trigger webhook, dan credential store terisolasi. |
+| **Dedicated Agent (`builder-01`)** | Runner eksekusi pipeline pada host runtime | • SSH Launcher<br>• Rootless Podman UID 1000 | **Execution Runner:** Menjalankan build, container packaging, dan manipulasi volume runtime secara lokal. |
 
 ---
 
-## ⚖️ Alternatives Considered
+## 🏛️ Production-Ready Pipeline Architecture
 
-### Opsi A: Monolithic All-in-One Pipeline di `tomcat-monitoring`
-
-Seluruh proses build dan pengujian ketiga komponen digabungkan ke dalam satu file `Jenkinsfile` tunggal di repositori `tomcat-monitoring`.
-
-- **Kelebihan:** Hanya perlu mengelola satu Jenkins Job.
-- **Kekurangan:**
-  - Melanggar batas kepemilikan repositori (*repository boundaries*).
-  - Feedback loop lambat bagi developer yang hanya memodifikasi logic di `tomcat-diagnostic-service`.
-  - Memerlukan mekanisme checkout multi-repo yang rentan konflik versi.
-
-### Opsi B: Decoupled Component CI + Orchestrated Stack CD Hub (Pilihan Terpilih ⭐)
-
-Menerapkan pemisahan tugas secara bersih:
-1. **Component CI Jobs:** `tomcat-diagnostic-service` dan `tomcat-diagnostic-event-collector` memiliki `Jenkinsfile` CI masing-masing untuk linting, unit testing, packaging OCI image, dan ephemeral smoke testing.
-2. **Stack CD Hub Job:** `tomcat-monitoring` memiliki `Jenkinsfile` orkestrasi untuk validasi kontrak platform, deployment multi-kontainer rootless, eksekusi live verification suite, dan automated rollback.
-
-- **Kelebihan:**
-  - Mengikuti prinsip *Single Responsibility* dan standar arsitektur microservices enterprise.
-  - Feedback loop sangat cepat (hitungan detik) untuk perubahan kode unit.
-  - Deployment stack terisolasi dan dapat dipicu secara mandiri maupun berantai (*upstream/downstream trigger*).
-  - Portabel dan mudah diadaptasi ke sistem CI/CD lain (GitLab CI / GitHub Actions) jika diperlukan di masa depan.
-- **Kekurangan:** Memerlukan konfigurasi 3 job pipeline deklaratif di Jenkins (dapat diotomatisasi melalui Jenkinsfile).
-
----
-
-## 🏛️ Architectural Standards & Core Pillars
-
-Untuk menjamin kualitas skala produksi, arsitektur CI/CD Tomcat Monitoring ditegakkan di atas **6 Pilar Produksi Enterprise**:
+Arsitektur CI/CD Tomcat Monitoring dirancang memadukan model **Component CI** terdistribusi dengan **Stack CD Hub** terpusat:
 
 ```mermaid
 flowchart TD
-    subgraph P1["Pilar 1: Parameterized & Registry-Agnostic"]
-        A1["Parameter BUILD_ENV, REGISTRY_HOST, IMAGE_TAG"]
-        A2["Dukungan Local Podman & Enterprise Registry (Harbor/Nexus)"]
+    subgraph SCM["Source Code Management (Git Repositories)"]
+        RepoDS["tomcat-diagnostic-service<br/>(Node.js Backend)"]
+        RepoEC["tomcat-diagnostic-event-collector<br/>(Host Daemon)"]
+        RepoTM["tomcat-monitoring<br/>(Stack Orchestrator)"]
     end
 
-    subgraph P2["Pilar 2: Zero Secret Exposure & Security Isolation"]
-        B1["Injeksi Rahasia via Jenkins Credentials Store (withCredentials)"]
-        B2["Eksekusi Non-Root Rootless Podman di Agent builder-01"]
-        B3["Penegakan Zero /tmp Policy & Izin Ketat 0700/0400"]
+    subgraph CI_DS["1. Diagnostic Service CI Pipeline"]
+        DS1["Stage 1: Checkout & Lint (validate.sh)"]
+        DS2["Stage 2: Unit & Schema Tests (npm test)"]
+        DS3["Stage 3: Build & Pin OCI Image (Containerfile)"]
+        DS4["Stage 4: Ephemeral Container Smoke Test (/health)"]
+        DS5["Stage 5: Publish Image (Local / Enterprise Registry)"]
+        DS1 --> DS2 --> DS3 --> DS4 --> DS5
     end
 
-    subgraph P3["Pilar 3: Strict Multi-Stage Quality Gates"]
-        C1["Stage 1: Linting & Contract Validation (validate.sh & ShellCheck)"]
-        C2["Stage 2: Unit, Contract & Schema Test (npm test & AJV)"]
-        C3["Stage 3: Ephemeral Smoke Test (/health & /metrics)"]
+    subgraph CI_EC["2. Event Collector CI Pipeline"]
+        EC1["Stage 1: Checkout & Static Analysis"]
+        EC2["Stage 2: ShellCheck & Contract Validation"]
+        EC3["Stage 3: Mock Spool & Pruning Retention Test"]
+        EC1 --> EC2 --> EC3
     end
 
-    subgraph P4["Pilar 4: Immutable OCI Packaging & Metadata"]
-        D1["Build OCI Image dengan Buildah/Podman"]
-        D2["Sematkan Metadata Standar OCI (git-sha, build-no, version)"]
-        D3["Pinning SHA-256 Digest Lokal"]
+    subgraph CD_Stack["3. Monitoring Stack CD Pipeline Hub"]
+        TM1["Stage 1: Checkout & Validate Platform Configs"]
+        TM2["Stage 2: Verify Network & Volume Isolation"]
+        TM3["Stage 3: Zero-Touch Deployment (deploy-*.sh)"]
+        TM4["Stage 4: Live Verification (Incident Simulation & SMTP Relay)"]
+        Rollback["Post-Failure: Automated Container Rollback"]
+        TM1 --> TM2 --> TM3 --> TM4
+        TM3 -.->|Gagal| Rollback
+        TM4 -.->|Gagal| Rollback
     end
 
-    subgraph P5["Pilar 5: Atomic Deployment & Automated Rollback"]
-        E1["Deployment tanpa downtime via deploy-*.sh"]
-        E2["Snapshot Kontainer Rollback Aktif (diagnostic-service-rollback-*)"]
-        E3["Pemulihan Otomatis pada Blok post.failure"]
-    end
-
-    subgraph P6["Pilar 6: Live SRE Verification & Self-Documentation"]
-        F1["Pengujian Simulasi Insiden Live (test-tomcatdown-live.sh)"]
-        F2["Pengujian Validasi Postfix Relay (verify-postfix-relay.sh)"]
-        F3["Dokumentasi Lengkap di DevOps Handbook & Runbook"]
-    end
-
-    P1 --> P2 --> P3 --> P4 --> P5 --> P6
+    RepoDS -->|Push / PR| CI_DS
+    RepoEC -->|Push / PR| CI_EC
+    RepoTM -->|Release / Push| CD_Stack
+    CI_DS -->|Deploy Artifacts| CD_Stack
 ```
 
-### 1. Spesifikasi Standar `Jenkinsfile` Komponen (`tomcat-diagnostic-service`)
-
-Struktur pipeline deklaratif yang dirancang untuk komponen backend:
-
-```groovy
-pipeline {
-    agent {
-        label 'builder'
-    }
-
-    parameters {
-        choice(name: 'DEPLOY_ENV', choices: ['STAGING', 'PRODUCTION'], description: 'Target deployment environment')
-        string(name: 'REGISTRY_HOST', defaultValue: 'localhost', description: 'Target OCI Image Registry (e.g. localhost, harbor.internal.corp:5000)')
-        booleanParam(name: 'PUSH_IMAGE', defaultValue: false, description: 'Push container image to remote registry if configured')
-    }
-
-    environment {
-        PROJECT_NAME    = 'tomcat-diagnostic-service'
-        APP_PORT        = '8443'
-        NODE_ENV        = 'production'
-    }
-
-    stages {
-        stage('Checkout Source') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Static Lint & Contract Validation') {
-            steps {
-                sh '''
-                    set -euo pipefail
-                    echo "=== [Stage 1] Validating Shell Scripts & Non-secret Contract ==="
-                    bash scripts/validate.sh
-                '''
-            }
-        }
-
-        stage('Automated Unit & Schema Tests') {
-            steps {
-                sh '''
-                    set -euo pipefail
-                    echo "=== [Stage 2] Executing Node.js Unit & Component Tests ==="
-                    npm test
-                '''
-            }
-        }
-
-        stage('Build & Pin OCI Image') {
-            steps {
-                sh '''
-                    set -euo pipefail
-                    echo "=== [Stage 3] Building Immutable OCI Image ==="
-                    VERSION="$(<VERSION)"
-                    BUILD_TAG="${VERSION}-b${BUILD_NUMBER}-${GIT_COMMIT:0:7}"
-                    IMAGE_URI="${REGISTRY_HOST}/${PROJECT_NAME}"
-
-                    echo "Building image: ${IMAGE_URI}:${BUILD_TAG}"
-                    bash scripts/build.sh
-
-                    podman tag "${PROJECT_NAME}:${VERSION}" "${IMAGE_URI}:${BUILD_TAG}"
-                    podman tag "${PROJECT_NAME}:${VERSION}" "${IMAGE_URI}:latest"
-                    
-                    echo "IMAGE_BUILD_TAG=${BUILD_TAG}" > build.env
-                '''
-            }
-        }
-
-        stage('Ephemeral Smoke Test') {
-            steps {
-                sh '''
-                    set -euo pipefail
-                    echo "=== [Stage 4] Ephemeral Container Healthcheck Test ==="
-                    VERSION="$(<VERSION)"
-                    bash scripts/test-image.sh
-                '''
-            }
-        }
-
-        stage('Publish Container Image') {
-            when {
-                expression { return params.PUSH_IMAGE == true && params.REGISTRY_HOST != 'localhost' }
-            }
-            steps {
-                sh '''
-                    set -euo pipefail
-                    echo "=== [Stage 5] Pushing Image to Enterprise Registry ==="
-                    # Autentikasi dan push image ke remote registry
-                '''
-            }
-        }
-    }
-
-    post {
-        always {
-            cleanWs deleteDirs: true, notFailBuild: true
-        }
-        failure {
-            echo "❌ Build Pipeline Gagal. Menjaga runtime aktif tetap utuh tanpa perubahan."
-        }
-    }
-}
-```
-
-### 2. Spesifikasi Standar `Jenkinsfile` Orkestrator Stack (`tomcat-monitoring`)
-
-Pipeline orkestrator yang bertanggung jawab atas deployment lingkungan dan verifikasi live:
-
-```groovy
-pipeline {
-    agent {
-        label 'builder'
-    }
-
-    parameters {
-        choice(name: 'DEPLOY_ACTION', choices: ['DEPLOY_AND_VERIFY', 'VERIFY_ONLY', 'ROLLBACK'], description: 'Tindakan orkestrasi')
-        booleanParam(name: 'RUN_INCIDENT_SIMULATION', defaultValue: true, description: 'Jalankan live incident injection & SMTP verification')
-    }
-
-    stages {
-        stage('Checkout Stack Source') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Validate Platform Contracts') {
-            steps {
-                sh '''
-                    set -euo pipefail
-                    echo "=== Validating Monitoring Stack Configurations ==="
-                    bash scripts/validate.sh
-                '''
-            }
-        }
-
-        stage('Verify Runtime & Volume Isolation') {
-            steps {
-                sh '''
-                    set -euo pipefail
-                    echo "=== Verifying Network & Named Volumes ==="
-                    podman network exists devops-lab || podman network create devops-lab
-                    podman volume exists diagnostic_data || podman volume create diagnostic_data
-                    podman volume exists tomcat_logs || podman volume create tomcat_logs
-                '''
-            }
-        }
-
-        stage('Execute Zero-Touch Deployment') {
-            when {
-                expression { return params.DEPLOY_ACTION == 'DEPLOY_AND_VERIFY' }
-            }
-            steps {
-                sh '''
-                    set -euo pipefail
-                    echo "=== Deploying Stack Containers ==="
-                    bash scripts/deploy-diagnostic-service.sh
-                    bash scripts/deploy-postfix-relay.sh
-                    bash scripts/deploy-prometheus.sh
-                    bash scripts/deploy-alertmanager.sh
-                '''
-            }
-        }
-
-        stage('Live Verification Suite') {
-            when {
-                expression { return params.RUN_INCIDENT_SIMULATION == true }
-            }
-            steps {
-                sh '''
-                    set -euo pipefail
-                    echo "=== Executing Live End-to-End Verification ==="
-                    bash scripts/verify-postfix-relay.sh
-                    bash scripts/test-tomcatdown-live.sh
-                '''
-            }
-        }
-    }
-
-    post {
-        failure {
-            sh '''
-                echo "⚠️ Deployment / Verifikasi Gagal! Melakukan rollback otomatis ke versi snapshot sebelumnya..."
-                # Eksekusi rollback kontainer jika verifikasi live gagal
-                bash scripts/deploy-diagnostic-service.sh --rollback || true
-            '''
-        }
-    }
-}
-```
+### Pemisahan Lapisan Tanggung Jawab (*Separation of Concerns*):
+1. **Lapisan Komponen Mikro (*Component Layer*):** Memungkinkan pengembang melakukan iterasi fitur diagnostik secara mandiri dengan *feedback loop* instan (hitungan detik).
+2. **Lapisan Artefak Kontainer (*Artifact Layer*):** Menjamin artefak rilis berstatus *immutable* (dibangun sekali dengan OCI metadata lengkap dan SHA-256 digest terpin).
+3. **Lapisan Orkestrasi & Verifikasi (*Deployment & Verification Layer*):** Menjamin stabilitas lingkungan operasional dengan menguji integrasi multi-kontainer secara live sebelum rilis dinyatakan `SUCCESS`.
 
 ---
 
-## ⚠️ Risks & Mitigations
+## ⚖️ 6 Pilar Standar Kesiapan Produksi Enterprise
 
-| Risiko Operasional | Dampak | Mitigasi Arsitektural |
+Untuk memastikan seluruh skrip dan definisi pipeline langsung dapat digunakan (*Plug-and-Play*) pada infrastruktur kantor/enterprise target, arsitektur ini menerapkan 6 pilar utama:
+
+```mermaid
+flowchart LR
+    P1["1. Parameterized & Registry-Agnostic"]
+    P2["2. Zero Secret Leakage Governance"]
+    P3["3. Strict Multi-Stage Quality Gates"]
+    P4["4. Immutable OCI Build & Metadata"]
+    P5["5. Zero-Downtime & Auto Rollback"]
+    P6["6. Self-Documenting Runbook"]
+
+    P1 --- P2 --- P3 --- P4 --- P5 --- P6
+```
+
+### 1. Parameterized & Registry-Agnostic Portability
+- Pipeline tidak mengunci dependensi pada nama host atau registry statis.
+- Dilengkapi parameter deklaratif:
+  - `REGISTRY_HOST`: Mendukung local runtime (`localhost`) maupun Enterprise Registry (Harbor, Nexus OSS, JFrog Artifactory, AWS ECR).
+  - `DEPLOY_ENV`: Pilihan target deployment (`STAGING` / `PRODUCTION`).
+  - `IMAGE_TAG`: Otomatis menyusun identitas rilis berformat `<VERSION>-b<BUILD_NUMBER>-<GIT_COMMIT_SHORT>`.
+
+### 2. Zero Secret Leakage & Security Isolation Governance
+- Dilarang menyimpan kata sandi SMTP SASL, token bearer, atau private key di repositori Git atau berkas konfigurasi teks datar.
+- Seluruh rahasia dikelola terpusat pada **Jenkins Credentials Store** dan diinjeksi saat runtime pipeline menggunakan direktif `withCredentials`.
+- Pipeline dieksekusi oleh user non-root (`eddywiyatno`) melalui Rootless Podman pada dedicated agent node (`builder-01`), menegakkan *Zero `/tmp` Policy* dan hak akses direktori ketat `0700`/`0400`.
+
+### 3. Strict Multi-Stage Quality Gates
+Pipeline menerapkan prinsip *fail-fast* melalui 4 gerbang pengujian bertingkat:
+1. **Gate 1 — Static Analysis & Linting:** Memvalidasi konsistensi kontrak non-secret (`CONFIG`) dan sintaks shell script.
+2. **Gate 2 — Automated Unit & Schema Tests:** Menjalankan unit tests Node.js (`npm test`) dan validasi schema JSON (AJV).
+3. **Gate 3 — Ephemeral Smoke Test:** Menjalankan kontainer sementara untuk menguji respons endpoint `/health` dan `/metrics` sebelum deployment ke runtime aktif.
+4. **Gate 4 — Live Verification Suite:** Menguji simulasi insiden live (`test-tomcatdown-live.sh`) dan transmisi email relay (`verify-postfix-relay.sh`).
+
+### 4. Immutable OCI Packaging & Metadata Pinning
+- Kontainer dibangun menggunakan runtime Podman/Buildah dengan OCI Image Specification.
+- Metadata traceability disematkan langsung ke label image:
+  - `org.opencontainers.image.title`: Nama proyek.
+  - `org.opencontainers.image.version`: Versi semantik dari berkas `VERSION`.
+  - `org.opencontainers.image.revision`: Git commit hash SHA-1 lengkap.
+  - `org.opencontainers.image.created`: Timestamp build ISO-8601 UTC.
+- Pengecekan SHA-256 digest base image lokal menjamin integritas rantai pasok kontainer (*Supply Chain Integrity*).
+
+### 5. Atomic Zero-Downtime Deployment & Automated Rollback
+- Skrip deployment (`deploy-*.sh`) menerapkan mekanisme *Atomic Container Replacement*: kontainer aktif yang sedang berjalan diubah namanya menjadi snapshot cadangan (`diagnostic-service-rollback-*`) sebelum kontainer versi baru diluncurkan.
+- Apabila validasi pasca-deploy (*post-deploy healthcheck*) atau simulasi insiden live gagal, blok `post.failure` Jenkins otomatis memicu prosedur rollback untuk mengaktifkan kembali kontainer snapshot tanpa intervensi manual operator.
+
+### 6. Self-Documenting Pipeline & SRE Runbook
+- Seluruh definisi pipeline ditulis menggunakan **Declarative Pipeline v2** (`Jenkinsfile`) yang tersimpan di dalam repositori (*Pipeline as Code*).
+- Setiap pipeline dilengkapi dokumentasi Technical Note, panduan registrasi Job pada Jenkins GUI langkah demi langkah, dan SOP penanganan kegagalan (*troubleshooting runbook*).
+
+---
+
+## 📋 Quality Gates & Stage Contracts Specification
+
+### 1. Spesifikasi Pipeline CI Komponen (`tomcat-diagnostic-service`)
+
+| Stage Name | Tujuan & Tindakan Eksekusi | Kriteria Keberhasilan (*Exit Criteria*) |
 | :--- | :--- | :--- |
-| **Jenkins Agent kekurangan izin Podman** | Build gagal saat eksekusi container | Agent dijalankan di bawah user lokal `eddywiyatno` yang telah terdaftar subuid/subgid dan memiliki session daemon aktif. |
-| **Kebocoran Kredensial SMTP / SASL** | Pelanggaran keamanan enterprise | Menggunakan Jenkins Credential Store; kredensial diinjeksi hanya saat execution stage dan tidak pernah ditulis ke disk repositori. |
-| **Kegagalan Runtime saat Deploy Baru** | Layanan monitoring mengalami downtime | Menerapkan snapshot kontainer sebelum update (`diagnostic-service-rollback-*`) dan blok `post.failure` otomatis memicu restore. |
-| **Penumpukan Workspace & Image Kadaluwarsa** | Kehabisan ruang disk server | Penggunaan direktif `cleanWs` pada blok `post.always` serta pruning image dangling secara berkala. |
+| **Stage 1: Checkout Source** | Mengambil kode sumber dari branch target Git. | Workspace bersih dan commit hash teridentifikasi. |
+| **Stage 2: Static Lint & Validation** | Menjalankan `./scripts/validate.sh` untuk validasi shell syntax dan konsistensi parameter non-secret. | Tidak ada error sintaks dan berkas konfigurasi memenuhi schema. |
+| **Stage 3: Automated Unit Testing** | Menjalankan rangkaian 62 unit/integration tests Node.js via container runtime. | 100% tests lulus (`pass 62, fail 0`) dalam waktu $< 2\text{ detik}$. |
+| **Stage 4: OCI Image Build & Tagging** | Mengeksekusi `./scripts/build.sh` dan menyematkan tag rilis serta OCI labels. | Image kontainer terbentuk dengan SHA-256 digest valid. |
+| **Stage 5: Ephemeral Smoke Test** | Meluncurkan container sementara dan memvalidasi endpoint `/health` serta `/metrics`. | HTTP 200 OK diterima dari health check endpoint. |
+| **Stage 6: Publish Image (Optional)** | Mendorong image ke Enterprise Container Registry jika parameter `PUSH_IMAGE=true`. | Image tersedia pada remote registry target. |
+| **Post Action: Workspace Cleanup** | Membersihkan direktori staging dan artefak sementara (`cleanWs`). | Workspace kembali bersih bebas residu. |
+
+### 2. Spesifikasi Pipeline CI Komponen (`tomcat-diagnostic-event-collector`)
+
+| Stage Name | Tujuan & Tindakan Eksekusi | Kriteria Keberhasilan (*Exit Criteria*) |
+| :--- | :--- | :--- |
+| **Stage 1: Checkout Source** | Mengambil kode sumber dari repositori event collector. | Workspace terinisialisasi. |
+| **Stage 2: Static Validation** | Menjalankan `./scripts/validate.sh` dan static check terhadap skrip collector. | Skrip bash valid dan izin eksekusi terpenuhi. |
+| **Stage 3: Spool & Pruning Test** | Menjalankan `test/test-collector.sh` untuk menguji pemangkasan berkas dan retensi spool. | Seluruh skenario pengujian siklus hidup spool lulus 100%. |
+
+### 3. Spesifikasi Pipeline CD Orkestrasi Stack (`tomcat-monitoring`)
+
+| Stage Name | Tujuan & Tindakan Eksekusi | Kriteria Keberhasilan (*Exit Criteria*) |
+| :--- | :--- | :--- |
+| **Stage 1: Platform Validation** | Menjalankan `./scripts/validate.sh` untuk memeriksa konfigurasi Prometheus, Alertmanager, dan Postfix. | Seluruh konfigurasi monitoring stack valid. |
+| **Stage 2: Runtime Isolation Prep** | Memastikan network Podman `devops-lab` dan Named Volumes terpasang dengan izin `0700`. | Network dan volume persisten siap digunakan. |
+| **Stage 3: Zero-Touch Deployment** | Menjalankan skrip `deploy-*.sh` untuk memperbarui layanan kontainer secara atomik. | Kontainer baru aktif dan berstatus `running`. |
+| **Stage 4: Live Verification Suite** | Mengeksekusi `verify-postfix-relay.sh` dan `test-tomcatdown-live.sh`. | Simulasi insiden live berhasil memicu diagnosa otonom dan laporan 7-seksi diterima via relay. |
+| **Post-Failure: Automated Rollback** | Memulihkan kontainer versi sebelumnya jika Stage 3 atau 4 mengalami kegagalan. | Layanan kembali normal menggunakan versi stabil sebelumnya. |
 
 ---
 
 ## 🗺️ Implementation Roadmap
 
-Berdasarkan rancangan arsitektur di atas, pekerjaan implementasi dibagi menjadi Technical Notes (TN) terstruktur dalam fase ini:
+Pelaksanaan implementasi pipeline CI/CD dibagi menjadi 4 Technical Notes (TN) terstruktur dalam fase ini:
 
 ```mermaid
 flowchart LR
@@ -380,22 +214,21 @@ flowchart LR
     TN04 --> TN05["TN-005<br/>End-to-End Live Verification<br/>(Planned 📋)"]
 ```
 
-| ID TN | Topik & Sasaran Rekayasa | Deliverables Utama |
+| ID Dokumen | Judul Technical Note & Sasaran Rekayasa | Deliverables Utama |
 | :--- | :--- | :--- |
-| **TN-001** | **Design Production-Ready Jenkins CI/CD Pipeline Architecture & Roadmap** | Dokumen arsitektur, standar 6 pilar produksi, evaluasi multi-repo, dan roadmap. *(Dokumen Ini - Selesai)* |
-| **TN-002** | **Implement Production-Ready CI Pipeline for `tomcat-diagnostic-service`** | `Jenkinsfile` deklaratif, parameterisasi registry, skrip build berversi, automated test runner, ephemeral smoke testing, dan verifikasi OCI image. |
-| **TN-003** | **Implement CI Pipeline for `tomcat-diagnostic-event-collector`** | `Jenkinsfile` deklaratif, static analysis & shellcheck, dan mock event spool validation. |
-| **TN-004** | **Implement Stack Orchestration CD Pipeline for `tomcat-monitoring`** | `Jenkinsfile` orkestrasi stack, automated deployment, integrasi network `devops-lab`, dan automated rollback logic. |
+| **TN-001** | **Design Production-Ready Jenkins CI/CD Pipeline Architecture and Implementation Roadmap** | Dokumen arsitektur resmi, standar 6 pilar produksi, spesifikasi quality gates, dan roadmap implementasi. *(Dokumen Ini - Selesai)* |
+| **TN-002** | **Implement Production-Ready CI Pipeline for `tomcat-diagnostic-service`** | Declarative `Jenkinsfile`, parameterisasi registry, skrip build berversi, automated test runner, ephemeral smoke testing, dan verifikasi OCI image. |
+| **TN-003** | **Implement CI Pipeline for `tomcat-diagnostic-event-collector`** | Declarative `Jenkinsfile`, static analysis, lint contract validation, dan mock event spool test. |
+| **TN-004** | **Implement Stack Orchestration CD Pipeline for `tomcat-monitoring`** | Declarative `Jenkinsfile` orkestrasi stack, automated deployment, integrasi network `devops-lab`, dan automated rollback logic. |
 | **TN-005** | **Execute and Verify End-to-End CI/CD Pipelines in Jenkins Controller** | Registrasi jobs di Jenkins Controller, pengujian build live (`SUCCESS`), pembuktian incident injection, dan konsolidasi dokumentasi buku petunjuk SRE di Handbook. |
 
 ---
 
 ## 🧾 Outcome
 
-1. Seluruh diskusi arsitektur, evaluasi kebutuhan, dan perancangan strategi CI/CD skala produksi telah **berhasil dicatat secara sistematis pada fase mandiri Continuous Integration and Deployment**.
-2. Ditetapkan pola arsitektur terpilih: **Decoupled Component CI + Orchestrated Stack CD Hub** yang modular dan memenuhi standar kepatuhan enterprise.
-3. Dirumuskan **6 Pilar Standar Produksi** sebagai jaminan agar seluruh artefak kode dan pipeline yang dibangun bersifat *Plug-and-Play* (*Tinggal Pakai*) di lingkungan kantor.
-4. Disusun peta jalan implementasi 4 langkah (**TN-002 s.d. TN-005**) untuk memandu eksekusi teknis berikutnya dengan aman dan terukur.
+1. **Spesifikasi Arsitektur Ditetapkan:** Pola *Decoupled Component CI + Orchestrated Stack CD Hub* resmi menjadi arsitektur standar CI/CD Tomcat Monitoring.
+2. **Standar Kesiapan Produksi Ditegakkan:** Dirumuskan 6 Pilar Standar Produksi Enterprise untuk menjamin seluruh kode dan pipeline bersifat *Plug-and-Play* (*Tinggal Pakai*) di lingkungan kantor target.
+3. **Peta Jalan Terstruktur Disahkan:** Roadmap implementasi 4 tahap (**TN-002 s.d. TN-005**) telah didefinisikan secara jelas dengan deliverables dan kriteria keberhasilan yang terukur.
 
 ---
 
@@ -408,8 +241,7 @@ flowchart LR
 
 ## ⏭️ Next Steps
 
-- Melakukan penyempurnaan 4 titik portabilitas skrip (dynamic sibling resolution dan OCI-first contract).
-- Memulai eksekusi tahap **TN-002 — Implement Production-Ready CI Pipeline for `tomcat-diagnostic-service`**.
+- Memulai pelaksanaan **TN-002 — Implement Production-Ready CI Pipeline for `tomcat-diagnostic-service`**.
 
 ---
 
