@@ -26,6 +26,42 @@ Membangun ekosistem otomasi CI/CD terintegrasi yang andal, aman, dan siap pakai 
 
 ---
 
+## 🏛️ CI/CD Layering Architecture: Application, Daemon, and Infrastructure
+
+Platform Tomcat Monitoring membagi otomasi CI/CD ke dalam **3 Lapisan Arsitektur (*Architectural Layers*)** yang masing-masing dikelola oleh alur *Jenkins Pipeline as Code* tersendiri sesuai batas tanggung jawabnya (*Separation of Concerns*):
+
+```mermaid
+flowchart TD
+    subgraph Layer1["1. Application Code Layer (Microservice)"]
+        DS_Repo["Repositori: tomcat-diagnostic-service"]
+        DS_CI["Pipeline CI: Unit Tests, Schema Validation,<br/>OCI Image Packaging & Smoke Test"]
+        DS_Repo --> DS_CI
+    end
+
+    subgraph Layer2["2. Host Daemon & OS Agent Layer"]
+        EC_Repo["Repositori: tomcat-diagnostic-event-collector"]
+        EC_CI["Pipeline CI: ShellCheck Governance,<br/>Spool Lifecycle & FIFO Retention Tests"]
+        EC_Repo --> EC_CI
+    end
+
+    subgraph Layer3["3. Platform Infrastructure & Stack Orchestration Layer"]
+        TM_Repo["Repositori: tomcat-monitoring (Infrastructure as Code)"]
+        TM_CD["Pipeline CD Hub: Network Bridge, Volumes,<br/>COTS Containers, Zero-Touch Deploy & Live Verification"]
+        TM_Repo --> TM_CD
+    end
+
+    DS_CI -.->|Immutable OCI Image| Layer3
+    EC_CI -.->|Host Systemd Daemon| Layer3
+```
+
+| Lapisan Arsitektur (*Layer*) | Repositori & Pipeline | Peran / Tanggung Jawab (*Responsibility*) | Karakteristik Siklus Rilis (*Release Lifecycle*) |
+| :--- | :--- | :--- | :--- |
+| **Application Layer** | **Pipeline 1**<br/>[`tomcat-diagnostic-service`](file:///home/eddywiyatno/git/tomcat-diagnostic-service) | **Logika Aplikasi / Backend Mikroservis**<br/>Menguji kode Node.js 24 ESM, validasi 62 *unit/schema test suites*, membangun OCI container image, dan menguji *ephemeral smoke test*. | *Fast Feedback Loop* (hitungan detik) saat pengembang memperbarui kode analitik atau aturan diagnostik. |
+| **Host Daemon Layer** | **Pipeline 2**<br/>[`tomcat-diagnostic-event-collector`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector) | **Host Daemon / Agen Pengamat Sistem Operasi**<br/>Menguji skrip Bash pengamat event Podman/kernel, tata kelola ShellCheck, dan siklus retensi spool `0700`. | *Script & Daemon Validation* independen tanpa memerlukan runtime Node.js atau OCI image. |
+| **Infrastructure Layer** | **Pipeline 3**<br/>[`tomcat-monitoring`](file:///home/eddywiyatno/git/tomcat-monitoring) | **Infrastruktur Platform & Orkestrator Multi-Kontainer (*Infrastructure as Code*)**<br/>Mengelola *network bridge* (`devops-lab`), *named volumes*, layanan COTS (Prometheus, Alertmanager, Postfix SMTP Relay, Mailpit), *zero-touch deployment*, serta *Live Verification Suite*. | *Integration & Deployment Hub* yang menyatukan seluruh komponen aplikasi dan infrastruktur ke dalam satu lingkungan runtime terpadu. |
+
+---
+
 ## 🛠️ Implementation Result
 
 | Component / Focus Area | Implementation | Status |

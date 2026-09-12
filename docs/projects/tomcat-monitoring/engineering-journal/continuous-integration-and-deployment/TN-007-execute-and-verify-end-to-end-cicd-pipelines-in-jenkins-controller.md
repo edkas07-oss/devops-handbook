@@ -37,6 +37,14 @@ Setelah penyusunan arsitektur CI/CD ([TN-001](TN-001-design-production-ready-jen
 
 Aktivitas ini memvalidasi keterhubungan antara Jenkins Controller (`jenkins-podman`), *Dedicated Build Agent* SSH (`builder-01`), peladen Git lokal (*Gitea*), *Container Engine* (*Rootless Podman*), serta ekosistem monitoring yang dideploy secara *zero-touch* (peluncuran sistem secara mandiri tanpa intervensi manual pengembang).
 
+### Klasifikasi 3 Lapisan Pipeline CI/CD
+
+Ketiga *pipeline* yang dieksekusi mencerminkan pembagian lapisan arsitektur platform:
+
+1. **Application Code Layer (`tomcat-diagnostic-service` — Pipeline 1):** Menguji dan mempaketkan mikroservis backend Node.js analitik insiden menjadi artefak OCI container image independen.
+2. **Host Daemon / OS Agent Layer (`tomcat-diagnostic-event-collector` — Pipeline 2):** Menguji skrip Bash dan tata kelola daemon `systemd` pengamat event container di host Linux.
+3. **Platform Infrastructure & Stack Orchestration Layer (`tomcat-monitoring` — Pipeline 3):** Bertindak sebagai *Infrastructure as Code* (IaC) dan *Stack CD Hub* yang mengelola *network bridge* (`devops-lab`), *storage volumes*, layanan COTS (Prometheus, Alertmanager, Postfix Relay, Mailpit), *zero-touch deployment*, serta membuktikan keandalan end-to-end melalui simulasi insiden *live*.
+
 ---
 
 ## 📚 Scope
