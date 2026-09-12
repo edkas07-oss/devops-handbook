@@ -33,6 +33,7 @@ Membangun ekosistem otomasi CI/CD terintegrasi yang andal, aman, dan siap pakai 
 | **CI/CD Architecture & Roadmap** | Perancangan arsitektur CI/CD decoupled component & stack CD hub, standarisasi 6 pilar kesiapan produksi enterprise, evaluasi multi-repo, dan roadmap implementasi (TASK-TM-019) | Completed (TN-001) |
 | **Repository Readiness Audit** | Audit kesiapan operasional dan gap analysis 6 pilar kesiapan produksi enterprise pada 3 repositori platform (TASK-TM-020) | Completed (TN-002) |
 | **Repository Standardization** | Standarisasi skrip operasional, parameterisasi build OCI, eliminasi hardcoded path, dan automated rollback recovery trap pada 3 repositori (TASK-TM-020) | Completed (TN-003) |
+| **Diagnostic Service CI Pipeline** | Implementasi declarative Jenkinsfile 7 tahapan quality gates, rootless Podman build, 62 unit/schema tests, dan ephemeral smoke test (TASK-TM-021) | Completed (TN-004) |
 
 ---
 
@@ -49,6 +50,10 @@ Membangun ekosistem otomasi CI/CD terintegrasi yang andal, aman, dan siap pakai 
 3. **[TN-003 — Standardize Repositories for Production Plug-and-Play Readiness](TN-003-standardize-repositories-for-production-plug-and-play-readiness.md)**
 
     Mendokumentasikan eksekusi standarisasi fisik pada 3 repositori platform mencakup parameterisasi `build.sh`, eliminasi hardcoded path pada `verify-postfix-relay.sh`, implementasi *automated rollback recovery trap* pada `deploy-diagnostic-service.sh`, standarisasi service unit daemon `deploy-event-collector.sh`, serta verifikasi 100% test suite deterministik.
+
+4. **[TN-004 — Implement Production-Ready CI Pipeline for Tomcat Diagnostic Service](TN-004-implement-production-ready-ci-pipeline-for-diagnostic-service.md)**
+
+    Mendokumentasikan implementasi berkas deklaratif `Jenkinsfile` pada repositori `tomcat-diagnostic-service` berbasis 7 tahapan quality gates (checkout, agent verification, static linting, 62 unit tests, OCI buildah packaging, ephemeral smoke test, dan registry publishing) di atas runtime Rootless Podman DooD.
 
 ---
 
