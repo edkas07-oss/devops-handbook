@@ -8,3 +8,5 @@ arrange:
 - runtime-monitoring-foundation
 - monitoring-integration-and-runtime-deployment
 - diagnostic-mvp-pilot
+- monitoring-platform-integration
+- continuous-integration-and-deployment

@@ -472,7 +472,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Sinyal Emas GC Pause, Overhead, Old Gen (TN-004) |
 | **TASK-TM-009** | Dashboard Observabilitas Grafana | **P2 (Medium)** | `Descoped` ⚪ | TN-020 | Grafana | Fokus investigasi otonom & laporan email SRE |
 | **TASK-TM-010** | Standardisasi Log & Spool Cleanup | **P2 (Medium)** | `Completed` ✅ | TN-020 / TN-011 | Event Collector / Host | Spool pruning 24h, cap 1000, & isolasi 0700 (TN-011) |
-| **TASK-TM-019** | Otomatisasi CI/CD Pipeline Jenkins | **P1 (High)** | `Planned` 📋 | TN-020 | Jenkins / CI-CD | Pipeline build, test, & deploy rootless otomatis |
+| **TASK-TM-019** | Otomatisasi CI/CD Pipeline Jenkins | **P1 (High)** | `Planned` 📋 | [TN-001](engineering-journal/continuous-integration-and-deployment/TN-001-design-production-ready-jenkins-cicd-pipeline-architecture.md) | Jenkins / CI-CD | Pipeline build, test, & deploy rootless otomatis |
 | **TASK-TM-011** | Ansible Playbook Deployment | **P3 (Planned)** | `Planned` 📋 | TN-020 | Ansible / Podman | Zero-touch provisioning seluruh host |
 | **TASK-TM-012** | Integrasi TrueSight / Event Bridge | **P3 (Deferred)** | `Descoped` ⚪ | GAP-015 / TN-020 | Integration Bridge | Digantikan Enterprise SMTP Relay resmi (TN-010) |
 

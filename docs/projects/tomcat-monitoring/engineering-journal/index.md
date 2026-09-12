@@ -38,7 +38,8 @@ live agar pembaca dapat membedakan histori awal dari perbaikan dokumentasi.
 | [Runtime Monitoring Foundation](runtime-monitoring-foundation/index.md) | Menentukan arsitektur awal, menyiapkan area kerja, dan memverifikasi komponen monitoring pertama | Completed |
 | [Monitoring Integration and Runtime Deployment](monitoring-integration-and-runtime-deployment/index.md) | Menetapkan contract konfigurasi, validator, dan readiness sebelum integrasi komponen serta deployment runtime | Completed |
 | [Diagnostic MVP Pilot](diagnostic-mvp-pilot/index.md) | Menetapkan dan membuktikan diagnosis deterministik `TomcatDown`, 5-layer Knowledge Base, Declarative Rulepack Engine, dan alur pengayaan AI | Completed |
-| [Monitoring Platform Integration](monitoring-platform-integration/index.md) | Mengintegrasikan pemantauan mandiri (Zero Silent Failure), ketahanan status SQLite, dashboard observabilitas, dan kesiapan platform produksi | In Progress |
+| [Monitoring Platform Integration](monitoring-platform-integration/index.md) | Mengintegrasikan pemantauan mandiri (Zero Silent Failure), ketahanan status SQLite, dashboard observabilitas, dan kesiapan platform produksi | Completed |
+| [Continuous Integration and Deployment](continuous-integration-and-deployment/index.md) | Membangun otomasi pengiriman kontainer skala produksi (CI/CD) berbasis Jenkins, quality gates bertingkat, zero secret leakage, dan automated rollback | In Progress |
 
 !!! note "Phase Lifecycle"
 
@@ -61,6 +62,7 @@ live agar pembaca dapat membedakan histori awal dari perbaikan dokumentasi.
 - [Monitoring Integration and Runtime Deployment](monitoring-integration-and-runtime-deployment/index.md)
 - [Diagnostic MVP Pilot](diagnostic-mvp-pilot/index.md)
 - [Monitoring Platform Integration](monitoring-platform-integration/index.md)
+- [Continuous Integration and Deployment](continuous-integration-and-deployment/index.md)
 - [Tomcat Monitoring](../index.md)
 - [Architecture](../architecture/index.md)
 - [Development](../development/index.md)

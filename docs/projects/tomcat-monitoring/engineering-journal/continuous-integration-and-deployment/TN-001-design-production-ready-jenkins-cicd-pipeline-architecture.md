@@ -1,4 +1,4 @@
-# TN-012 — Design Production-Ready Jenkins CI/CD Pipeline Architecture and Implementation Roadmap
+# TN-001 — Design Production-Ready Jenkins CI/CD Pipeline Architecture and Implementation Roadmap
 
 | Field | Value |
 | --- | --- |
@@ -6,7 +6,7 @@
 | Activity Type | Discovery and Assessment |
 | Record Type | Live |
 | Project | Tomcat Monitoring |
-| Phase | Monitoring Platform Integration |
+| Phase | Continuous Integration and Continuous Deployment |
 | Activity Date | 2026-09-11 |
 | Recorded Date | 2026-09-11 |
 | Owner | Eddy Wiyatno |
@@ -25,12 +25,12 @@ Tujuan utama perancangan ini adalah menghasilkan spesifikasi arsitektur pipeline
 
 ## 🌍 Background
 
-Setelah penyelesaian stabilisasi runtime fondasi, integrasi platform monitoring, penegakan isolasi volume host spool ([TN-011](TN-011-implement-and-verify-spool-lifecycle-and-log-retention.md)), dan pembuktian *Enterprise SMTP Relay* terotentikasi ([TN-010](TN-010-implement-and-verify-enterprise-smtp-configuration-and-headers.md)), kebutuhan operasional berikutnya adalah otomasi pengiriman kode dan kontainer secara berkelanjutan (**TASK-TM-019: Otomatisasi CI/CD Pipeline Menggunakan Jenkins**).
+Setelah penyelesaian stabilisasi runtime fondasi, integrasi platform monitoring, penegakan isolasi volume host spool ([TN-011](../monitoring-platform-integration/TN-011-implement-and-verify-spool-lifecycle-and-log-retention.md)), dan pembuktian *Enterprise SMTP Relay* terotentikasi ([TN-010](../monitoring-platform-integration/TN-010-implement-and-verify-enterprise-smtp-configuration-and-headers.md)), kebutuhan operasional berikutnya adalah otomasi pengiriman kode dan kontainer secara berkelanjutan (**TASK-TM-019: Otomatisasi CI/CD Pipeline Menggunakan Jenkins**).
 
 Dalam diskusi pendahuluan, disepakati bahwa:
 1. Backlog **`TASK-TM-009` (Dashboard Grafana)** dikesampingkan (*descoped*) karena platform difokuskan pada investigasi otonom akar masalah (*autonomous root-cause diagnostics*), penyusunan laporan kanonikal 7-seksi SRE via SMTP Relay, dan query langsung Prometheus TSDB.
 2. Backlog **`TASK-TM-012` (Integrasi TrueSight)** dikesampingkan (*descoped*) karena target lingkungan kantor tidak menyediakan infrastruktur TrueSight dan kebutuhan notifikasi insiden enterprise telah terpenuhi sepenuhnya oleh Enterprise SMTP Relay (Pola A).
-3. Fokus rekayasa dialihkan sepenuhnya ke implementasi **CI/CD Pipeline Jenkins Skala Produksi** untuk mengotomatisasi pengujian, pembuatan image kontainer, deployment ke runtime Podman rootless, hingga pengujian insiden langsung (*live incident injection*).
+3. Sesi dokumentasi rekayasa CI/CD dipisahkan ke dalam fase mandiri (**Continuous Integration and Deployment**) yang diawali oleh Technical Note ini (**TN-001**) untuk memetakan arsitektur, gerbang kualitas (*quality gates*), tata kelola secret, dan peta jalan implementasi skala produksi.
 
 ---
 
@@ -41,7 +41,7 @@ Dokumentasi perancangan arsitektur CI/CD ini mencakup:
 2. **Evaluasi Alternatif Topologi Pipeline:** Perbandingan antara pendekatan *Monolithic Single Pipeline* versus *Decoupled Component CI + Orchestrated Stack CD Hub*.
 3. **Standar Keamanan & Tata Kelola Runtime Jenkins:** Standarisasi eksekusi DooD (*Docker/Podman-out-of-Docker*) via Rootless Podman, isolasi credential via Jenkins Store, dan penegakan *Zero `/tmp` Policy*.
 4. **Desain Detail Tahapan Pipeline (*Stage Quality Gates*):** Linting & validasi kontrak, automated unit/schema testing, build OCI image dengan SHA-256 digest pinning, atomic deployment, live smoke verification, dan automated rollback.
-5. **Peta Jalan Implementasi Bertahap (*Implementation Roadmap*):** Perincian Technical Notes lanjutan (TN-013 s.d. TN-016) untuk eksekusi teknis yang terukur.
+5. **Peta Jalan Implementasi Bertahap (*Implementation Roadmap*):** Perincian Technical Notes lanjutan (TN-002 s.d. TN-005) untuk eksekusi teknis yang terukur.
 
 ---
 
@@ -56,6 +56,7 @@ Dokumentasi perancangan arsitektur CI/CD ini mencakup:
    - Image Jenkins Controller kustom dengan runtime Podman ([`jenkins-podman`](file:///home/eddywiyatno/git/jenkins-podman)).
 3. **Arahan & Persyaratan Pengguna:**
    - Mengharuskan rancangan pipeline siap digunakan pada skala produksi enterprise (*production-ready*) tanpa refactor lanjutan saat diimplementasikan di lingkungan kerja/kantor.
+   - Memisahkan dokumentasi CI/CD ke halaman fase tersendiri, dimulai dari **TN-001**.
 
 ---
 
@@ -369,32 +370,32 @@ pipeline {
 
 ## 🗺️ Implementation Roadmap
 
-Berdasarkan rancangan arsitektur di atas, pekerjaan implementasi dibagi menjadi 4 Technical Notes (TN) terstruktur:
+Berdasarkan rancangan arsitektur di atas, pekerjaan implementasi dibagi menjadi Technical Notes (TN) terstruktur dalam fase ini:
 
 ```mermaid
 flowchart LR
-    TN12["TN-012<br/>Architecture & Roadmap<br/>(Completed ✅)"] --> TN13["TN-013<br/>Diagnostic Service CI<br/>(Planned 📋)"]
-    TN13 --> TN14["TN-014<br/>Event Collector CI<br/>(Planned 📋)"]
-    TN14 --> TN15["TN-015<br/>Monitoring Stack CD Hub<br/>(Planned 📋)"]
-    TN15 --> TN16["TN-016<br/>End-to-End Live Verification<br/>(Planned 📋)"]
+    TN01["TN-001<br/>Architecture & Roadmap<br/>(Completed ✅)"] --> TN02["TN-002<br/>Diagnostic Service CI<br/>(Planned 📋)"]
+    TN02 --> TN03["TN-003<br/>Event Collector CI<br/>(Planned 📋)"]
+    TN03 --> TN04["TN-004<br/>Monitoring Stack CD Hub<br/>(Planned 📋)"]
+    TN04 --> TN05["TN-005<br/>End-to-End Live Verification<br/>(Planned 📋)"]
 ```
 
 | ID TN | Topik & Sasaran Rekayasa | Deliverables Utama |
 | :--- | :--- | :--- |
-| **TN-012** | **Design Production-Ready Jenkins CI/CD Pipeline Architecture & Roadmap** | Dokumen arsitektur, standar 6 pilar produksi, evaluasi multi-repo, dan roadmap. *(Dokumen Ini - Selesai)* |
-| **TN-013** | **Implement Production-Ready CI Pipeline for `tomcat-diagnostic-service`** | `Jenkinsfile` deklaratif, parameterisasi registry, skrip build berversi, automated test runner, ephemeral smoke testing, dan verifikasi OCI image. |
-| **TN-014** | **Implement CI Pipeline for `tomcat-diagnostic-event-collector`** | `Jenkinsfile` deklaratif, static analysis & shellcheck, dan mock event spool validation. |
-| **TN-015** | **Implement Stack Orchestration CD Pipeline for `tomcat-monitoring`** | `Jenkinsfile` orkestrasi stack, automated deployment, integrasi network `devops-lab`, dan automated rollback logic. |
-| **TN-016** | **Execute and Verify End-to-End CI/CD Pipelines in Jenkins Controller** | Registrasi jobs di Jenkins Controller, pengujian build live (`SUCCESS`), pembuktian incident injection, dan konsolidasi dokumentasi buku petunjuk SRE di Handbook. |
+| **TN-001** | **Design Production-Ready Jenkins CI/CD Pipeline Architecture & Roadmap** | Dokumen arsitektur, standar 6 pilar produksi, evaluasi multi-repo, dan roadmap. *(Dokumen Ini - Selesai)* |
+| **TN-002** | **Implement Production-Ready CI Pipeline for `tomcat-diagnostic-service`** | `Jenkinsfile` deklaratif, parameterisasi registry, skrip build berversi, automated test runner, ephemeral smoke testing, dan verifikasi OCI image. |
+| **TN-003** | **Implement CI Pipeline for `tomcat-diagnostic-event-collector`** | `Jenkinsfile` deklaratif, static analysis & shellcheck, dan mock event spool validation. |
+| **TN-004** | **Implement Stack Orchestration CD Pipeline for `tomcat-monitoring`** | `Jenkinsfile` orkestrasi stack, automated deployment, integrasi network `devops-lab`, dan automated rollback logic. |
+| **TN-005** | **Execute and Verify End-to-End CI/CD Pipelines in Jenkins Controller** | Registrasi jobs di Jenkins Controller, pengujian build live (`SUCCESS`), pembuktian incident injection, dan konsolidasi dokumentasi buku petunjuk SRE di Handbook. |
 
 ---
 
 ## 🧾 Outcome
 
-1. Seluruh diskusi arsitektur, evaluasi kebutuhan, dan perancangan strategi CI/CD skala produksi telah **berhasil dicatat secara sistematis** pada Technical Note ini.
+1. Seluruh diskusi arsitektur, evaluasi kebutuhan, dan perancangan strategi CI/CD skala produksi telah **berhasil dicatat secara sistematis pada fase mandiri Continuous Integration and Deployment**.
 2. Ditetapkan pola arsitektur terpilih: **Decoupled Component CI + Orchestrated Stack CD Hub** yang modular dan memenuhi standar kepatuhan enterprise.
 3. Dirumuskan **6 Pilar Standar Produksi** sebagai jaminan agar seluruh artefak kode dan pipeline yang dibangun bersifat *Plug-and-Play* (*Tinggal Pakai*) di lingkungan kantor.
-4. Disusun peta jalan implementasi 4 langkah (**TN-013 s.d. TN-016**) untuk memandu eksekusi teknis berikutnya dengan aman dan terukur.
+4. Disusun peta jalan implementasi 4 langkah (**TN-002 s.d. TN-005**) untuk memandu eksekusi teknis berikutnya dengan aman dan terukur.
 
 ---
 
@@ -407,14 +408,16 @@ flowchart LR
 
 ## ⏭️ Next Steps
 
-- Menunggu konfirmasi persetujuan pengguna untuk memulai eksekusi tahap pertama: **TN-013 — Implement Production-Ready CI Pipeline for `tomcat-diagnostic-service`**.
+- Melakukan penyempurnaan 4 titik portabilitas skrip (dynamic sibling resolution dan OCI-first contract).
+- Memulai eksekusi tahap **TN-002 — Implement Production-Ready CI Pipeline for `tomcat-diagnostic-service`**.
 
 ---
 
 ## 🔗 Related Documentation
 
-- [TN-010 — Implement and Verify Enterprise SMTP Configuration and Headers](TN-010-implement-and-verify-enterprise-smtp-configuration-and-headers.md)
-- [TN-011 — Implement and Verify Host Spool Lifecycle and Runtime Log Retention Governance](TN-011-implement-and-verify-spool-lifecycle-and-log-retention.md)
+- [Monitoring Platform Integration Engineering Journal](../monitoring-platform-integration/index.md)
+- [TN-010 — Implement and Verify Enterprise SMTP Configuration and Headers](../monitoring-platform-integration/TN-010-implement-and-verify-enterprise-smtp-configuration-and-headers.md)
+- [TN-011 — Implement and Verify Host Spool Lifecycle and Runtime Log Retention Governance](../monitoring-platform-integration/TN-011-implement-and-verify-spool-lifecycle-and-log-retention.md)
 - [Follow-up Tasks Backlog](../../follow-up-tasks.md)
 - [Personal Site Continuous Integration Engineering Journal](../../../web-platform/personal-site/engineering-journal/continuous-integration/index.md)
 - [PS-ADR-0007 — Use Pipeline as Code](../../../../adr/personal-site/adr-records/PS-ADR-0007.md)
