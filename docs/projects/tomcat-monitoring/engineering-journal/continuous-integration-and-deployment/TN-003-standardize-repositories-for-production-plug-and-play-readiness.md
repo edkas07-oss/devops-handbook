@@ -91,23 +91,23 @@ Mengadopsi keputusan arsitektur [TM-ADR-0024](../../../../adr/tomcat-monitoring/
 ```mermaid
 flowchart TD
     subgraph S1["1. Diagnostic Service Standardization"]
-        DS1["Parameterize build.sh<br/>(REGISTRY_HOST, IMAGE_TAG, PUSH_IMAGE)"]
-        DS2["Validate static contract<br/>& execute npm test (62 suites)"]
+        DS1["Parameterize build.sh<br/>(REGISTRY_HOST,<br/>IMAGE_TAG, PUSH_IMAGE)"]
+        DS2["Validate static contract<br/>& npm test (62 suites)"]
         DS1 --> DS2
     end
 
     subgraph S2["2. Monitoring Stack Standardization"]
-        TM1["Refactor verify-postfix-relay.sh<br/>(DIAGNOSTIC_SERVICE_DIR & mktemp)"]
-        TM2["Integrate rollback trap in<br/>deploy-diagnostic-service.sh"]
+        TM1["Refactor verify-postfix-relay.sh<br/>(DIAGNOSTIC_SERVICE_DIR<br/>& mktemp)"]
+        TM2["Integrate rollback trap<br/>in deploy-diagnostic-service.sh"]
         TM3["Update verify-*.sh for<br/>remote registry portability"]
-        TM4["Dynamic systemd unit path in<br/>deploy-event-collector.sh"]
+        TM4["Dynamic systemd unit path<br/>in deploy-event-collector.sh"]
         TM1 --> TM2 --> TM3 --> TM4
     end
 
     subgraph S3["3. Multi-Repo Verification"]
-        VR1["Run validate.sh on 3 repos"]
-        VR2["Run test-collector.sh on collector"]
-        VR3["Run npm test on backend"]
+        VR1["Run validate.sh<br/>on 3 repos"]
+        VR2["Run test-collector.sh<br/>on collector"]
+        VR3["Run npm test<br/>on backend"]
         VR1 --> VR2 --> VR3
     end
 
@@ -293,10 +293,10 @@ Seluruh perintah yang dieksekusi selama aktivitas standarisasi dicatat dalam ind
 
 ```mermaid
 flowchart TD
-    A["Completed<br/>TN-003: Standarisasi Repo"] --> B["Tahap Berikutnya<br/>TN-004: Diagnostic Service CI Pipeline<br/>(Jenkinsfile Declarative)"]
-    B --> C["TN-005: Event Collector CI Pipeline"]
-    C --> D["TN-006: Monitoring Stack CD Hub Pipeline"]
-    D --> E["TN-007: Live Pipeline Verification"]
+    A["Completed<br/>TN-003: Standarisasi Repo"] --> B["Next Stage<br/>TN-004: Diagnostic Service CI<br/>(Declarative Jenkinsfile)"]
+    B --> C["Next Stage<br/>TN-005: Event Collector CI<br/>(Declarative Jenkinsfile)"]
+    C --> D["Next Stage<br/>TN-006: Stack CD Hub<br/>(Declarative Jenkinsfile)"]
+    D --> E["Next Stage<br/>TN-007: Live Verification<br/>(Jenkins Controller)"]
 ```
 
 Setelah seluruh 3 repositori platform berstatus *Enterprise Production-Ready (Plug-and-Play)*, langkah implementasi selanjutnya adalah:

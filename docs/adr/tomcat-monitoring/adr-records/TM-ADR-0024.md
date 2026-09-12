@@ -33,25 +33,25 @@ Sebelumnya, pengujian kode, validasi skema JSON, pembangunan OCI image, dan depl
 
 ## 🔄 Evaluasi Pilihan Alternatif
 
-### Alternatif 1: Monolithic Single Pipeline di `tomcat-monitoring`
+### Alternatif 1 — Monolithic Single Pipeline di `tomcat-monitoring`
 Seluruh proses build dan pengujian ketiga repositori digabungkan ke dalam satu berkas `Jenkinsfile` tunggal di repositori orkestrator.
 - **Kelebihan:** Hanya memerlukan pengelolaan satu job Jenkins tunggal.
 - **Kekurangan:** Menciptakan kopling erat (*tight coupling*) antar repositori, memperlambat siklus umpan balik bagi developer mikrokomponen (harus menjalankan seluruh rangkaian build untuk perubahan 1 baris kode), dan melanggar prinsip *Single Responsibility*.
 - **Status:** Ditolak ❌
 
-### Alternatif 2: Decoupled Component CI + Orchestrated Stack CD Hub (Terpilih ⭐)
+### Alternatif 2 — Decoupled Component CI + Orchestrated Stack CD Hub (Terpilih ⭐)
 Memisahkan pipeline CI pada masing-masing repositori komponen untuk pengujian unit, linting, build OCI, dan smoke test, serta memusatkan pipeline CD pada repositori orkestrator stack untuk pengujian integrasi platform multi-kontainer dan automated rollback.
 - **Kelebihan:** Memisahkan batas tanggung jawab secara bersih, memberikan umpan balik cepat (*fast feedback loop*) dalam hitungan detik, dan mendukung pengujian integrasi multi-kontainer menyeluruh secara independen.
 - **Kekurangan:** Memerlukan konfigurasi terstruktur untuk masing-masing job Jenkinsfile.
 - **Status:** Diterima ✅
 
-### Alternatif 3: Direct In-Host Controller Execution tanpa Dedicated Agent
+### Alternatif 3 — Direct In-Host Controller Execution tanpa Dedicated Agent
 Eksekusi seluruh proses build dan uji langsung di dalam kontainer Jenkins Controller.
 - **Kelebihan:** Tidak memerlukan dedicated build agent node.
 - **Kekurangan:** Membebani master controller (*noisy neighbor problem*), memperbesar risiko stabilitas controller saat build intensif, dan melanggar *best practice* Jenkins enterprise.
 - **Status:** Ditolak ❌
 
-### Alternatif 4: Docker-in-Docker (DinD) via Privileged Container
+### Alternatif 4 — Docker-in-Docker (DinD) via Privileged Container
 Eksekusi kontainer di dalam build agent menggunakan mode DinD dengan flag `--privileged`.
 - **Kelebihan:** Isolasi filesystem docker di dalam kontainer agent.
 - **Kekurangan:** Membuka celah keamanan kritis pada server host karena mode privileged memberikan hak akses penuh setara root ke kernel host.
@@ -85,34 +85,34 @@ Ditetapkan keputusan arsitektur CI/CD sebagai berikut:
 
 ```mermaid
 flowchart TD
-    subgraph SCM["Source Code Management (Git Repositories)"]
+    subgraph SCM["Source Repositories (Git)"]
         RepoDS["tomcat-diagnostic-service<br/>(Node.js Backend)"]
-        RepoEC["tomcat-diagnostic-event-collector<br/>(Host Daemon)"]
+        RepoEC["tomcat-diagnostic-<br/>event-collector<br/>(Host Daemon)"]
         RepoTM["tomcat-monitoring<br/>(Stack Orchestrator)"]
     end
 
-    subgraph CI_DS["1. Diagnostic Service CI Pipeline"]
-        DS1["Stage 1: Checkout & Lint (validate.sh)"]
-        DS2["Stage 2: Unit & Schema Tests (npm test)"]
-        DS3["Stage 3: Build & Pin OCI Image (Containerfile)"]
-        DS4["Stage 4: Ephemeral Container Smoke Test (/health)"]
-        DS5["Stage 5: Publish Image (Local / Enterprise Registry)"]
+    subgraph CI_DS["1. Diagnostic Service CI"]
+        DS1["Stage 1: Checkout<br/>& Static Lint"]
+        DS2["Stage 2: Unit Test<br/>& Schema Validation"]
+        DS3["Stage 3: Build & Pin<br/>OCI Image"]
+        DS4["Stage 4: Ephemeral<br/>Smoke Test"]
+        DS5["Stage 5: Publish<br/>Image to Registry"]
         DS1 --> DS2 --> DS3 --> DS4 --> DS5
     end
 
-    subgraph CI_EC["2. Event Collector CI Pipeline"]
-        EC1["Stage 1: Checkout & Static Analysis"]
-        EC2["Stage 2: ShellCheck & Contract Validation"]
-        EC3["Stage 3: Mock Spool & Pruning Retention Test"]
+    subgraph CI_EC["2. Event Collector CI"]
+        EC1["Stage 1: Checkout<br/>& Static Analysis"]
+        EC2["Stage 2: ShellCheck<br/>& Contract Check"]
+        EC3["Stage 3: Spool Mock<br/>& Retention Test"]
         EC1 --> EC2 --> EC3
     end
 
-    subgraph CD_Stack["3. Monitoring Stack CD Pipeline Hub"]
-        TM1["Stage 1: Checkout & Validate Platform Configs"]
-        TM2["Stage 2: Verify Network & Volume Isolation"]
-        TM3["Stage 3: Zero-Touch Deployment (deploy-*.sh)"]
-        TM4["Stage 4: Live Verification (Incident Simulation & SMTP Relay)"]
-        Rollback["Post-Failure: Automated Container Rollback"]
+    subgraph CD_Stack["3. Monitoring Stack CD Hub"]
+        TM1["Stage 1: Checkout<br/>& Config Validation"]
+        TM2["Stage 2: Verify<br/>Network & Volume"]
+        TM3["Stage 3: Zero-Touch<br/>Deployment"]
+        TM4["Stage 4: Live Incident<br/>& Relay Verification"]
+        Rollback["Post-Failure:<br/>Automated Rollback"]
         TM1 --> TM2 --> TM3 --> TM4
         TM3 -.->|Gagal| Rollback
         TM4 -.->|Gagal| Rollback
@@ -147,7 +147,7 @@ flowchart TD
 
 ## 📌 Status
 
-**Accepted — defined in TN-001 and ready for phased implementation (TN-002 through TN-005).**
+**Accepted — defined in TN-001 and ready for phased implementation (TN-002 through TN-007).**
 
 ---
 

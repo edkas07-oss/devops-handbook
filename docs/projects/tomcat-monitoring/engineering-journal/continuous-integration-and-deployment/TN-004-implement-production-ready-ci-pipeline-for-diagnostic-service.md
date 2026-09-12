@@ -94,14 +94,14 @@ Mengadopsi keputusan arsitektur [TM-ADR-0024](../../../../adr/tomcat-monitoring/
 ```mermaid
 flowchart TD
     subgraph CI_Pipeline["Diagnostic Service CI Pipeline (Jenkinsfile)"]
-        S1["Stage 1: Checkout Source Code<br/>(Git SCM & Core Files)"]
-        S2["Stage 2: Verify Build Agent<br/>(Rootless: true)"]
-        S3["Stage 3: Static Lint & Governance<br/>(validate.sh)"]
-        S4["Stage 4: Unit & Schema Testing<br/>(npm test / 62 suites)"]
-        S5["Stage 5: Build & Pin OCI Image<br/>(build.sh Containerfile)"]
-        S6["Stage 6: Ephemeral Smoke Test<br/>(test-image.sh)"]
+        S1["Stage 1: Checkout Source<br/>(Git SCM & Core Files)"]
+        S2["Stage 2: Verify Agent<br/>(Rootless: true)"]
+        S3["Stage 3: Static Lint<br/>& Governance (validate.sh)"]
+        S4["Stage 4: Unit & Schema<br/>Testing (npm test / 62 suites)"]
+        S5["Stage 5: Build & Pin<br/>OCI Image (build.sh)"]
+        S6["Stage 6: Ephemeral<br/>Smoke Test (test-image.sh)"]
         S7["Stage 7: Publish Image<br/>(Conditional: PUSH_IMAGE)"]
-        P1["Post Actions: cleanWs<br/>& Status Notification"]
+        P1["Post Actions:<br/>cleanWs & Notification"]
 
         S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> P1
     end
@@ -269,9 +269,9 @@ Seluruh perintah yang dieksekusi selama aktivitas implementasi ini dicatat dalam
 
 ```mermaid
 flowchart TD
-    A["Completed<br/>TN-004: Diagnostic Service CI"] --> B["Tahap Berikutnya<br/>TN-005: Event Collector CI Pipeline<br/>(ShellCheck & Spool Retensi)"]
-    B --> C["TN-006: Monitoring Stack CD Hub Pipeline<br/>(Atomic Deploy & Rollback)"]
-    C --> D["TN-007: Live Pipeline Verification<br/>(Jenkins Controller Execution)"]
+    A["Completed<br/>TN-004: Diagnostic Service CI"] --> B["Next Stage<br/>TN-005: Event Collector CI<br/>(ShellCheck & Spool)"]
+    B --> C["Next Stage<br/>TN-006: Stack CD Hub Pipeline<br/>(Atomic Deploy & Rollback)"]
+    C --> D["Next Stage<br/>TN-007: Live Verification<br/>(Jenkins Controller)"]
 ```
 
 Setelah implementasi CI pipeline pada `tomcat-diagnostic-service` selesai, langkah implementasi selanjutnya adalah:

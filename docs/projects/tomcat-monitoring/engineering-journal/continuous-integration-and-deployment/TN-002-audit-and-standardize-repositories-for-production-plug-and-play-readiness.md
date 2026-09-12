@@ -91,10 +91,10 @@ Audit dilaksanakan secara sistematis dengan alur verifikasi berikut:
 
 ```mermaid
 flowchart TD
-    M1["1. Static Scanning<br/>Audit Path & Kredensial"] --> M2["2. Contract Audit<br/>Validasi Shell & Skema"]
-    M2 --> M3["3. Test Runner Audit<br/>Uji Headless & Exit Code"]
-    M3 --> M4["4. Deployment Audit<br/>Uji Snapshot & Rollback"]
-    M4 --> M5["5. Gap Action Plan<br/>Perumusan Remediasi"]
+    M1["1. Static Scanning<br/>Audit Path & Secret"] --> M2["2. Contract Audit<br/>Shell & JSON Schema"]
+    M2 --> M3["3. Test Runner Audit<br/>Headless & Exit Code"]
+    M3 --> M4["4. Deployment Audit<br/>Snapshot & Rollback"]
+    M4 --> M5["5. Gap Action Plan<br/>Remediation Plan"]
 ```
 
 1. **Static Grep Scanning:** Pemindaian pola teks mendalam menggunakan ripgrep (`rg`) dan grep reguler untuk melacak:
@@ -195,12 +195,12 @@ flowchart TD
     end
 
     subgraph AuditResults["Hasil Evaluasi 6 Pilar"]
-        P1["1. Path-Agnostic<br/>🔴 TM | 🟡 EC | 🟢 DS"]
-        P2["2. Registry Portability<br/>🟡 DS | 🟡 TM | ⚪ EC"]
-        P3["3. Zero Secret Leakage<br/>🟢 DS | 🟢 EC | 🟡 TM"]
-        P4["4. Headless Test Runner<br/>🟢 DS | 🟢 EC | 🟢 TM"]
-        P5["5. Rollback Resilience<br/>🟡 TM | ⚪ DS/EC"]
-        P6["6. Security & Tooling<br/>🟢 DS | 🟢 EC | 🟢 TM"]
+        P1["1. Path-Agnostic<br/>TM: 🔴 · EC: 🟡 · DS: 🟢"]
+        P2["2. Registry Portability<br/>DS: 🟡 · TM: 🟡 · EC: ⚪"]
+        P3["3. Zero Secret Leakage<br/>DS: 🟢 · EC: 🟢 · TM: 🟡"]
+        P4["4. Headless Test Runner<br/>DS: 🟢 · EC: 🟢 · TM: 🟢"]
+        P5["5. Rollback Resilience<br/>TM: 🟡 · DS/EC: ⚪"]
+        P6["6. Security & Tooling<br/>DS: 🟢 · EC: 🟢 · TM: 🟢"]
     end
 
     DS --> AuditResults
