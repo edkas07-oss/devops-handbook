@@ -524,6 +524,50 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
   - Pembakuan [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md).
   - Pembakuan [TN-011](engineering-journal/continuous-integration-and-deployment/TN-011-design-cross-platform-container-engine-api-orchestration-and-agent-architecture.md).
 
+#### TASK-TM-027: Implementasi Kakas Operator Terpadu tmctl (Go Unified CLI) untuk Orkestrasi Multi-OS (Fase 1)
+
+- **Status:** `Planned (Fase 1)` ⏳
+- **Deskripsi:**
+  Merancang dan mengimplementasikan kakas baris perintah tunggal `tmctl` (*Single Static Binary*) berbasis Go untuk menjembatani orkestrasi kontainer lintas sistem operasi (*Linux & Windows*), menggantikan kumpulan skrip imperatif `scripts/*.sh` pada mode manual.
+- **Kebutuhan Teknis:**
+  - Inisialisasi modul Go (`go.mod`) dan struktur paket CLI terpadu.
+  - Pembangunan klien adapter Container Engine Socket API (kompatibel Podman socket, Docker socket, dan Windows Named Pipe).
+  - Implementasi subperintah CLI: `tmctl stack deploy/status/clean`, `tmctl rules ingest/export`, `tmctl registry login`, dan `tmctl validate`.
+  - Konfigurasi matriks kompilasi silang (*cross-compilation*): Linux (`amd64`/`arm64`) dan Windows (`amd64`).
+- **Kriteria Penerimaan (*Acceptance Criteria*):**
+  - Biner `tmctl` (Linux) dan `tmctl.exe` (Windows) dapat menyalakan, memantau, dan menghentikan seluruh tumpukan kontainer secara seragam tanpa memerlukan interpreter Bash di host.
+  - Manajemen aturan AI (`ingest`/`export`) dan login registri kontainer enterprise berjalan mulus melalui antarmuka CLI tunggal.
+- **Referensi:** [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md), [TN-011](engineering-journal/continuous-integration-and-deployment/TN-011-design-cross-platform-container-engine-api-orchestration-and-agent-architecture.md).
+
+#### TASK-TM-028: Implementasi Agen Pengumpul Event Kontainer tm-agent (Go Daemon) berbasis Socket API (Fase 2)
+
+- **Status:** `Planned (Fase 2)` ⏳
+- **Deskripsi:**
+  Membangun agen background `tm-agent` (*Go Event Collector Daemon*) yang membaca streaming event langsung dari Container Engine API socket dan menulis berkas bukti insiden (*evidence spool*) secara atomik sesuai skema baku `event-record-v1.schema.json`, menggantikan daemon Bash `collector.sh` dan `systemd --user`.
+- **Kebutuhan Teknis:**
+  - Klien streaming event kontainer berbasis socket API endpoint (`/events` atau `/v4.0.0/libpod/events`).
+  - Pemfilteran event siklus hidup kontainer target `tomcat-jmx-exporter` (`died`, `oom`, `restart`, `stop`, `exit code`).
+  - Mesin penulisan atomik (`.tmp` $\rightarrow$ `.json` mode izin `0600`) dan pemangkasan kuota retensi FIFO (24 jam / batas 1000 berkas).
+  - Integrasi background runner: *systemd user unit* di Linux dan *Windows Service* (`golang.org/x/sys/windows/svc`) di Windows.
+- **Kriteria Penerimaan (*Acceptance Criteria*):**
+  - Seluruh event kegagalan runtime Tomcat terekam secara *real-time* ke dalam direktori spool persisten berizin `0700` dengan format valid `event-record-v1.schema.json`.
+  - Mesin *Diagnostic Service* berhasil mengonsumsi bukti event dari `tm-agent` dan menghasilkan laporan diagnosis 7-seksi SRE tanpa regresi (*Zero Breaking Change*).
+- **Referensi:** [TM-ADR-0008](../../adr/tomcat-monitoring/adr-records/TM-ADR-0008.md), [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md), [TN-011](engineering-journal/continuous-integration-and-deployment/TN-011-design-cross-platform-container-engine-api-orchestration-and-agent-architecture.md).
+
+#### TASK-TM-029: Refaktorisasi Ansible Roles menjadi Thin Orchestrator berbasis tmctl dan OS Fact Branching (Fase 3)
+
+- **Status:** `Planned (Fase 3)` ⏳
+- **Deskripsi:**
+  Merefaktor kumpulan Ansible Roles pada repositori `tomcat-monitoring` menjadi *thin declarative orchestrator* berbasis `tmctl` dan modul kontainer native dengan *OS Fact Branching* yang bersih, mengeliminasi penggunaan *wrapper* skrip Bash `ansible.builtin.shell`.
+- **Kebutuhan Teknis:**
+  - Refaktorisasi `roles/role_container_stack/tasks/*.yml` untuk memanggil `tmctl` atau modul deklaratif `podman_container`/`docker_container`.
+  - Refaktorisasi `roles/role_event_collector/tasks/main.yml` dengan *OS Fact Branching* (`ansible.builtin.systemd` untuk Linux vs `ansible.windows.win_service` untuk Windows).
+  - Validasi eksekusi playbook master `deploy-stack.yml` pada inventori multi-node heterogen (Linux dan Windows).
+- **Kriteria Penerimaan (*Acceptance Criteria*):**
+  - Eksekusi playbook Ansible tidak membutuhkan berkas skrip fisik `.sh` atau interpreter Bash di mesin target Windows maupun Linux.
+  - Idempotensi 100% (`ok=N, changed=0, failed=0`) tetap terjaga pada eksekusi ulang.
+- **Referensi:** [TM-ADR-0025](../../adr/tomcat-monitoring/adr-records/TM-ADR-0025.md), [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md), [TN-011](engineering-journal/continuous-integration-and-deployment/TN-011-design-cross-platform-container-engine-api-orchestration-and-agent-architecture.md).
+
 ---
 
 ## 🛠️ Implementation Priority Matrix
@@ -545,6 +589,9 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-020** | Portabilitas Multi-Engine Runtime (Podman/Docker) | **P1 (High)** | `Completed` ✅ | [TM-ADR-0026](../../adr/tomcat-monitoring/adr-records/TM-ADR-0026.md) | Seluruh Repositori | Helper adaptif, SELinux guard, userns guard (TN-008) |
 | **TASK-TM-025** | Integrasi Enterprise Container Registry (Plug-and-Play) | **P1 (High)** | `Completed` ✅ | [TN-010](engineering-journal/continuous-integration-and-deployment/TN-010-implement-plug-and-play-container-registry-integration.md) | Seluruh Repositori | Migrasi deklaratif ke Harbor/Nexus nir-modifikasi logika (TN-010) |
 | **TASK-TM-026** | Standarisasi Orkestrasi Multi-OS & Go Tooling | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | Seluruh Repositori | Arsitektur Container Engine API, tmctl CLI, & tm-agent (TN-011) |
+| **TASK-TM-027** | Implementasi Kakas Operator Terpadu `tmctl` (Go CLI) | **P1 (High)** | `Planned` ⏳ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tmctl` (New Repo/CLI) | Single static binary CLI lintas OS untuk manajemen manual (Fase 1) |
+| **TASK-TM-028** | Implementasi Agen Event `tm-agent` (Go Daemon) | **P1 (High)** | `Planned` ⏳ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tm-agent` / Event Coll | Socket event streamer & atomic spool writer multi-OS (Fase 2) |
+| **TASK-TM-029** | Refaktorisasi Ansible Roles berbasis `tmctl` | **P1 (High)** | `Planned` ⏳ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tomcat-monitoring` / Ansible | Thin declarative orchestrator & OS Fact Branching (Fase 3) |
 | **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | `Descoped` ⚪ | TM-ADR-0014 | Diagnostic Service | Digantikan arsip dossier 7-seksi terpusat |
 | **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Rule saturasi thread pool 100% (TN-004) |
 | **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Sinyal Emas GC Pause, Overhead, Old Gen (TN-004) |
