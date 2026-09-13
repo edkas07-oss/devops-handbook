@@ -339,14 +339,28 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 
 #### TASK-TM-011: Otomatisasi Deployment Menggunakan Playbook Ansible
 
-- **Status:** `Planned` 📋
+- **Status:** `Completed` ✅
 - **Deskripsi:**
-  Mengembangkan playbook Ansible untuk penyediaan (*provisioning*) dan pembaruan (*zero-touch deployment*) seluruh stack monitoring.
+  Mengembangkan dan memvalidasi Ansible Playbooks dan Roles modular untuk penyediaan infrastruktur armada peladen (*fleet provisioning*) dan deployment tumpukan monitoring (*container stack deployment*) secara idempoten pada platform Tomcat Monitoring.
 - **Kebutuhan Teknis:**
-  - Playbook mencakup pembuatan pod/container Podman rootless, pembuatan volume persisten, distribusi sertifikat TLS, penyusunan konfigurasi allowlist `targets.json`, dan pendaftaran systemd user service.
-  - Manajemen secret (bearer token dan TLS private key) menggunakan Ansible Vault.
+  - Pemisahan batas tanggung jawab ke dalam 3 Ansible Roles modular:
+    1. `role_host_prep`: Inisialisasi direktori izin ketat `0700` (`spool`, `secrets`, `tls`), material rahasia & sertifikat TLS (`0400`/`0444`), *network bridge* `devops-lab`, dan 8 *named volumes*.
+    2. `role_event_collector`: Templating unit `systemd --user` `tomcat-diagnostic-event-collector.service`, registrasi dan aktivasi daemon host.
+    3. `role_container_stack`: Rekonsiliasi *desired state* deklaratif untuk Mailpit, Postfix Enterprise Relay, Tomcat JMX Exporter, Prometheus, Alertmanager, Diagnostic Service, serta *multi-endpoint readiness probing*.
+  - Penyusunan inventori hierarkis lintas lingkungan (`inventories/lab.ini`, `inventories/staging.ini`, `inventories/production.ini`, dan `inventories/group_vars/all.yml`).
+  - Pembuatan runner adaptif `scripts/run-ansible-playbook.sh` dengan dukungan biner lokal dan kontainer pengontrol terisolasi `localhost/ansible-controller:1.0` (`--network host`, socket Podman mount, volume pengguna).
+  - Penegakan tata kelola *Zero Secret Leakage* dan izin berkas ketat tanpa *hardcoded credentials*.
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
-  - Seluruh stack monitoring dapat dibangun ulang dari nol (*clean host*) secara terotomatisasi dan langsung lulus seluruh acceptance test.
+  - Seluruh rangkaian validasi sintaksis Ansible dan tata kelola direktori lulus 100% (`scripts/validate-ansible.sh` dan `scripts/validate.sh`).
+  - Playbook `deploy-stack.yml` berhasil men-deploy seluruh komponen dari kondisi bersih (*clean host*) dan membuktikan kesiapan seluruh endpoint layanan (`ok=35`, `changed=2`, `failed=0`).
+  - Eksekusi ulang `deploy-stack.yml` membuktikan idempotensi 100% tanpa mutasi yang tidak diinginkan (`ok=33`, `changed=0`, `failed=0`, `skipped=18`).
+  - Seluruh rangkaian uji insiden *live* (`verify-postfix-relay.sh`, `verify-alertmanager-webhook.sh`) lulus 100% di atas tumpukan yang di-deploy via Ansible.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Didokumentasikan secara lengkap pada [TN-009](engineering-journal/continuous-integration-and-deployment/TN-009-implement-and-verify-ansible-fleet-provisioning-and-deployment-playbooks.md).
+  - Validasi sintaksis `validate-ansible.sh` $\rightarrow$ `SUCCESS (deploy-stack.yml & provision-fleet.yml)`.
+  - First run `deploy-stack.yml` $\rightarrow$ `ok=35, changed=2, failed=0, skipped=15`.
+  - Idempotency rerun `deploy-stack.yml` $\rightarrow$ `ok=33, changed=0, failed=0, skipped=18`.
+  - Live incident verification `verify-postfix-relay.sh` $\rightarrow$ `PASS: Seluruh pengujian Pola A berhasil diverifikasi!`.
 
 #### TASK-TM-012: Integrasi Enterprise Notification Bridge (TrueSight / Webhook Enterprise)
 
@@ -358,7 +372,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 
 #### TASK-TM-019: Otomatisasi CI/CD Pipeline Menggunakan Jenkins
 
-- **Status:** `Planned` 📋 (Active Next Milestone)
+- **Status:** `Completed` ✅ (TN-001 s.d. TN-007)
 - **Deskripsi:**
   Mengimplementasikan pipeline Continuous Integration dan Continuous Deployment (CI/CD) otomatis berbasis Jenkins untuk membangun (*build*), menguji (*automated linting, contract validation, and unit/integration testing*), mempublikasikan image kontainer, dan men-deploy stack Tomcat Monitoring ke lingkungan runtime Podman rootless secara *zero-touch*.
 - **Kebutuhan Teknis:**
@@ -374,6 +388,31 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
   - Setiap commit / push ke repository Git secara otomatis memicu eksekusi pipeline Jenkins.
   - Pipeline menolak (*fail-fast*) setiap perubahan yang melanggar kontrak validasi atau gagal dalam rangkaian uji otomatis.
   - Deployment ke runtime Podman rootless berjalan lancar dengan status build `SUCCESS` dan seluruh verifikasi pasca-deploy lulus 100%.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Deklaratif `Jenkinsfile` diimplementasikan dan diverifikasi pada `tomcat-diagnostic-service` (TN-004), `tomcat-diagnostic-event-collector` (TN-005), dan `tomcat-monitoring` (TN-006).
+  - Eksekusi *live* di Jenkins Controller membuktikan kelulusan 100% build `SUCCESS` pada agen DooD non-root `builder-01` (TN-007).
+  - Verifikasi otomatis insiden `TomcatDown` membuktikan penerimaan Laporan Investigasi 7-Seksi SRE via Postfix STARTTLS + SASL Relay Bridge di Mailpit (TN-007).
+
+#### TASK-TM-020: Standardisasi Portabilitas Runtime Kontainer Multi-Engine (Podman & Docker Support)
+
+- **Status:** `Completed` ✅ (TN-008)
+- **Deskripsi:**
+  Mengimplementasikan pustaka pembantu `container-runtime-helper.sh` dan menstandarisasi portabilitas eksekusi kontainer multi-mesin (Podman dan Docker dual-engine support) secara adaptif di seluruh 5 repositori ekosistem platform Tomcat Monitoring sesuai arsitektur [TM-ADR-0026](../../adr/tomcat-monitoring/adr-records/TM-ADR-0026.md).
+- **Kebutuhan Teknis:**
+  - Deteksi runtime otomatis via `detect_container_engine` dengan urutan probe `podman` lalu `docker` dan kemampuan override deklaratif via berkas `CONFIG` (`CONTAINER_ENGINE`).
+  - Pelindung relabeling volume SELinux adaptif (`get_volume_flag`) yang hanya menyematkan flag `:z`/`:Z`/`:ro,z` jika host aktif SELinux (`getenforce`) dan engine adalah Podman, serta beralih ke `:ro` atau tanpa flag pada Docker maupun host non-SELinux.
+  - Isolasi flag `--userns=keep-id` (`get_userns_flag`) eksklusif untuk Podman.
+  - Abstraksi *lifecycle assertions* seragam (`container_exists`, `image_exists`, `volume_exists`, `network_exists`).
+  - Refaktorisasi skrip operasional di 5 repositori (`ansible-controller`, `alertmanager`, `tomcat-diagnostic-service`, `tomcat-diagnostic-event-collector`, `tomcat-monitoring`).
+- **Kriteria Penerimaan (*Acceptance Criteria*):**
+  - Seluruh skrip operasional dapat berjalan secara deterministik di lingkungan Podman maupun Docker tanpa modifikasi manual berkas.
+  - 100% kelulusan quality gates (validasi statis, unit/integration tests, dan live verification suites) tanpa regresi.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Validasi sintaks Bash `bash -n` lintas 5 repositori $\rightarrow$ `Exit Code 0 (PASS)`.
+  - Validasi statis & 62 unit/integration test suites `tomcat-diagnostic-service` $\rightarrow$ `PASS (62/62 tests)`.
+  - Validasi governance & retensi spool `tomcat-diagnostic-event-collector` $\rightarrow$ `PASS (100%)`.
+  - Validasi baseline contract & verifikasi webhook / Mailpit `tomcat-monitoring` $\rightarrow$ `PASS`.
+  - Didokumentasikan secara lengkap pada [TN-008](engineering-journal/continuous-integration-and-deployment/TN-008-implement-and-standardize-multi-engine-container-runtime-portability.md) dan [TM-ADR-0026](../../adr/tomcat-monitoring/adr-records/TM-ADR-0026.md).
 
 #### TASK-TM-013: Integrasi Shared Persistent Volume Mount untuk Log Runtime Tomcat (Kesiapan Produksi TN-019)
 
@@ -467,13 +506,14 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-014** | Daemonization Restricted Event Collector | **P1 (High)** | `Completed` ✅ | TN-016 / TN-009 | Event Collector | Collector berjalan sebagai systemd user service (TN-009) |
 | **TASK-TM-015** | Enterprise SMTP Relay Configuration | **P1 (High)** | `Completed` ✅ | GAP-014 / TN-010 | Diagnostic Service | Notifikasi terkirim via relay SMTP TLS resmi (TN-010) |
 | **TASK-TM-016** | Live Prometheus Evidence Wire-up | **P1 (High)** | `Completed` ✅ | GAP-004 / TN-008 | Diagnostic Service | Metrik live otomatis terlampir di evidence (TN-008) |
+| **TASK-TM-019** | Otomatisasi CI/CD Pipeline Jenkins | **P1 (High)** | `Completed` ✅ | [TN-001](engineering-journal/continuous-integration-and-deployment/TN-001-design-production-ready-jenkins-cicd-pipeline-architecture.md) | Jenkins / CI-CD | Pipeline build, test, & deploy rootless otomatis (TN-001 s.d. TN-007) |
+| **TASK-TM-020** | Portabilitas Multi-Engine Runtime (Podman/Docker) | **P1 (High)** | `Completed` ✅ | [TM-ADR-0026](../../adr/tomcat-monitoring/adr-records/TM-ADR-0026.md) | Seluruh Repositori | Helper adaptif, SELinux guard, userns guard (TN-008) |
 | **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | `Descoped` ⚪ | TM-ADR-0014 | Diagnostic Service | Digantikan arsip dossier 7-seksi terpusat |
 | **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Rule saturasi thread pool 100% (TN-004) |
 | **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Sinyal Emas GC Pause, Overhead, Old Gen (TN-004) |
 | **TASK-TM-009** | Dashboard Observabilitas Grafana | **P2 (Medium)** | `Descoped` ⚪ | TN-020 | Grafana | Fokus investigasi otonom & laporan email SRE |
 | **TASK-TM-010** | Standardisasi Log & Spool Cleanup | **P2 (Medium)** | `Completed` ✅ | TN-020 / TN-011 | Event Collector / Host | Spool pruning 24h, cap 1000, & isolasi 0700 (TN-011) |
-| **TASK-TM-019** | Otomatisasi CI/CD Pipeline Jenkins | **P1 (High)** | `Planned` 📋 | [TN-001](engineering-journal/continuous-integration-and-deployment/TN-001-design-production-ready-jenkins-cicd-pipeline-architecture.md) | Jenkins / CI-CD | Pipeline build, test, & deploy rootless otomatis |
-| **TASK-TM-011** | Ansible Playbook Deployment | **P3 (Planned)** | `Planned` 📋 | TN-020 | Ansible / Podman | Zero-touch provisioning seluruh host |
+| **TASK-TM-011** | Ansible Playbook Deployment | **P3 (Planned)** | `Completed` ✅ | [TN-009](engineering-journal/continuous-integration-and-deployment/TN-009-implement-and-verify-ansible-fleet-provisioning-and-deployment-playbooks.md) | Ansible / Podman | Zero-touch provisioning & deployment idempoten (TN-009) |
 | **TASK-TM-012** | Integrasi TrueSight / Event Bridge | **P3 (Deferred)** | `Descoped` ⚪ | GAP-015 / TN-020 | Integration Bridge | Digantikan Enterprise SMTP Relay resmi (TN-010) |
 
 ---
@@ -483,8 +523,12 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 - [Diagnostic MVP Index](diagnostic-mvp/index.md)
 - [Diagnostic MVP Gap Register](diagnostic-mvp/gap-register.md)
 - [Tomcat Monitoring Architecture](architecture/index.md)
+- [Continuous Integration and Deployment Engineering Journal](engineering-journal/continuous-integration-and-deployment/index.md)
 - [TM-ADR-0014 — Enforce Zero Automatic Remediation](../../adr/tomcat-monitoring/adr-records/TM-ADR-0014.md)
 - [TM-ADR-0015 — Adopt Asynchronous Webhook Ingestion with Durable SQLite Acceptance Pattern](../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md)
 - [TM-ADR-0016 — Designate Diagnostic Service as Canonical Incident Notification Authority](../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md)
 - [TM-ADR-0017 — Adopt Vertical Slice MVP Scoping for Diagnostic Pilot](../../adr/tomcat-monitoring/adr-records/TM-ADR-0017.md)
+- [TM-ADR-0024 — Adopt Decoupled Component CI and Orchestrated Stack CD Pipeline Architecture](../../adr/tomcat-monitoring/adr-records/TM-ADR-0024.md)
+- [TM-ADR-0025 — Delineate Responsibilities Between Jenkins Release Orchestration and Ansible Configuration Provisioning](../../adr/tomcat-monitoring/adr-records/TM-ADR-0025.md)
+- [TM-ADR-0026 — Adopt Adaptive Multi-Engine Container Runtime Portability for Podman and Docker Environments](../../adr/tomcat-monitoring/adr-records/TM-ADR-0026.md)
 - [TN-020 — Consolidate Diagnostic MVP Portfolio and Plan Next Phase](engineering-journal/diagnostic-mvp-pilot/TN-020-consolidate-diagnostic-mvp-portfolio-and-plan-next-phase.md)
