@@ -489,6 +489,27 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
   - Snapshot metrik live `up`, `jvm_memory_pool_used_bytes`, dan `tomcat_threads_busy_threads` tersimpan di SQLite `evidence_summaries` dan dirender pada Seksi 3 (*Key Metrics Snapshot*) Laporan SRE di Mailpit.
   - Didokumentasikan pada [TN-008](engineering-journal/monitoring-platform-integration/TN-008-integrate-live-prometheus-evidence-adapter-and-shared-persistent-logs.md).
 
+#### TASK-TM-025: Integrasi Enterprise Container Registry & Konfigurasi Siklus Hidup Citra Plug-and-Play
+
+- **Status:** `Completed` ✅ (TN-010)
+- **Deskripsi:**
+  Mengimplementasikan standardisasi integrasi repositori citra tingkat enterprise (*Enterprise Container Registry Integration*) yang bersifat siap pakai (*Plug-and-Play*) dan nir-modifikasi logika (*Zero Logic Modification*) di seluruh 5 repositori ekosistem platform Tomcat Monitoring.
+- **Kebutuhan Teknis:**
+  - Standardisasi variabel konfigurasi deklaratif (`REGISTRY_URL`, `REGISTRY_NAMESPACE`, `REGISTRY_TLS_VERIFY`, `IMAGE_PULL_POLICY`, `REGISTRY_AUTH_FILE`) pada `CONFIG` dan `inventories/group_vars/all.yml`.
+  - Penyediaan template enterprise `CONFIG.example` dan `inventories/production.ini.example`.
+  - Implementasi helper autentikasi terisolasi `scripts/registry-login-helper.sh` berbasis `--authfile`.
+  - Penambahan task rekonsiliasi penarikan citra deklaratif `roles/role_container_stack/tasks/pull_images.yml` di Ansible.
+  - Penyusunan SOP Panduan Migrasi Enterprise Container Registry.
+- **Kriteria Penerimaan (*Acceptance Criteria*):**
+  - Migrasi ke registry privat kantor (Harbor/Nexus/Quay) dapat dieksekusi murni via berkas konfigurasi deklaratif tanpa mengubah kode logika.
+  - Seluruh rangkaian validasi statis, sintaksis Ansible, dan verifikasi insiden *live* lulus 100%.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Didokumentasikan secara lengkap pada [TN-010](engineering-journal/continuous-integration-and-deployment/TN-010-implement-plug-and-play-container-registry-integration.md).
+  - Pembangunan citra dengan parameter Harbor (`harbor.internal.corp:5000/tomcat-monitoring/...`) berhasil dan lulus verifikasi.
+  - Validasi sintaksis `validate-ansible.sh` dan `validate.sh` $\rightarrow$ `SUCCESS`.
+  - Eksekusi playbook `deploy-stack.yml` membuktikan rekonsiliasi penarikan citra dan kesiapan seluruh endpoint stack (`ok=35`).
+  - Verifikasi insiden *live* (`verify-postfix-relay.sh` & `test-tomcatdown-live.sh`) lulus 100%.
+
 ---
 
 ## 🛠️ Implementation Priority Matrix
@@ -508,6 +529,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-016** | Live Prometheus Evidence Wire-up | **P1 (High)** | `Completed` ✅ | GAP-004 / TN-008 | Diagnostic Service | Metrik live otomatis terlampir di evidence (TN-008) |
 | **TASK-TM-019** | Otomatisasi CI/CD Pipeline Jenkins | **P1 (High)** | `Completed` ✅ | [TN-001](engineering-journal/continuous-integration-and-deployment/TN-001-design-production-ready-jenkins-cicd-pipeline-architecture.md) | Jenkins / CI-CD | Pipeline build, test, & deploy rootless otomatis (TN-001 s.d. TN-007) |
 | **TASK-TM-020** | Portabilitas Multi-Engine Runtime (Podman/Docker) | **P1 (High)** | `Completed` ✅ | [TM-ADR-0026](../../adr/tomcat-monitoring/adr-records/TM-ADR-0026.md) | Seluruh Repositori | Helper adaptif, SELinux guard, userns guard (TN-008) |
+| **TASK-TM-025** | Integrasi Enterprise Container Registry (Plug-and-Play) | **P1 (High)** | `Completed` ✅ | [TN-010](engineering-journal/continuous-integration-and-deployment/TN-010-implement-plug-and-play-container-registry-integration.md) | Seluruh Repositori | Migrasi deklaratif ke Harbor/Nexus nir-modifikasi logika (TN-010) |
 | **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | `Descoped` ⚪ | TM-ADR-0014 | Diagnostic Service | Digantikan arsip dossier 7-seksi terpusat |
 | **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Rule saturasi thread pool 100% (TN-004) |
 | **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Sinyal Emas GC Pause, Overhead, Old Gen (TN-004) |
@@ -524,6 +546,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 - [Diagnostic MVP Gap Register](diagnostic-mvp/gap-register.md)
 - [Tomcat Monitoring Architecture](architecture/index.md)
 - [Continuous Integration and Deployment Engineering Journal](engineering-journal/continuous-integration-and-deployment/index.md)
+- [SOP: Panduan Migrasi Enterprise Container Registry](operations/enterprise-container-registry-migration-guide.md)
 - [TM-ADR-0014 — Enforce Zero Automatic Remediation](../../adr/tomcat-monitoring/adr-records/TM-ADR-0014.md)
 - [TM-ADR-0015 — Adopt Asynchronous Webhook Ingestion with Durable SQLite Acceptance Pattern](../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md)
 - [TM-ADR-0016 — Designate Diagnostic Service as Canonical Incident Notification Authority](../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md)

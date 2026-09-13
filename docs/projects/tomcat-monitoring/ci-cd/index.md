@@ -130,78 +130,31 @@ promotion mechanism belum ditetapkan.
 
 | Setting | Value |
 | --- | --- |
-| Container runtime | Rootless Podman `4.9.3` |
+| Container runtime | Rootless Podman `4.9.3` / Docker Dual-Engine ([TM-ADR-0026](../../adr/tomcat-monitoring/adr-records/TM-ADR-0026.md), [TN-008](../engineering-journal/continuous-integration-and-deployment/TN-008-implement-and-standardize-multi-engine-container-runtime-portability.md)) |
 | Tomcat base image repository | `tomcat` |
 | JMX Exporter image repository | `tomcat-jmx-exporter` |
 | Monitoring repository | `tomcat-monitoring` |
-| Pipeline engine | Not determined |
-| Pipeline execution node | Not determined |
-| Ansible execution environment | Not determined |
-| Container image registry | Not determined |
-| Artifact storage | Not determined |
-| Target inventory | Not determined |
-| Secret source | Not determined |
-
-## Deployment Verification
-
-Deployment belum dapat dinyatakan berhasil hanya berdasarkan status container
-`Running`. CD harus membuktikan seluruh kondisi berikut:
-
-- Seluruh target container berada pada desired state;
-- Prometheus berhasil mengambil JMX Exporter metrics melalui HTTPS;
-- Certificate JMX Exporter berhasil diverifikasi;
-- Telegraf memperoleh expected HTTP status dan response body;
-- Prometheus menerima health metrics Telegraf;
-- Dashboard dapat membaca current dan historical metrics;
-- Firing alert diterima Alertmanager;
-- Resolved alert diproses setelah kondisi kembali normal;
-- Integrasi TrueSight berhasil apabila termasuk target environment; dan
-- Ansible run kedua tidak menghasilkan perubahan yang tidak diperlukan.
-
-Method, expected result, dan actual result akan dicatat ketika pipeline telah
-dijalankan.
-
-## Failure and Rollback
-
-Strategi rollback belum ditetapkan. Sebelum CD digunakan pada target runtime,
-design harus menentukan:
-
-- Kondisi yang menghentikan deployment;
-- Immutable image atau configuration version sebelumnya;
-- Backup dan recovery untuk persistent data;
-- Pemulihan certificate dan secret reference;
-- Perilaku ketika hanya sebagian container berhasil diperbarui; serta
-- Verification yang wajib diulang setelah rollback.
-
-Pipeline tidak boleh menghapus runtime yang masih berfungsi sebelum rollback
-path tersedia dan diverifikasi.
-
-## Pending Decisions
-
-- Pipeline engine dan execution node.
-- Pembagian pipeline definition antara repository `tomcat`,
-  `tomcat-jmx-exporter`, dan `tomcat-monitoring`.
-- CI build dan publication contract untuk derived image pada repository
-  `tomcat-jmx-exporter`.
-- Struktur Ansible inventory, playbook, dan role.
-- Immutable version dan artifact promotion model.
-- Container registry atau artifact storage.
-- Secret dan certificate source.
-- Deployment strategy dan rollback mechanism.
-- Environment target untuk integration test dan initial deployment.
+| Pipeline engine | Jenkins Pipeline as Code ([TM-ADR-0024](../../adr/tomcat-monitoring/adr-records/TM-ADR-0024.md), [TN-001](../engineering-journal/continuous-integration-and-deployment/TN-001-design-production-ready-jenkins-cicd-pipeline-architecture.md)) |
+| Pipeline execution node | Dedicated DooD Agent `builder-01` ([TN-007](../engineering-journal/continuous-integration-and-deployment/TN-007-execute-and-verify-end-to-end-cicd-pipelines-in-jenkins-controller.md)) |
+| Ansible execution environment | Containerized `ansible-controller:1.0` / Host Ansible Core ([TM-ADR-0025](../../adr/tomcat-monitoring/adr-records/TM-ADR-0025.md), [TN-009](../engineering-journal/continuous-integration-and-deployment/TN-009-implement-and-verify-ansible-fleet-provisioning-and-deployment-playbooks.md)) |
+| Container image registry | Enterprise Container Registry (Harbor / Nexus / Quay) & Local Storage ([TN-010](../engineering-journal/continuous-integration-and-deployment/TN-010-implement-plug-and-play-container-registry-integration.md)) |
+| Target inventory | `inventories/lab.ini`, `inventories/staging.ini`, `inventories/production.ini` |
+| Secret source | Jenkins Credentials Store & 0700/0400 Local Secret Files |
 
 ## Current Status
 
-CI/CD dan Ansible provisioning belum diimplementasikan. Rootless Podman,
-repository `tomcat`, dan initial source repository `tomcat-jmx-exporter` telah
-tersedia untuk mendukung tahap desain serta pengujian awal. Local derived image
-dari source revision awal telah lulus smoke test. Current-source clean build
-dan seluruh pipeline result masih berstatus `Not verified`.
+Siklus otomatisasi CI/CD dan Ansible Fleet Provisioning telah **selesai diimplementasikan dan diverifikasi 100%** di seluruh ekosistem repositori platform Tomcat Monitoring:
+- **Component CI Pipelines:** Beroperasi otomatis di `tomcat-diagnostic-service` ([TN-004](../engineering-journal/continuous-integration-and-deployment/TN-004-implement-production-ready-ci-pipeline-for-diagnostic-service.md)) dan `tomcat-diagnostic-event-collector` ([TN-005](../engineering-journal/continuous-integration-and-deployment/TN-005-implement-production-ready-ci-pipeline-for-event-collector.md)).
+- **Stack CD Hub:** Beroperasi otomatis di `tomcat-monitoring` ([TN-006](../engineering-journal/continuous-integration-and-deployment/TN-006-implement-stack-orchestration-cd-pipeline-for-tomcat-monitoring.md)).
+- **Ansible Fleet Provisioning:** Menyediakan armada multi-node secara idempoten ([TN-009](../engineering-journal/continuous-integration-and-deployment/TN-009-implement-and-verify-ansible-fleet-provisioning-and-deployment-playbooks.md)).
+- **Plug-and-Play Enterprise Container Registry:** Mendukung migrasi nir-modifikasi kode ke Harbor / Nexus ([TN-010](../engineering-journal/continuous-integration-and-deployment/TN-010-implement-plug-and-play-container-registry-integration.md)).
 
 ## Related Pages
 
+- [Continuous Integration and Deployment Engineering Journal](../engineering-journal/continuous-integration-and-deployment/index.md)
+- [SOP: Panduan Migrasi Enterprise Container Registry](../operations/enterprise-container-registry-migration-guide.md)
 - [Architecture](../architecture/index.md)
 - [Development](../development/index.md)
 - [Infrastructure](../infrastructure/index.md)
 - [Operations](../operations/index.md)
-- [Engineering Journal](../engineering-journal/index.md)
+- [Follow-up Tasks Backlog](../follow-up-tasks.md)

@@ -75,6 +75,7 @@ flowchart TD
 | **Jenkins Live Execution & E2E Verification** | Eksekusi dan verifikasi live 3 pipeline jobs pada Jenkins Controller, kelulusan 100% quality gates, Postfix STARTTLS+SASL relay, dan simulasi insiden end-to-end (TASK-TM-024) | Completed (TN-007) |
 | **Multi-Engine Container Runtime Portability** | Standarisasi portabilitas runtime Podman & Docker secara adaptif, SELinux volume relabeling guard, isolasi flag userns, dan abstraksi lifecycle assertions (TASK-TM-020) | Completed (TN-008) |
 | **Ansible Fleet Provisioning & Deployment** | Otomatisasi penyediaan infrastruktur armada multi-node dan deployment tumpukan monitoring secara idempoten berbasis Ansible Playbooks dan 3 roles modular (TASK-TM-011) | Completed (TN-009) |
+| **Enterprise Container Registry Integration** | Integrasi repositori citra enterprise deklaratif (Harbor/Nexus), resolusi penamaan citra dinamis, helper autentikasi terisolasi, dan task pull citra Ansible (TASK-TM-025) | Completed (TN-010) |
 
 ---
 
@@ -115,6 +116,10 @@ flowchart TD
 9. **[TN-009 — Implement and Verify Ansible Fleet Provisioning and Deployment Playbooks](TN-009-implement-and-verify-ansible-fleet-provisioning-and-deployment-playbooks.md)**
 
     Mendokumentasikan implementasi dan verifikasi otomatisasi penyediaan armada (*fleet provisioning*) dan deployment tumpukan monitoring secara idempoten (`TASK-TM-011`) berbasis 3 Ansible Roles modular (`role_host_prep`, `role_event_collector`, `role_container_stack`), inventori hierarkis lintas lingkungan, eksekusi runner biner lokal / kontainer pengontrol `ansible-controller:1.0`, penegakan izin ketat tanpa kebocoran rahasia, pembuktian idempotensi 100% (`changed=0`), serta kelulusan rangkaian uji insiden *live*.
+
+10. **[TN-010 — Implement Plug-and-Play Enterprise Container Registry Integration and Image Lifecycle Configuration](TN-010-implement-plug-and-play-container-registry-integration.md)**
+
+    Mendokumentasikan implementasi dan standardisasi integrasi repositori citra enterprise (*Enterprise Container Registry*) yang siap pakai (*Plug-and-Play*) dan nir-modifikasi logika (`TASK-TM-025`) di 5 repositori platform, parameterisasi deklaratif lengkap (`REGISTRY_URL`, `REGISTRY_NAMESPACE`, `REGISTRY_TLS_VERIFY`, `IMAGE_PULL_POLICY`, `REGISTRY_AUTH_FILE`), penyediaan template enterprise (`CONFIG.example`, `production.ini.example`), helper autentikasi terisolasi (`registry-login-helper.sh`), task rekonsiliasi pull citra Ansible (`pull_images.yml`), serta kelulusan 100% verifikasi insiden *live*.
 
 ---
 

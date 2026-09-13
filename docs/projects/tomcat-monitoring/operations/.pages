@@ -5,4 +5,5 @@ title: Operations
 arrange:
 
 - index.md
+- enterprise-container-registry-migration-guide.md
 - ai-knowledge-enrichment-and-rule-management-runbook.md
