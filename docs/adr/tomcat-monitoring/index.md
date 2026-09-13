@@ -38,6 +38,7 @@ konsekuensi keputusan arsitektur yang memengaruhi implementasi project.
 | [**TM-ADR-0024**](adr-records/TM-ADR-0024.md){: target="_blank" } | Adopt Decoupled Component CI and Orchestrated Stack CD Pipeline Architecture | Tomcat Monitoring | Continuous Integration and Deployment Architecture | Accepted | 2026-09-12 |
 | [**TM-ADR-0025**](adr-records/TM-ADR-0025.md){: target="_blank" } | Delineate Responsibilities Between Jenkins Release Orchestration and Ansible Configuration Provisioning | Tomcat Monitoring | Deployment, Configuration Management, and Fleet Orchestration Architecture | Accepted | 2026-09-12 |
 | [**TM-ADR-0026**](adr-records/TM-ADR-0026.md){: target="_blank" } | Adopt Adaptive Multi-Engine Container Runtime Portability for Podman and Docker Environments | Tomcat Monitoring | Container Runtime, Platform Portability, and Infrastructure Abstraction Architecture | Accepted | 2026-09-13 |
+| [**TM-ADR-0027**](adr-records/TM-ADR-0027.md){: target="_blank" } | Adopt Container Engine Socket API and Unified Cross-Platform Tooling for Multi-OS Orchestration | Tomcat Monitoring | Platform Portability, Multi-OS Orchestration, and Tooling Architecture | Accepted | 2026-09-13 |
 
 ## 🗺️ ADR Mapping
 
@@ -69,6 +70,7 @@ konsekuensi keputusan arsitektur yang memengaruhi implementasi project.
 | TM-ADR-0024 | Adopt Decoupled Component CI and Orchestrated Stack CD Pipeline Architecture | CI/CD TN-001 |
 | TM-ADR-0025 | Delineate Responsibilities Between Jenkins Release Orchestration and Ansible Configuration Provisioning | CI/CD Phase, TASK-TM-011 |
 | TM-ADR-0026 | Adopt Adaptive Multi-Engine Container Runtime Portability for Podman and Docker Environments | CI/CD TN-008, TASK-TM-020 |
+| TM-ADR-0027 | Adopt Container Engine Socket API and Unified Cross-Platform Tooling for Multi-OS Orchestration | CI/CD TN-011, TASK-TM-026 |
 
 
 ## 📝 Summary

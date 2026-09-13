@@ -507,8 +507,22 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
   - Didokumentasikan secara lengkap pada [TN-010](engineering-journal/continuous-integration-and-deployment/TN-010-implement-plug-and-play-container-registry-integration.md).
   - Pembangunan citra dengan parameter Harbor (`harbor.internal.corp:5000/tomcat-monitoring/...`) berhasil dan lulus verifikasi.
   - Validasi sintaksis `validate-ansible.sh` dan `validate.sh` $\rightarrow$ `SUCCESS`.
-  - Eksekusi playbook `deploy-stack.yml` membuktikan rekonsiliasi penarikan citra dan kesiapan seluruh endpoint stack (`ok=35`).
-  - Verifikasi insiden *live* (`verify-postfix-relay.sh` & `test-tomcatdown-live.sh`) lulus 100%.
+#### TASK-TM-026: Perancangan & Standardisasi Orkestrasi Multi-OS via Container Engine Socket API dan Kakas Go (tmctl & tm-agent)
+
+- **Status:** `Completed (Design & Architecture)` ✅ (TN-011)
+- **Deskripsi:**
+  Merancang dan membakukan arsitektur orkestrasi lintas sistem operasi (Linux dan Windows) berbasis Container Engine Socket API (Podman / Docker) serta mendefinisikan spesifikasi kakas baris perintah tunggal `tmctl` (Go CLI) dan agen pengumpul event kontainer `tm-agent` (Go Daemon) untuk menuntaskan keterikatan pada shell Linux.
+- **Kebutuhan Teknis:**
+  - Evaluasi batas arsitektur Container Engine Socket API (Unix Socket, Windows Named Pipe, TCP mTLS).
+  - Spesifikasi subperintah `tmctl` (`stack deploy/status/clean`, `rules ingest/export`, `registry login`, `validate`).
+  - Spesifikasi streaming socket dan format snapshot `tm-agent` sesuai skema `event-record-v1.schema.json`.
+  - Desain refaktorisasi Ansible roles deklaratif dan *OS Fact Branching*.
+- **Kriteria Penerimaan (*Acceptance Criteria*):**
+  - Desain arsitektur menuntaskan keterikatan pada skrip Bash di mesin target untuk mode manual dan otomatis.
+  - Dokumentasi keputusan arsitektur [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) dan jurnal rekayasa [TN-011](engineering-journal/continuous-integration-and-deployment/TN-011-design-cross-platform-container-engine-api-orchestration-and-agent-architecture.md) dibakukan.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Pembakuan [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md).
+  - Pembakuan [TN-011](engineering-journal/continuous-integration-and-deployment/TN-011-design-cross-platform-container-engine-api-orchestration-and-agent-architecture.md).
 
 ---
 
@@ -530,6 +544,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-019** | Otomatisasi CI/CD Pipeline Jenkins | **P1 (High)** | `Completed` ✅ | [TN-001](engineering-journal/continuous-integration-and-deployment/TN-001-design-production-ready-jenkins-cicd-pipeline-architecture.md) | Jenkins / CI-CD | Pipeline build, test, & deploy rootless otomatis (TN-001 s.d. TN-007) |
 | **TASK-TM-020** | Portabilitas Multi-Engine Runtime (Podman/Docker) | **P1 (High)** | `Completed` ✅ | [TM-ADR-0026](../../adr/tomcat-monitoring/adr-records/TM-ADR-0026.md) | Seluruh Repositori | Helper adaptif, SELinux guard, userns guard (TN-008) |
 | **TASK-TM-025** | Integrasi Enterprise Container Registry (Plug-and-Play) | **P1 (High)** | `Completed` ✅ | [TN-010](engineering-journal/continuous-integration-and-deployment/TN-010-implement-plug-and-play-container-registry-integration.md) | Seluruh Repositori | Migrasi deklaratif ke Harbor/Nexus nir-modifikasi logika (TN-010) |
+| **TASK-TM-026** | Standarisasi Orkestrasi Multi-OS & Go Tooling | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | Seluruh Repositori | Arsitektur Container Engine API, tmctl CLI, & tm-agent (TN-011) |
 | **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | `Descoped` ⚪ | TM-ADR-0014 | Diagnostic Service | Digantikan arsip dossier 7-seksi terpusat |
 | **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Rule saturasi thread pool 100% (TN-004) |
 | **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Sinyal Emas GC Pause, Overhead, Old Gen (TN-004) |
@@ -554,4 +569,5 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 - [TM-ADR-0024 — Adopt Decoupled Component CI and Orchestrated Stack CD Pipeline Architecture](../../adr/tomcat-monitoring/adr-records/TM-ADR-0024.md)
 - [TM-ADR-0025 — Delineate Responsibilities Between Jenkins Release Orchestration and Ansible Configuration Provisioning](../../adr/tomcat-monitoring/adr-records/TM-ADR-0025.md)
 - [TM-ADR-0026 — Adopt Adaptive Multi-Engine Container Runtime Portability for Podman and Docker Environments](../../adr/tomcat-monitoring/adr-records/TM-ADR-0026.md)
+- [TM-ADR-0027 — Adopt Container Engine Socket API and Unified Cross-Platform Tooling for Multi-OS Orchestration](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md)
 - [TN-020 — Consolidate Diagnostic MVP Portfolio and Plan Next Phase](engineering-journal/diagnostic-mvp-pilot/TN-020-consolidate-diagnostic-mvp-portfolio-and-plan-next-phase.md)

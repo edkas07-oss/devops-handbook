@@ -76,6 +76,7 @@ flowchart TD
 | **Multi-Engine Container Runtime Portability** | Standarisasi portabilitas runtime Podman & Docker secara adaptif, SELinux volume relabeling guard, isolasi flag userns, dan abstraksi lifecycle assertions (TASK-TM-020) | Completed (TN-008) |
 | **Ansible Fleet Provisioning & Deployment** | Otomatisasi penyediaan infrastruktur armada multi-node dan deployment tumpukan monitoring secara idempoten berbasis Ansible Playbooks dan 3 roles modular (TASK-TM-011) | Completed (TN-009) |
 | **Enterprise Container Registry Integration** | Integrasi repositori citra enterprise deklaratif (Harbor/Nexus), resolusi penamaan citra dinamis, helper autentikasi terisolasi, dan task pull citra Ansible (TASK-TM-025) | Completed (TN-010) |
+| **Cross-Platform Engine API & Go Tooling** | Perancangan arsitektur orkestrasi lintas OS berbasis Container Engine Socket API, spesifikasi Go CLI tmctl, Go daemon tm-agent, dan refaktorisasi Ansible deklaratif (TASK-TM-026) | Completed (TN-011) |
 
 ---
 
@@ -121,6 +122,10 @@ flowchart TD
 
     Mendokumentasikan implementasi dan standardisasi integrasi repositori citra enterprise (*Enterprise Container Registry*) yang siap pakai (*Plug-and-Play*) dan nir-modifikasi logika (`TASK-TM-025`) di 5 repositori platform, parameterisasi deklaratif lengkap (`REGISTRY_URL`, `REGISTRY_NAMESPACE`, `REGISTRY_TLS_VERIFY`, `IMAGE_PULL_POLICY`, `REGISTRY_AUTH_FILE`), penyediaan template enterprise (`CONFIG.example`, `production.ini.example`), helper autentikasi terisolasi (`registry-login-helper.sh`), task rekonsiliasi pull citra Ansible (`pull_images.yml`), serta kelulusan 100% verifikasi insiden *live*.
 
+11. **[TN-011 — Design Cross-Platform Container Engine API Orchestration, Unified Go CLI, and Multi-OS Agent Architecture](TN-011-design-cross-platform-container-engine-api-orchestration-and-agent-architecture.md)**
+
+    Mendokumentasikan analisis komprehensif kesiapan multi-OS, adopsi Container Engine Socket API (Podman / Docker socket & Named Pipe) sebagai antarmuka orkestrasi universal, perancangan kakas baris perintah tunggal `tmctl` (Go CLI) untuk menggantikan skrip imperatif Bash, perancangan agen background `tm-agent` (Go Daemon) untuk pengumpulan event kontainer, serta strategi refaktorisasi Ansible roles deklaratif (`TASK-TM-026`).
+
 ---
 
 ## 🎓 Lessons Learned
@@ -128,6 +133,7 @@ flowchart TD
 1. **Pemisahan Fase Dokumentasi CI/CD:** Memisahkan dokumentasi CI/CD ke dalam workstream khusus (*Continuous Integration and Deployment*) memberikan kejelasan batas tanggung jawab antara integrasi fungsional monitoring dengan otomatisasi siklus hidup pengiriman software.
 2. **Kesiapan Produksi Ditentukan Sejak Perancangan Awal:** Menambahkan parameterisasi registry, penegakan isolasi secret, dan mekanisme rollback otomatis sejak fase desain mencegah timbulnya *technical debt* saat kode dipindahkan dari lab ke server produksi enterprise.
 3. **Portabilitas Multi-Engine Menghilangkan Keterikatan Infrastruktur:** Penggunaan helper adaptif berbasis shell POSIX memungkinkan eksekusi skrip otomasi yang seragam di lingkungan Red Hat (Podman) maupun Debian/Ubuntu (Docker) tanpa konfigurasi manual tambahan.
+4. **Container Engine Socket API Melampaui Batasan OS:** Menggunakan antarmuka soket/API resmi kontainer engine membebaskan platform dari ketergantungan pada shell host OS (Bash vs PowerShell) dan menghasilkan interaksi streaming event yang jauh lebih tangguh dan terstruktur.
 
 ---
 
@@ -141,5 +147,8 @@ flowchart TD
 - [TM-ADR-0024 — Adopt Decoupled Component CI and Orchestrated Stack CD Pipeline Architecture](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0024.md)
 - [TM-ADR-0025 — Delineate Responsibilities Between Jenkins Release Orchestration and Ansible Configuration Provisioning](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0025.md)
 - [TM-ADR-0026 — Adopt Adaptive Multi-Engine Container Runtime Portability for Podman and Docker Environments](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0026.md)
+- [TM-ADR-0027 — Adopt Container Engine Socket API and Unified Cross-Platform Tooling for Multi-OS Orchestration](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md)
+- [PS-ADR-0007 — Use Pipeline as Code](../../../../adr/personal-site/adr-records/PS-ADR-0007.md)
+- [PS-ADR-0008 — Adopt Stage-Based CI Pipeline](../../../../adr/personal-site/adr-records/PS-ADR-0008.md)
 - [PS-ADR-0007 — Use Pipeline as Code](../../../../adr/personal-site/adr-records/PS-ADR-0007.md)
 - [PS-ADR-0008 — Adopt Stage-Based CI Pipeline](../../../../adr/personal-site/adr-records/PS-ADR-0008.md)
