@@ -77,6 +77,7 @@ flowchart TD
 | **Ansible Fleet Provisioning & Deployment** | Otomatisasi penyediaan infrastruktur armada multi-node dan deployment tumpukan monitoring secara idempoten berbasis Ansible Playbooks dan 3 roles modular (TASK-TM-011) | Completed (TN-009) |
 | **Enterprise Container Registry Integration** | Integrasi repositori citra enterprise deklaratif (Harbor/Nexus), resolusi penamaan citra dinamis, helper autentikasi terisolasi, dan task pull citra Ansible (TASK-TM-025) | Completed (TN-010) |
 | **Cross-Platform Engine API & Go Tooling** | Perancangan arsitektur orkestrasi lintas OS berbasis Container Engine Socket API, spesifikasi Go CLI tmctl, Go daemon tm-agent, dan refaktorisasi Ansible deklaratif (TASK-TM-026) | Completed (TN-011) |
+| **Unified Cross-Platform Operator CLI `tmctl`** | Implementasi kakas baris perintah tunggal berbasis Go (`tmctl` / `tmctl.exe`) untuk orkestrasi Container Engine Socket API (Linux & Windows) (TASK-TM-027) | Completed (TN-012) |
 
 ---
 
@@ -125,6 +126,10 @@ flowchart TD
 11. **[TN-011 — Design Cross-Platform Container Engine API Orchestration, Unified Go CLI, and Multi-OS Agent Architecture](TN-011-design-cross-platform-container-engine-api-orchestration-and-agent-architecture.md)**
 
     Mendokumentasikan analisis komprehensif kesiapan multi-OS, adopsi Container Engine Socket API (Podman / Docker socket & Named Pipe) sebagai antarmuka orkestrasi universal, perancangan kakas baris perintah tunggal `tmctl` (Go CLI) untuk menggantikan skrip imperatif Bash, perancangan agen background `tm-agent` (Go Daemon) untuk pengumpulan event kontainer, serta strategi refaktorisasi Ansible roles deklaratif (`TASK-TM-026`).
+
+12. **[TN-012 — Implement Unified Cross-Platform Operator CLI tmctl for Container Engine API Orchestration](TN-012-implement-unified-cross-platform-operator-cli-tmctl.md)**
+
+    Mendokumentasikan implementasi biner tunggal mandiri `tmctl` (Linux) dan `tmctl.exe` (Windows) berbasis Go yang berkomunikasi langsung dengan Container Engine Socket API (Unix Domain Socket, Named Pipe, TCP), penyediaan subperintah lengkap (`stack`, `rules`, `registry`, `validate`), otomasi zero-downtime rollback snapshot, matriks kompilasi silang lintas platform, dan kelulusan 100% pengujian statis serta inspeksi armada runtime (`TASK-TM-027`).
 
 ---
 

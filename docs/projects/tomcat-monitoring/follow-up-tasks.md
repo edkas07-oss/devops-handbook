@@ -526,18 +526,23 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 
 #### TASK-TM-027: Implementasi Kakas Operator Terpadu tmctl (Go Unified CLI) untuk Orkestrasi Multi-OS (Fase 1)
 
-- **Status:** `Planned (Fase 1)` ⏳
+- **Status:** `Completed (Fase 1)` ✅ (TN-012)
 - **Deskripsi:**
   Merancang dan mengimplementasikan kakas baris perintah tunggal `tmctl` (*Single Static Binary*) berbasis Go untuk menjembatani orkestrasi kontainer lintas sistem operasi (*Linux & Windows*), menggantikan kumpulan skrip imperatif `scripts/*.sh` pada mode manual.
 - **Kebutuhan Teknis:**
-  - Inisialisasi modul Go (`go.mod`) dan struktur paket CLI terpadu.
-  - Pembangunan klien adapter Container Engine Socket API (kompatibel Podman socket, Docker socket, dan Windows Named Pipe).
-  - Implementasi subperintah CLI: `tmctl stack deploy/status/clean`, `tmctl rules ingest/export`, `tmctl registry login`, dan `tmctl validate`.
+  - Inisialisasi modul Go (`go.mod`) dan struktur paket CLI terpadu pada repositori mandiri `tmctl`.
+  - Pembangunan klien adapter Container Engine Socket API (kompatibel Podman Unix socket, Docker socket, dan Windows Named Pipe).
+  - Implementasi subperintah CLI: `tmctl stack deploy/status/clean`, `tmctl rules ingest/export`, `tmctl registry login/logout`, dan `tmctl validate`.
   - Konfigurasi matriks kompilasi silang (*cross-compilation*): Linux (`amd64`/`arm64`) dan Windows (`amd64`).
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
   - Biner `tmctl` (Linux) dan `tmctl.exe` (Windows) dapat menyalakan, memantau, dan menghentikan seluruh tumpukan kontainer secara seragam tanpa memerlukan interpreter Bash di host.
   - Manajemen aturan AI (`ingest`/`export`) dan login registri kontainer enterprise berjalan mulus melalui antarmuka CLI tunggal.
-- **Referensi:** [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md), [TN-011](engineering-journal/continuous-integration-and-deployment/TN-011-design-cross-platform-container-engine-api-orchestration-and-agent-architecture.md).
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Didokumentasikan secara lengkap pada [TN-012](engineering-journal/continuous-integration-and-deployment/TN-012-implement-unified-cross-platform-operator-cli-tmctl.md).
+  - Repositori [`tmctl`](file:///home/eddywiyatno/git/tmctl) diinisialisasi dan lulus 100% unit tests internal.
+  - Matriks kompilasi silang sukses menghasilkan `bin/linux_amd64/tmctl` (5.7M), `bin/linux_arm64/tmctl` (5.5M), dan `bin/windows_amd64/tmctl.exe` (5.9M).
+  - Eksekusi `tmctl stack status` berhasil menginspeksi kontainer OCI via socket Podman dan `tmctl validate` memvalidasi baseline kontrak repositori.
+- **Referensi:** [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md), [TN-011](engineering-journal/continuous-integration-and-deployment/TN-011-design-cross-platform-container-engine-api-orchestration-and-agent-architecture.md), [TN-012](engineering-journal/continuous-integration-and-deployment/TN-012-implement-unified-cross-platform-operator-cli-tmctl.md).
 
 #### TASK-TM-028: Implementasi Agen Pengumpul Event Kontainer tm-agent (Go Daemon) berbasis Socket API (Fase 2)
 
@@ -589,7 +594,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-020** | Portabilitas Multi-Engine Runtime (Podman/Docker) | **P1 (High)** | `Completed` ✅ | [TM-ADR-0026](../../adr/tomcat-monitoring/adr-records/TM-ADR-0026.md) | Seluruh Repositori | Helper adaptif, SELinux guard, userns guard (TN-008) |
 | **TASK-TM-025** | Integrasi Enterprise Container Registry (Plug-and-Play) | **P1 (High)** | `Completed` ✅ | [TN-010](engineering-journal/continuous-integration-and-deployment/TN-010-implement-plug-and-play-container-registry-integration.md) | Seluruh Repositori | Migrasi deklaratif ke Harbor/Nexus nir-modifikasi logika (TN-010) |
 | **TASK-TM-026** | Standarisasi Orkestrasi Multi-OS & Go Tooling | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | Seluruh Repositori | Arsitektur Container Engine API, tmctl CLI, & tm-agent (TN-011) |
-| **TASK-TM-027** | Implementasi Kakas Operator Terpadu `tmctl` (Go CLI) | **P1 (High)** | `Planned` ⏳ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tmctl` (New Repo/CLI) | Single static binary CLI lintas OS untuk manajemen manual (Fase 1) |
+| **TASK-TM-027** | Implementasi Kakas Operator Terpadu `tmctl` (Go CLI) | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tmctl` (New Repo/CLI) | Single static binary CLI lintas OS untuk manajemen manual (TN-012) |
 | **TASK-TM-028** | Implementasi Agen Event `tm-agent` (Go Daemon) | **P1 (High)** | `Planned` ⏳ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tm-agent` / Event Coll | Socket event streamer & atomic spool writer multi-OS (Fase 2) |
 | **TASK-TM-029** | Refaktorisasi Ansible Roles berbasis `tmctl` | **P1 (High)** | `Planned` ⏳ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tomcat-monitoring` / Ansible | Thin declarative orchestrator & OS Fact Branching (Fase 3) |
 | **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | `Descoped` ⚪ | TM-ADR-0014 | Diagnostic Service | Digantikan arsip dossier 7-seksi terpusat |
