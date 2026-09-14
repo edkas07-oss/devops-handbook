@@ -649,6 +649,27 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
   - Bukti penerimaan email insiden di Mailpit (`0qGQcQJKNI8PkckDZm0R8E`) dan email pemulihan `[RESOLVED]` (`80pGk8YnZc6uC787lCskYq`).
 - **Referensi:** [TM-ADR-0024](../../adr/tomcat-monitoring/adr-records/TM-ADR-0024.md), [TM-ADR-0025](../../adr/tomcat-monitoring/adr-records/TM-ADR-0025.md), [TM-ADR-0026](../../adr/tomcat-monitoring/adr-records/TM-ADR-0026.md), [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md), [TM-ADR-0028](../../adr/tomcat-monitoring/adr-records/TM-ADR-0028.md), [TN-017](engineering-journal/continuous-integration-and-deployment/TN-017-aws-free-tier-cloud-remote-fleet-deployment-cross-environment-ansible-provisioning-and-cloud-cicd-live-verification.md).
 
+#### TASK-TM-033: Deployment Armada Cloud Remote Windows AWS Free Tier (Windows Server 2022), Provisi Ansible Multi-OS, dan Verifikasi Live Windows Fleet (Fase Cloud Windows)
+
+- **Status:** `Completed (Fase Cloud Windows)` ✅
+- **Deskripsi:**
+  Mengonfigurasi dan memperkuat target node Amazon EC2 Windows (AWS Free Tier, Windows Server 2022 Datacenter, OpenSSH Server, LocalSystem SCM binding), mengintegrasikan Model 1 Hierarchical Grouping pada inventori multi-OS (`inventories/aws-staging.ini`), menerapkan OS Fact Branching (`ansible_os_family == "Windows"`) pada seluruh roles Ansible, mendeploy biner Go native Windows `tmctl.exe` dan daemon `tm-agent.exe`, serta membuktikan penangkapan event runtime dan penulisan evidence spool kanonikal `C:\monitoring\spool` di lingkungan AWS Cloud.
+- **Kebutuhan Teknis:**
+  - OpenSSH Windows Hardening: instalasi capability, binding LocalSystem service account (fix Error 1332 SID lookup), aktivasi SFTP subsystem `sftp-server.exe`, dan injeksi kunci publik RSA bebas line-wrapping via Base64.
+  - Inventori & Roles Ansible: Model 1 Hierarchical Grouping (`[linux_nodes]`, `[windows_nodes]`), OS Fact Branching pada `role_host_prep` (struktur `C:\monitoring` & `tmctl.exe`), `role_event_collector` (`tm-agent.exe` daemon & `C:\monitoring\spool`), dan `role_container_stack` (Linux-only guard).
+  - Validasi runtime `tmctl.exe` dan streaming daemon `tm-agent.exe` di Windows Server 2022.
+- **Kriteria Penerimaan (*Acceptance Criteria*):**
+  - Autentikasi SSH Key-based ke node Windows berhasil tanpa intervensi password.
+  - Playbook `provision-fleet.yml` dan `deploy-stack.yml` berjalan sukses dan idempoten (0 unreachable, 0 failed).
+  - Biner `tmctl.exe` dan `tm-agent.exe` berfungsi native dan menulis berkas evidence JSON valid di `C:\monitoring\spool`.
+  - Pembakuan [TN-018](engineering-journal/continuous-integration-and-deployment/TN-018-aws-windows-fleet-deployment-cross-platform-ansible-provisioning-and-live-verification.md) dan pembaruan handbook.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Didokumentasikan secara lengkap pada [TN-018](engineering-journal/continuous-integration-and-deployment/TN-018-aws-windows-fleet-deployment-cross-platform-ansible-provisioning-and-live-verification.md).
+  - SSH key auth berhasil: `ec2amaz-darmlje\administrator`.
+  - Ansible Playbook RECAP: `aws-ec2-win-01 : ok=9 changed=1 unreachable=0 failed=0 skipped=36`.
+  - Bukti penulisan berkas evidence di `C:\monitoring\spool\1789381549962275300_collector_status.json`.
+- **Referensi:** [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md), [TM-ADR-0028](../../adr/tomcat-monitoring/adr-records/TM-ADR-0028.md), [TN-017](engineering-journal/continuous-integration-and-deployment/TN-017-aws-free-tier-cloud-remote-fleet-deployment-cross-environment-ansible-provisioning-and-cloud-cicd-live-verification.md), [TN-018](engineering-journal/continuous-integration-and-deployment/TN-018-aws-windows-fleet-deployment-cross-platform-ansible-provisioning-and-live-verification.md).
+
 ---
 
 ## 🛠️ Implementation Priority Matrix
@@ -676,6 +697,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-030** | CI/CD Pipelines & Multi-OS Artifacts Hub | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tmctl`, `tm-agent`, `tomcat-monitoring` | CI multi-OS biner, checksums manifest, & Stack CD Hub (TN-015) |
 | **TASK-TM-031** | Live Multi-OS CI/CD Verification & Global Architecture | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | Jenkins Controller / All | Verifikasi live Jenkins, biner multi-OS di controller, & konsolidasi manual (TN-016) |
 | **TASK-TM-032** | AWS Free Tier Linux Cloud Fleet Deployment & CI/CD | **P1 (High)** | `Completed` ✅ | [TM-ADR-0028](../../adr/tomcat-monitoring/adr-records/TM-ADR-0028.md) | AWS EC2 / Jenkins / Ansible | Zero-touch AWS Linux cloud deployment, swap hardening, & incident response (TN-017) |
+| **TASK-TM-033** | AWS Free Tier Windows Cloud Fleet Deployment & Multi-OS | **P1 (High)** | `Completed` ✅ | [TM-ADR-0028](../../adr/tomcat-monitoring/adr-records/TM-ADR-0028.md) | AWS Windows / Ansible / tm-agent | Multi-OS Hierarchical Grouping, Windows OpenSSH hardening, & Windows fleet live verification (TN-018) |
 | **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | `Descoped` ⚪ | TM-ADR-0014 | Diagnostic Service | Digantikan arsip dossier 7-seksi terpusat |
 | **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Rule saturasi thread pool 100% (TN-004) |
 | **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Sinyal Emas GC Pause, Overhead, Old Gen (TN-004) |
