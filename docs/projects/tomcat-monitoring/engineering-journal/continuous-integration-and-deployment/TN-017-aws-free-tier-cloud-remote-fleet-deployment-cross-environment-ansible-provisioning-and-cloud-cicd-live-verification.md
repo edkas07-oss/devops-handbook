@@ -1,9 +1,9 @@
-# TN-017 — AWS Free Tier Cloud Remote Fleet Deployment, Cross-Environment Ansible Provisioning, and Cloud CI/CD Live Verification
+# TN-017 — AWS Free Tier Linux (Amazon Linux 2023) Cloud Remote Fleet Deployment, Cross-Environment Ansible Provisioning, and Cloud CI/CD Live Verification
 
 | Field | Value |
 | --- | --- |
 | Status | Completed |
-| Activity Type | Cloud Deployment, CI/CD Integration & Live Verification |
+| Activity Type | Linux Cloud Deployment, CI/CD Integration & Live Verification |
 | Record Type | Live |
 | Project | Tomcat Monitoring |
 | Phase | Continuous Integration and Deployment |
