@@ -21,6 +21,7 @@ detail internal masing-masing tool.
 | `tomcat-jmx-exporter` | Menyediakan derived Tomcat image dengan embedded JMX Exporter | Initial source published; CI not implemented |
 | `tomcat-monitoring` | Menyediakan monitoring configuration, automation, dan validation | Repository initialized; source not started |
 | `tmctl` | Menyediakan unified cross-platform operator CLI berbasis Go untuk orkestrasi Socket API (Linux & Windows) | Available (TN-012) |
+| `tm-agent` | Menyediakan unified cross-platform event collector daemon berbasis Go untuk socket streaming (Linux & Windows) | Available (TN-013) |
 | `devops-handbook` | Menyimpan current-state documentation dan engineering history | Available |
 
 Repository `tomcat` saat ini telah memiliki Containerfile, build script,
@@ -149,7 +150,7 @@ Siklus otomatisasi CI/CD dan Ansible Fleet Provisioning telah **selesai diimplem
 - **Stack CD Hub:** Beroperasi otomatis di `tomcat-monitoring` ([TN-006](../engineering-journal/continuous-integration-and-deployment/TN-006-implement-stack-orchestration-cd-pipeline-for-tomcat-monitoring.md)).
 - **Ansible Fleet Provisioning:** Menyediakan armada multi-node secara idempoten ([TN-009](../engineering-journal/continuous-integration-and-deployment/TN-009-implement-and-verify-ansible-fleet-provisioning-and-deployment-playbooks.md)).
 - **Plug-and-Play Enterprise Container Registry:** Mendukung migrasi nir-modifikasi kode ke Harbor / Nexus ([TN-010](../engineering-journal/continuous-integration-and-deployment/TN-010-implement-plug-and-play-container-registry-integration.md)).
-- **Cross-Platform Engine API & Go Tooling:** Perancangan orkestrasi multi-OS via Container Engine Socket API dan kakas Go `tmctl`/`tm-agent` ([TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md), [TN-011](../engineering-journal/continuous-integration-and-deployment/TN-011-design-cross-platform-container-engine-api-orchestration-and-agent-architecture.md)), serta implementasi biner tunggal `tmctl` lintas OS ([TN-012](../engineering-journal/continuous-integration-and-deployment/TN-012-implement-unified-cross-platform-operator-cli-tmctl.md)).
+- **Cross-Platform Engine API & Go Tooling:** Perancangan orkestrasi multi-OS via Container Engine Socket API dan kakas Go `tmctl`/`tm-agent` ([TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md), [TN-011](../engineering-journal/continuous-integration-and-deployment/TN-011-design-cross-platform-container-engine-api-orchestration-and-agent-architecture.md)), implementasi biner tunggal `tmctl` lintas OS ([TN-012](../engineering-journal/continuous-integration-and-deployment/TN-012-implement-unified-cross-platform-operator-cli-tmctl.md)), serta implementasi agen daemon `tm-agent` pengumpul event socket API ([TN-013](../engineering-journal/continuous-integration-and-deployment/TN-013-implement-unified-cross-platform-event-collector-daemon-tm-agent.md)).
 
 ## Related Pages
 

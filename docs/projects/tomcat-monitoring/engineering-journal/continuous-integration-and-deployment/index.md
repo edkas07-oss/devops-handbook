@@ -78,6 +78,7 @@ flowchart TD
 | **Enterprise Container Registry Integration** | Integrasi repositori citra enterprise deklaratif (Harbor/Nexus), resolusi penamaan citra dinamis, helper autentikasi terisolasi, dan task pull citra Ansible (TASK-TM-025) | Completed (TN-010) |
 | **Cross-Platform Engine API & Go Tooling** | Perancangan arsitektur orkestrasi lintas OS berbasis Container Engine Socket API, spesifikasi Go CLI tmctl, Go daemon tm-agent, dan refaktorisasi Ansible deklaratif (TASK-TM-026) | Completed (TN-011) |
 | **Unified Cross-Platform Operator CLI `tmctl`** | Implementasi kakas baris perintah tunggal berbasis Go (`tmctl` / `tmctl.exe`) untuk orkestrasi Container Engine Socket API (Linux & Windows) (TASK-TM-027) | Completed (TN-012) |
+| **Unified Cross-Platform Event Collector `tm-agent`** | Implementasi agen background tunggal berbasis Go (`tm-agent` / `tm-agent.exe`) untuk pengumpulan event Container Engine Socket API (Linux & Windows) (TASK-TM-028) | Completed (TN-013) |
 
 ---
 
@@ -130,6 +131,10 @@ flowchart TD
 12. **[TN-012 — Implement Unified Cross-Platform Operator CLI tmctl for Container Engine API Orchestration](TN-012-implement-unified-cross-platform-operator-cli-tmctl.md)**
 
     Mendokumentasikan implementasi biner tunggal mandiri `tmctl` (Linux) dan `tmctl.exe` (Windows) berbasis Go yang berkomunikasi langsung dengan Container Engine Socket API (Unix Domain Socket, Named Pipe, TCP), penyediaan subperintah lengkap (`stack`, `rules`, `registry`, `validate`), otomasi zero-downtime rollback snapshot, matriks kompilasi silang lintas platform, dan kelulusan 100% pengujian statis serta inspeksi armada runtime (`TASK-TM-027`).
+
+13. **[TN-013 — Implement Unified Cross-Platform Event Collector Daemon tm-agent based on Container Engine Socket API](TN-013-implement-unified-cross-platform-event-collector-daemon-tm-agent.md)**
+
+    Mendokumentasikan implementasi biner tunggal mandiri `tm-agent` (Linux) dan `tm-agent.exe` (Windows) berbasis Go yang mengonsumsi streaming event kontainer secara *real-time* langsung dari Container Engine Socket API, format snapshot bukti kanonikal `event-record-v1.schema.json`, penulisan atomik `.tmp` $\rightarrow$ `.json` berizin `0600`/`0700`, mesin pemangkasan retensi FIFO kuota berkas, dan runner ganda Linux systemd serta Windows Service (`TASK-TM-028`).
 
 ---
 
