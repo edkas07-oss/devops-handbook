@@ -566,17 +566,25 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 
 #### TASK-TM-029: Refaktorisasi Ansible Roles menjadi Thin Orchestrator berbasis tmctl dan OS Fact Branching (Fase 3)
 
-- **Status:** `Planned (Fase 3)` ⏳
+- **Status:** `Completed` ✅
 - **Deskripsi:**
-  Merefaktor kumpulan Ansible Roles pada repositori `tomcat-monitoring` menjadi *thin declarative orchestrator* berbasis `tmctl` dan modul kontainer native dengan *OS Fact Branching* yang bersih, mengeliminasi penggunaan *wrapper* skrip Bash `ansible.builtin.shell`.
+  Merefaktor kumpulan Ansible Roles pada repositori `tomcat-monitoring` (`role_container_stack`, `role_event_collector`, `role_host_prep`) menjadi *thin declarative orchestrator* berbasis `tmctl` dan `tm-agent` dengan *OS Fact Branching* yang bersih, sepenuhnya mengeliminasi penggunaan *wrapper* skrip Bash `ansible.builtin.shell`.
 - **Kebutuhan Teknis:**
-  - Refaktorisasi `roles/role_container_stack/tasks/*.yml` untuk memanggil `tmctl` atau modul deklaratif `podman_container`/`docker_container`.
-  - Refaktorisasi `roles/role_event_collector/tasks/main.yml` dengan *OS Fact Branching* (`ansible.builtin.systemd` untuk Linux vs `ansible.windows.win_service` untuk Windows).
-  - Validasi eksekusi playbook master `deploy-stack.yml` pada inventori multi-node heterogen (Linux dan Windows).
+  - Refaktorisasi `roles/role_container_stack/tasks/*.yml` untuk memanggil `tmctl stack deploy --target <workload>` secara deklaratif via `ansible.builtin.command`.
+  - Refaktorisasi `roles/role_event_collector/tasks/main.yml` dengan *OS Fact Branching* (`ansible_os_family != "Windows"` untuk unit `systemd --user` Linux `tm-agent.service` vs `ansible_os_family == "Windows"` untuk Windows Service `TomcatMonitoringAgent` via `ansible.windows.win_service`).
+  - Standardisasi variabel global biner `tmctl_bin` dan `tm_agent_bin` pada `inventories/group_vars/all.yml`.
+  - Validasi sintaks dan eksekusi playbook master `deploy-stack.yml` dan `provision-fleet.yml`.
 - **Kriteria Penerimaan (*Acceptance Criteria*):**
   - Eksekusi playbook Ansible tidak membutuhkan berkas skrip fisik `.sh` atau interpreter Bash di mesin target Windows maupun Linux.
-  - Idempotensi 100% (`ok=N, changed=0, failed=0`) tetap terjaga pada eksekusi ulang.
-- **Referensi:** [TM-ADR-0025](../../adr/tomcat-monitoring/adr-records/TM-ADR-0025.md), [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md), [TN-011](engineering-journal/continuous-integration-and-deployment/TN-011-design-cross-platform-container-engine-api-orchestration-and-agent-architecture.md).
+  - Idempotensi 100% (`changed=0, failed=0`) terverifikasi pada eksekusi ulang (*replay run*).
+  - Lulus 100% pada seluruh suite verifikasi live insiden (`verify-postfix-relay.sh` dan `verify-alertmanager-webhook.sh`).
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Validasi sintaks playbook berhasil lulus via `scripts/validate-ansible.sh`.
+  - Eksekusi `deploy-stack.yml` menghasilkan `ok=36, changed=0, failed=0` pada evaluasi stack dan `changed=0` saat replay.
+  - Eksekusi `provision-fleet.yml` menghasilkan `ok=22, changed=0, failed=0` dan daemon `tm-agent.service` aktif di systemd.
+  - Suite verifikasi `verify-postfix-relay.sh` lulus 7 tahap (SASL rejection, STARTTLS direct submission, webhook delivery, 7-seksi email di Mailpit via Postfix).
+  - Suite verifikasi `verify-alertmanager-webhook.sh` lulus rangkaian webhook firing/resolved dan cleanup.
+- **Referensi:** [TM-ADR-0025](../../adr/tomcat-monitoring/adr-records/TM-ADR-0025.md), [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md), [TN-011](engineering-journal/continuous-integration-and-deployment/TN-011-design-cross-platform-container-engine-api-orchestration-and-agent-architecture.md), [TN-014](engineering-journal/continuous-integration-and-deployment/TN-014-refactor-ansible-roles-into-thin-orchestrator-based-on-tmctl-and-os-fact-branching.md).
 
 ---
 
@@ -601,7 +609,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-026** | Standarisasi Orkestrasi Multi-OS & Go Tooling | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | Seluruh Repositori | Arsitektur Container Engine API, tmctl CLI, & tm-agent (TN-011) |
 | **TASK-TM-027** | Implementasi Kakas Operator Terpadu `tmctl` (Go CLI) | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tmctl` (New Repo/CLI) | Single static binary CLI lintas OS untuk manajemen manual (TN-012) |
 | **TASK-TM-028** | Implementasi Agen Event `tm-agent` (Go Daemon) | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tm-agent` / Event Coll | Socket event streamer & atomic spool writer multi-OS (TN-013) |
-| **TASK-TM-029** | Refaktorisasi Ansible Roles berbasis `tmctl` | **P1 (High)** | `Planned` ⏳ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tomcat-monitoring` / Ansible | Thin declarative orchestrator & OS Fact Branching (Fase 3) |
+| **TASK-TM-029** | Refaktorisasi Ansible Roles berbasis `tmctl` | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tomcat-monitoring` / Ansible | Thin declarative orchestrator & OS Fact Branching (TN-014) |
 | **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | `Descoped` ⚪ | TM-ADR-0014 | Diagnostic Service | Digantikan arsip dossier 7-seksi terpusat |
 | **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Rule saturasi thread pool 100% (TN-004) |
 | **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Sinyal Emas GC Pause, Overhead, Old Gen (TN-004) |

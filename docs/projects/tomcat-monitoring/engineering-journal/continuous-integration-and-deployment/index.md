@@ -79,6 +79,7 @@ flowchart TD
 | **Cross-Platform Engine API & Go Tooling** | Perancangan arsitektur orkestrasi lintas OS berbasis Container Engine Socket API, spesifikasi Go CLI tmctl, Go daemon tm-agent, dan refaktorisasi Ansible deklaratif (TASK-TM-026) | Completed (TN-011) |
 | **Unified Cross-Platform Operator CLI `tmctl`** | Implementasi kakas baris perintah tunggal berbasis Go (`tmctl` / `tmctl.exe`) untuk orkestrasi Container Engine Socket API (Linux & Windows) (TASK-TM-027) | Completed (TN-012) |
 | **Unified Cross-Platform Event Collector `tm-agent`** | Implementasi agen background tunggal berbasis Go (`tm-agent` / `tm-agent.exe`) untuk pengumpulan event Container Engine Socket API (Linux & Windows) (TASK-TM-028) | Completed (TN-013) |
+| **Ansible Roles Refactoring (`tmctl` & Multi-OS)** | Refaktorisasi Ansible roles menjadi thin orchestrator berbasis biner `tmctl` dan `tm-agent` dengan OS Fact Branching Linux systemd vs Windows Service (TASK-TM-029) | Completed (TN-014) |
 
 ---
 
@@ -135,6 +136,10 @@ flowchart TD
 13. **[TN-013 — Implement Unified Cross-Platform Event Collector Daemon tm-agent based on Container Engine Socket API](TN-013-implement-unified-cross-platform-event-collector-daemon-tm-agent.md)**
 
     Mendokumentasikan implementasi biner tunggal mandiri `tm-agent` (Linux) dan `tm-agent.exe` (Windows) berbasis Go yang mengonsumsi streaming event kontainer secara *real-time* langsung dari Container Engine Socket API, format snapshot bukti kanonikal `event-record-v1.schema.json`, penulisan atomik `.tmp` $\rightarrow$ `.json` berizin `0600`/`0700`, mesin pemangkasan retensi FIFO kuota berkas, dan runner ganda Linux systemd serta Windows Service (`TASK-TM-028`).
+
+14. **[TN-014 — Refactor Ansible Roles into Thin Declarative Orchestrator based on tmctl and OS Fact Branching](TN-014-refactor-ansible-roles-into-thin-orchestrator-based-on-tmctl-and-os-fact-branching.md)**
+
+    Mendokumentasikan refaktorisasi seluruh Ansible roles (`role_container_stack`, `role_event_collector`, `role_host_prep`) menjadi *thin declarative orchestrator* berbasis biner operator `tmctl` dan agen background `tm-agent`, eliminasi total eksekusi skrip imperatif Bash `ansible.builtin.shell`, *OS Fact Branching* multi-platform Linux systemd vs Windows Service, pembuktian idempotensi 100% (`changed=0, failed=0`), penegakan isolasi rahasia tanpa kebocoran (*zero secret leakage*), serta kelulusan suite verifikasi live insiden (`TASK-TM-029`).
 
 ---
 
