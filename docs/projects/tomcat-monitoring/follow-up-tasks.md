@@ -586,6 +586,27 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
   - Suite verifikasi `verify-alertmanager-webhook.sh` lulus rangkaian webhook firing/resolved dan cleanup.
 - **Referensi:** [TM-ADR-0025](../../adr/tomcat-monitoring/adr-records/TM-ADR-0025.md), [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md), [TN-011](engineering-journal/continuous-integration-and-deployment/TN-011-design-cross-platform-container-engine-api-orchestration-and-agent-architecture.md), [TN-014](engineering-journal/continuous-integration-and-deployment/TN-014-refactor-ansible-roles-into-thin-orchestrator-based-on-tmctl-and-os-fact-branching.md).
 
+#### TASK-TM-030: Implementasi Production-Ready CI/CD Pipelines untuk Biner Multi-OS tmctl dan tm-agent serta Integrasi Stack Release Hub (Fase 4)
+
+- **Status:** `Completed` ✅
+- **Deskripsi:**
+  Mengimplementasikan dan menstandarisasi alur *Continuous Integration* (CI) berbasis *Declarative Jenkinsfile* pada repositori kakas operator terpadu `tmctl` dan agen pengumpul event `tm-agent`, mencakup penegakan 4-Stage Quality Gates, kompilasi silang multi-OS deterministik (`linux/amd64`, `linux/arm64`, `windows/amd64`), penandatanganan integritas biner (*SHA-256 fingerprint checksums*), pengarsipan artefak (*artifact archiving*), serta integrasi rilis artefak biner ke dalam Stack CD Hub `tomcat-monitoring`.
+- **Kebutuhan Teknis:**
+  - Standardisasi `Jenkinsfile` deklaratif dengan `agent { label 'builder-01' }` pada `tmctl`, `tm-agent`, dan `tomcat-monitoring`.
+  - Penegakan Quality Gates bertingkat: static linting & code quality (`go vet`, `gofmt -l`, `bash -n`), audit material rahasia (*zero secret leakage*), automated unit testing (`go test -v`), dan deterministik cross-compilation (`CGO_ENABLED=0`).
+  - Pembuatan berkas manifest checksums SHA-256 (`bin/checksums.txt`) pada skrip `scripts/build.sh` dan `Makefile`.
+  - Penegakan direktif `archiveArtifacts artifacts: 'bin/**/*', fingerprint: true` dan pembersihan ruang kerja aman (`cleanWs`) pada post actions.
+  - Integrasi orkestrasi rilis pada Stack CD Hub `tomcat-monitoring` yang mendelegasikan eksekusi deployment ke Ansible Thin Orchestrator dan `tmctl`.
+- **Kriteria Penerimaan (*Acceptance Criteria*):**
+  - Kompilasi silang biner `tmctl` dan `tm-agent` menghasilkan biner statis multi-OS yang valid beserta berkas `checksums.txt`.
+  - Seluruh Quality Gates lulus 100% pada eksekusi pengujian lokal dan terintegrasi dengan mulus pada Jenkins Declarative Pipeline.
+  - Dokumentasi teknis [TN-015](engineering-journal/continuous-integration-and-deployment/TN-015-implement-production-ready-cicd-pipelines-for-tmctl-and-tm-agent-multi-os-artifacts-and-stack-release-hub-integration.md) dibakukan.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Didokumentasikan secara lengkap pada [TN-015](engineering-journal/continuous-integration-and-deployment/TN-015-implement-production-ready-cicd-pipelines-for-tmctl-and-tm-agent-multi-os-artifacts-and-stack-release-hub-integration.md).
+  - Eksekusi `scripts/validate.sh`, `scripts/test.sh`, dan `scripts/build.sh` pada `tmctl` dan `tm-agent` lulus 100% dengan artefak biner dan manifest `checksums.txt`.
+  - Validasi sintaksis `tomcat-monitoring` (`validate.sh` dan `validate-ansible.sh`) lulus 100%.
+- **Referensi:** [TM-ADR-0024](../../adr/tomcat-monitoring/adr-records/TM-ADR-0024.md), [TM-ADR-0025](../../adr/tomcat-monitoring/adr-records/TM-ADR-0025.md), [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md), [TN-011](engineering-journal/continuous-integration-and-deployment/TN-011-design-cross-platform-container-engine-api-orchestration-and-agent-architecture.md), [TN-012](engineering-journal/continuous-integration-and-deployment/TN-012-implement-unified-cross-platform-operator-cli-tmctl.md), [TN-013](engineering-journal/continuous-integration-and-deployment/TN-013-implement-unified-cross-platform-event-collector-daemon-tm-agent.md), [TN-014](engineering-journal/continuous-integration-and-deployment/TN-014-refactor-ansible-roles-into-thin-orchestrator-based-on-tmctl-and-os-fact-branching.md), [TN-015](engineering-journal/continuous-integration-and-deployment/TN-015-implement-production-ready-cicd-pipelines-for-tmctl-and-tm-agent-multi-os-artifacts-and-stack-release-hub-integration.md).
+
 ---
 
 ## 🛠️ Implementation Priority Matrix
@@ -610,6 +631,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-027** | Implementasi Kakas Operator Terpadu `tmctl` (Go CLI) | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tmctl` (New Repo/CLI) | Single static binary CLI lintas OS untuk manajemen manual (TN-012) |
 | **TASK-TM-028** | Implementasi Agen Event `tm-agent` (Go Daemon) | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tm-agent` / Event Coll | Socket event streamer & atomic spool writer multi-OS (TN-013) |
 | **TASK-TM-029** | Refaktorisasi Ansible Roles berbasis `tmctl` | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tomcat-monitoring` / Ansible | Thin declarative orchestrator & OS Fact Branching (TN-014) |
+| **TASK-TM-030** | CI/CD Pipelines & Multi-OS Artifacts Hub | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tmctl`, `tm-agent`, `tomcat-monitoring` | CI multi-OS biner, checksums manifest, & Stack CD Hub (TN-015) |
 | **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | `Descoped` ⚪ | TM-ADR-0014 | Diagnostic Service | Digantikan arsip dossier 7-seksi terpusat |
 | **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Rule saturasi thread pool 100% (TN-004) |
 | **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Sinyal Emas GC Pause, Overhead, Old Gen (TN-004) |
@@ -636,3 +658,4 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 - [TM-ADR-0026 — Adopt Adaptive Multi-Engine Container Runtime Portability for Podman and Docker Environments](../../adr/tomcat-monitoring/adr-records/TM-ADR-0026.md)
 - [TM-ADR-0027 — Adopt Container Engine Socket API and Unified Cross-Platform Tooling for Multi-OS Orchestration](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md)
 - [TN-020 — Consolidate Diagnostic MVP Portfolio and Plan Next Phase](engineering-journal/diagnostic-mvp-pilot/TN-020-consolidate-diagnostic-mvp-portfolio-and-plan-next-phase.md)
+

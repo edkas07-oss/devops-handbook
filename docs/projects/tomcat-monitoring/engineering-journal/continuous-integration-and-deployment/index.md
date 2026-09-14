@@ -28,7 +28,7 @@ Membangun ekosistem otomasi CI/CD terintegrasi yang andal, aman, dan siap pakai 
 
 ## 🏛️ CI/CD Layering Architecture: Application, Daemon, and Infrastructure
 
-Platform Tomcat Monitoring membagi otomasi CI/CD ke dalam **3 Lapisan Arsitektur (*Architectural Layers*)** yang masing-masing dikelola oleh alur *Jenkins Pipeline as Code* tersendiri sesuai batas tanggung jawabnya (*Separation of Concerns*):
+Platform Tomcat Monitoring membagi otomasi CI/CD ke dalam **4 Lapisan Arsitektur (*Architectural Layers*)** yang masing-masing dikelola oleh alur *Jenkins Pipeline as Code* tersendiri sesuai batas tanggung jawabnya (*Separation of Concerns*):
 
 ```mermaid
 flowchart TD
@@ -38,27 +38,36 @@ flowchart TD
         DS_Repo --> DS_CI
     end
 
-    subgraph Layer2["2. Host Daemon & OS Agent Layer"]
-        EC_Repo["Repositori: tomcat-diagnostic-event-collector"]
-        EC_CI["Pipeline CI: ShellCheck Governance,<br/>Spool Lifecycle & FIFO Retention Tests"]
+    subgraph Layer2["2. Host Daemon & Agent Layer (Multi-OS)"]
+        EC_Repo["Repositori: tm-agent / event-collector"]
+        EC_CI["Pipeline CI: gofmt, go vet, Unit & Lifecycle Tests,<br/>Cross-Compilation & SHA-256 Manifest"]
         EC_Repo --> EC_CI
     end
 
-    subgraph Layer3["3. Platform Infrastructure & Stack Orchestration Layer"]
+    subgraph Layer3["3. Unified Operator CLI Layer (Multi-OS)"]
+        TC_Repo["Repositori: tmctl"]
+        TC_CI["Pipeline CI: Static Lint, Unit Testing,<br/>Cross-Compilation (Linux/Windows) & Checksums"]
+        TC_Repo --> TC_CI
+    end
+
+    subgraph Layer4["4. Platform Infrastructure & Stack Orchestration Layer"]
         TM_Repo["Repositori: tomcat-monitoring (Infrastructure as Code)"]
-        TM_CD["Pipeline CD Hub: Network Bridge, Volumes,<br/>COTS Containers, Zero-Touch Deploy & Live Verification"]
+        TM_CD["Pipeline CD Hub: Network Bridge, Volumes, COTS Containers,<br/>Ansible Orchestrator, Zero-Touch Deploy & Live Verification"]
         TM_Repo --> TM_CD
     end
 
-    DS_CI -.->|Immutable OCI Image| Layer3
-    EC_CI -.->|Host Systemd Daemon| Layer3
+    DS_CI -.->|Immutable OCI Image| Layer4
+    EC_CI -.->|Archived Multi-OS Daemon Binaries| Layer4
+    TC_CI -.->|Archived Static CLI Binaries| Layer4
 ```
 
 | Lapisan Arsitektur (*Layer*) | Repositori & Pipeline | Peran / Tanggung Jawab (*Responsibility*) | Karakteristik Siklus Rilis (*Release Lifecycle*) |
 | :--- | :--- | :--- | :--- |
 | **Application Layer** | **Pipeline 1**<br/>[`tomcat-diagnostic-service`](file:///home/eddywiyatno/git/tomcat-diagnostic-service) | **Logika Aplikasi / Backend Mikroservis**<br/>Menguji kode Node.js 24 ESM, validasi 62 *unit/schema test suites*, membangun OCI container image, dan menguji *ephemeral smoke test*. | *Fast Feedback Loop* (hitungan detik) saat pengembang memperbarui kode analitik atau aturan diagnostik. |
-| **Host Daemon Layer** | **Pipeline 2**<br/>[`tomcat-diagnostic-event-collector`](file:///home/eddywiyatno/git/tomcat-diagnostic-event-collector) | **Host Daemon / Agen Pengamat Sistem Operasi**<br/>Menguji skrip Bash pengamat event Podman/kernel, tata kelola ShellCheck, dan siklus retensi spool `0700`. | *Script & Daemon Validation* independen tanpa memerlukan runtime Node.js atau OCI image. |
-| **Infrastructure Layer** | **Pipeline 3**<br/>[`tomcat-monitoring`](file:///home/eddywiyatno/git/tomcat-monitoring) | **Infrastruktur Platform & Orkestrator Multi-Kontainer (*Infrastructure as Code*)**<br/>Mengelola *network bridge* (`devops-lab`), *named volumes*, layanan COTS (Prometheus, Alertmanager, Postfix SMTP Relay, Mailpit), *zero-touch deployment*, serta *Live Verification Suite*. | *Integration & Deployment Hub* yang menyatukan seluruh komponen aplikasi dan infrastruktur ke dalam satu lingkungan runtime terpadu. |
+| **Host Daemon Layer** | **Pipeline 2**<br/>[`tm-agent`](file:///home/eddywiyatno/git/tm-agent) | **Host Daemon / Agen Pengamat Sistem Operasi Multi-OS**<br/>Menguji kode Go daemon, validasi siklus retensi spool `0700`, kompilasi silang multi-OS (`linux/amd64`, `linux/arm64`, `windows/amd64`), dan pengarsipan biner rilis dengan SHA-256 manifest. | *Daemon & Spool Validation* independen dengan penandatanganan integritas biner rilis. |
+| **Operator CLI Layer** | **Pipeline 3**<br/>[`tmctl`](file:///home/eddywiyatno/git/tmctl) | **Kakas Baris Perintah Tunggal / Operator CLI**<br/>Menguji adapter Container Engine Socket API, kompilasi silang statis multi-OS, pembuatan SHA-256 manifest, dan pengarsipan biner operator rilis. | *Single Static Binary Release* yang siap dikonsumsi langsung oleh Ansible maupun operator sistem. |
+| **Infrastructure Layer** | **Pipeline 4**<br/>[`tomcat-monitoring`](file:///home/eddywiyatno/git/tomcat-monitoring) | **Infrastruktur Platform & Orkestrator Multi-Kontainer (*Infrastructure as Code*)**<br/>Mengelola *network bridge* (`devops-lab`), *named volumes*, layanan COTS (Prometheus, Alertmanager, Postfix SMTP Relay, Mailpit), integrasi Ansible Thin Orchestrator, *zero-touch deployment*, serta *Live Verification Suite*. | *Integration & Deployment Hub* yang menyatukan seluruh komponen aplikasi, biner rilis, dan infrastruktur ke dalam satu lingkungan runtime terpadu. |
+
 
 ---
 
@@ -80,6 +89,7 @@ flowchart TD
 | **Unified Cross-Platform Operator CLI `tmctl`** | Implementasi kakas baris perintah tunggal berbasis Go (`tmctl` / `tmctl.exe`) untuk orkestrasi Container Engine Socket API (Linux & Windows) (TASK-TM-027) | Completed (TN-012) |
 | **Unified Cross-Platform Event Collector `tm-agent`** | Implementasi agen background tunggal berbasis Go (`tm-agent` / `tm-agent.exe`) untuk pengumpulan event Container Engine Socket API (Linux & Windows) (TASK-TM-028) | Completed (TN-013) |
 | **Ansible Roles Refactoring (`tmctl` & Multi-OS)** | Refaktorisasi Ansible roles menjadi thin orchestrator berbasis biner `tmctl` dan `tm-agent` dengan OS Fact Branching Linux systemd vs Windows Service (TASK-TM-029) | Completed (TN-014) |
+| **Multi-OS CI Pipelines & Stack Release Hub** | Implementasi declarative Jenkinsfile multi-OS untuk `tmctl` dan `tm-agent`, penegakan 4-Stage Quality Gates, SHA-256 fingerprint hashing, artifact archiving, dan integrasi Stack CD Hub (TASK-TM-030) | Completed (TN-015) |
 
 ---
 
@@ -140,6 +150,11 @@ flowchart TD
 14. **[TN-014 — Refactor Ansible Roles into Thin Declarative Orchestrator based on tmctl and OS Fact Branching](TN-014-refactor-ansible-roles-into-thin-orchestrator-based-on-tmctl-and-os-fact-branching.md)**
 
     Mendokumentasikan refaktorisasi seluruh Ansible roles (`role_container_stack`, `role_event_collector`, `role_host_prep`) menjadi *thin declarative orchestrator* berbasis biner operator `tmctl` dan agen background `tm-agent`, eliminasi total eksekusi skrip imperatif Bash `ansible.builtin.shell`, *OS Fact Branching* multi-platform Linux systemd vs Windows Service, pembuktian idempotensi 100% (`changed=0, failed=0`), penegakan isolasi rahasia tanpa kebocoran (*zero secret leakage*), serta kelulusan suite verifikasi live insiden (`TASK-TM-029`).
+
+15. **[TN-015 — Implement Production-Ready CI/CD Pipelines for tmctl and tm-agent Multi-OS Artifacts & Stack Release Hub Integration](TN-015-implement-production-ready-cicd-pipelines-for-tmctl-and-tm-agent-multi-os-artifacts-and-stack-release-hub-integration.md)**
+
+    Mendokumentasikan implementasi dan standardisasi alur *Continuous Integration* (CI) berbasis Declarative Jenkinsfile pada repositori kakas Go `tmctl` dan daemon `tm-agent`, penegakan 4-Stage Quality Gates, deterministik kompilasi silang multi-OS (`linux/amd64`, `linux/arm64`, `windows/amd64`), penandatanganan integritas manifest SHA-256 (`checksums.txt`), pengarsipan biner rilis (`archiveArtifacts`), serta integrasi rilis artefak ke dalam Stack CD Hub `tomcat-monitoring` (`TASK-TM-030`).
+
 
 ---
 
