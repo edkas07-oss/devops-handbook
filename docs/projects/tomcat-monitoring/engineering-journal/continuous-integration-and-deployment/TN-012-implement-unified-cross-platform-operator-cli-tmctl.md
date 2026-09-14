@@ -78,7 +78,7 @@ Modul Go diinisialisasi pada repositori mandiri [`tmctl`](file:///home/eddywiyat
 
 ```text
 tmctl/
-├── go.mod                              # Inisialisasi modul Go (github.com/eddywiyatno/tomcat-monitoring/tmctl)
+├── go.mod                              # Inisialisasi modul Go (github.com/eddywiyatno/tmctl)
 ├── Makefile                            # Automasi kompilasi native dan matriks cross-compilation
 ├── Jenkinsfile                         # Declarative CI/CD pipeline
 ├── cmd/
