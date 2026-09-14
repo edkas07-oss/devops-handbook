@@ -66,6 +66,8 @@ diimplementasikan.
 | Visualization | Metrics Dashboard | Memvisualisasikan kondisi dan historical metrics |
 | Alert Management | Alertmanager | Melakukan grouping, deduplication, dan routing alert |
 | Notification Verification | Mailpit | Direct-upstream `v1.31.0` persistent lab utility; real Prometheus firing/resolved SMTP capture verified on 2026-08-28 |
+| Operator CLI Tooling | [`tmctl`](references/tmctl-cli-reference.md) | Single static binary CLI berbasis Go untuk orkestrasi Socket API multi-OS (Linux & Windows) |
+| Host Event Collector Daemon | [`tm-agent`](references/tm-agent-daemon-reference.md) | Single static binary daemon berbasis Go untuk socket event streaming dan atomic evidence spooling |
 | External Integration | Integration Bridge | Mengonversi webhook untuk integrasi TrueSight |
 | Event Management | TrueSight | Menjadi target desain masa depan dan tidak tersedia pada lab saat ini |
 | Documentation | MkDocs | Menerbitkan dokumentasi project |

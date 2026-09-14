@@ -123,6 +123,8 @@ until persistent diagnostic deployment is explicitly approved and verified.
 
 Untuk prosedur operasional pengelolaan basis pengetahuan diagnosis (*declarative rulepacks*), impor/ekspor katalog master, dan alur pengayaan berbasis AI secara proaktif maupun reaktif, silakan merujuk ke:
 
+* [Tomcat Monitoring Operator CLI (`tmctl`) Reference](../references/tmctl-cli-reference.md)
+* [Tomcat Diagnostic Event Collector Daemon (`tm-agent`) Reference](../references/tm-agent-daemon-reference.md)
 * [SOP: Panduan Migrasi Enterprise Container Registry](enterprise-container-registry-migration-guide.md)
 * [Runbook: AI Knowledge Enrichment & Declarative Rule Management](ai-knowledge-enrichment-and-rule-management-runbook.md)
 * [Tomcat Diagnostic Service REST API Reference](../references/diagnostic-service-rest-api-reference.md)

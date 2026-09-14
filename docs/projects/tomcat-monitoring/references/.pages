@@ -5,5 +5,7 @@ title: References
 arrange:
 
 - index.md
+- tmctl-cli-reference.md
+- tm-agent-daemon-reference.md
 - diagnostic-service-rest-api-reference.md
 - prometheus-metrics-catalog.md
