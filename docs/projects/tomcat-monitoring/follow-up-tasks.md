@@ -605,14 +605,34 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
   - Didokumentasikan secara lengkap pada [TN-015](engineering-journal/continuous-integration-and-deployment/TN-015-implement-production-ready-cicd-pipelines-for-tmctl-and-tm-agent-multi-os-artifacts-and-stack-release-hub-integration.md).
   - Eksekusi `scripts/validate.sh`, `scripts/test.sh`, dan `scripts/build.sh` pada `tmctl` dan `tm-agent` lulus 100% dengan artefak biner dan manifest `checksums.txt`.
   - Validasi sintaksis `tomcat-monitoring` (`validate.sh` dan `validate-ansible.sh`) lulus 100%.
-- **Referensi:** [TM-ADR-0024](../../adr/tomcat-monitoring/adr-records/TM-ADR-0024.md), [TM-ADR-0025](../../adr/tomcat-monitoring/adr-records/TM-ADR-0025.md), [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md), [TN-011](engineering-journal/continuous-integration-and-deployment/TN-011-design-cross-platform-container-engine-api-orchestration-and-agent-architecture.md), [TN-012](engineering-journal/continuous-integration-and-deployment/TN-012-implement-unified-cross-platform-operator-cli-tmctl.md), [TN-013](engineering-journal/continuous-integration-and-deployment/TN-013-implement-unified-cross-platform-event-collector-daemon-tm-agent.md), [TN-014](engineering-journal/continuous-integration-and-deployment/TN-014-refactor-ansible-roles-into-thin-orchestrator-based-on-tmctl-and-os-fact-branching.md), [TN-015](engineering-journal/continuous-integration-and-deployment/TN-015-implement-production-ready-cicd-pipelines-for-tmctl-and-tm-agent-multi-os-artifacts-and-stack-release-hub-integration.md).
+#### TASK-TM-031: Eksekusi & Verifikasi Live Multi-OS CI/CD Pipeline pada Jenkins Controller & Konsolidasi Arsitektur Global (Fase 5)
+
+- **Status:** `Completed (Fase 5)` ✅
+- **Deskripsi:**
+  Mengeksekusi dan memverifikasi alur pipeline Continuous Integration (CI) secara *live* pada peladen Jenkins Controller (`http://localhost:8080`) untuk repositori `tmctl` dan `tm-agent` di atas dedicated build agent `builder-01` (Rootless Podman DooD), membuktikan persistensi pengarsipan artefak biner multi-OS (`linux/amd64`, `linux/arm64`, `windows/amd64`) dan manifest *fingerprint hashing* (`checksums.txt`), mengeksekusi dan memverifikasi Stack CD Hub `tomcat-monitoring` yang mengorkestrasikan deployment tumpukan kontainer via Ansible Thin Orchestrator & `tmctl`, membuktikan seluruh rangkaian *Live Verification Suite* (Postfix STARTTLS + SASL Relay & simulasi insiden `TomcatDown`), serta mengonsolidasikan arsitektur platform global dan katalog referensi kakas.
+- **Kebutuhan Teknis:**
+  - Registrasi dan konfigurasi pipeline jobs `tmctl`, `tm-agent`, dan `tomcat-monitoring` pada Jenkins Controller.
+  - Eksekusi 4 Quality Gates `tmctl` (Build 3) dengan pengarsipan biner multi-OS dan `checksums.txt` (100% SUCCESS).
+  - Eksekusi 5 Quality Gates `tm-agent` (Build 1) mencakup one-shot spool snapshot verification dan pengarsipan biner multi-OS (100% SUCCESS).
+  - Eksekusi 4 Stages Stack CD Hub `tomcat-monitoring` (Build 5) dengan orkestrasi deklaratif Ansible/tmctl dan live verification suite.
+  - Konsolidasi arsitektur platform global pada `architecture/index.md` (arsitektur 4-layer CI/CD dan Socket API multi-OS) serta katalog referensi (`references/tmctl-cli-reference.md` dan `references/tm-agent-daemon-reference.md`).
+- **Kriteria Penerimaan (*Acceptance Criteria*):**
+  - 100% kelulusan Quality Gates dan stages pada seluruh live pipeline jobs di Jenkins Controller.
+  - Persistensi biner rilis multi-OS dan manifest SHA-256 pada penyimpanan artefak Jenkins Controller.
+  - Pembuktian end-to-end simulasi insiden `TomcatDown` dan relay Postfix STARTTLS+SASL tanpa cacat.
+  - Dokumentasi teknis [TN-016](engineering-journal/continuous-integration-and-deployment/TN-016-execute-live-multi-os-cicd-pipeline-verification-in-jenkins-controller-and-consolidate-global-architecture.md) dibukukan.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Didokumentasikan secara lengkap pada [TN-016](engineering-journal/continuous-integration-and-deployment/TN-016-execute-live-multi-os-cicd-pipeline-verification-in-jenkins-controller-and-consolidate-global-architecture.md).
+  - Log konsol Jenkins Controller membuktikan `tmctl` #3 SUCCESS, `tm-agent` #1 SUCCESS, dan `tomcat-monitoring` #5 SUCCESS.
+  - Seluruh artefak biner multi-OS tersimpan di Jenkins artifact repository dan laporan 7-seksi SRE diterima di Mailpit via Postfix Relay.
+- **Referensi:** [TM-ADR-0024](../../adr/tomcat-monitoring/adr-records/TM-ADR-0024.md), [TM-ADR-0025](../../adr/tomcat-monitoring/adr-records/TM-ADR-0025.md), [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md), [TN-011](engineering-journal/continuous-integration-and-deployment/TN-011-design-cross-platform-container-engine-api-orchestration-and-agent-architecture.md), [TN-012](engineering-journal/continuous-integration-and-deployment/TN-012-implement-unified-cross-platform-operator-cli-tmctl.md), [TN-013](engineering-journal/continuous-integration-and-deployment/TN-013-implement-unified-cross-platform-event-collector-daemon-tm-agent.md), [TN-014](engineering-journal/continuous-integration-and-deployment/TN-014-refactor-ansible-roles-into-thin-orchestrator-based-on-tmctl-and-os-fact-branching.md), [TN-015](engineering-journal/continuous-integration-and-deployment/TN-015-implement-production-ready-cicd-pipelines-for-tmctl-and-tm-agent-multi-os-artifacts-and-stack-release-hub-integration.md), [TN-016](engineering-journal/continuous-integration-and-deployment/TN-016-execute-live-multi-os-cicd-pipeline-verification-in-jenkins-controller-and-consolidate-global-architecture.md).
 
 ---
 
 ## 🛠️ Implementation Priority Matrix
 
 | Task ID | Nama Task | Prioritas | Status | Sumber Acuan | Komponen Terdampak | Kriteria Hasil |
-| :--- | :--- | :---: | :---: | :---: | :--- | :--- |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **TASK-TM-001** | Scrape Target `/health` Diagnostic Service | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0016 | Prometheus | Metrik `up` aktif untuk Diagnostic Service |
 | **TASK-TM-002** | Alert Rule `DiagnosticServiceDown` | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0016 | Prometheus | Alert firing saat service mati > 1m |
 | **TASK-TM-003** | Direct SMTP Emergency Route Alertmanager | **P0 (Blocker)** | `Completed` ✅ | TM-ADR-0016 | Alertmanager | Email darurat ke Mailpit bypass webhook |
@@ -632,6 +652,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-028** | Implementasi Agen Event `tm-agent` (Go Daemon) | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tm-agent` / Event Coll | Socket event streamer & atomic spool writer multi-OS (TN-013) |
 | **TASK-TM-029** | Refaktorisasi Ansible Roles berbasis `tmctl` | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tomcat-monitoring` / Ansible | Thin declarative orchestrator & OS Fact Branching (TN-014) |
 | **TASK-TM-030** | CI/CD Pipelines & Multi-OS Artifacts Hub | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tmctl`, `tm-agent`, `tomcat-monitoring` | CI multi-OS biner, checksums manifest, & Stack CD Hub (TN-015) |
+| **TASK-TM-031** | Live Multi-OS CI/CD Verification & Global Architecture | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | Jenkins Controller / All | Verifikasi live Jenkins, biner multi-OS di controller, & konsolidasi manual (TN-016) |
 | **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | `Descoped` ⚪ | TM-ADR-0014 | Diagnostic Service | Digantikan arsip dossier 7-seksi terpusat |
 | **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Rule saturasi thread pool 100% (TN-004) |
 | **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Sinyal Emas GC Pause, Overhead, Old Gen (TN-004) |

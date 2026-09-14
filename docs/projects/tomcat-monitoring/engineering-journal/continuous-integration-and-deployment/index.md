@@ -90,6 +90,7 @@ flowchart TD
 | **Unified Cross-Platform Event Collector `tm-agent`** | Implementasi agen background tunggal berbasis Go (`tm-agent` / `tm-agent.exe`) untuk pengumpulan event Container Engine Socket API (Linux & Windows) (TASK-TM-028) | Completed (TN-013) |
 | **Ansible Roles Refactoring (`tmctl` & Multi-OS)** | Refaktorisasi Ansible roles menjadi thin orchestrator berbasis biner `tmctl` dan `tm-agent` dengan OS Fact Branching Linux systemd vs Windows Service (TASK-TM-029) | Completed (TN-014) |
 | **Multi-OS CI Pipelines & Stack Release Hub** | Implementasi declarative Jenkinsfile multi-OS untuk `tmctl` dan `tm-agent`, penegakan 4-Stage Quality Gates, SHA-256 fingerprint hashing, artifact archiving, dan integrasi Stack CD Hub (TASK-TM-030) | Completed (TN-015) |
+| **Live Multi-OS CI/CD Pipeline Verification & Architecture Consolidation** | Eksekusi dan verifikasi live pipeline multi-OS pada Jenkins Controller untuk `tmctl`, `tm-agent`, dan `tomcat-monitoring`, pengarsipan artefak biner lintas platform & manifest SHA-256, deployment zero-touch Ansible & `tmctl`, serta konsolidasi arsitektur global (TASK-TM-031) | Completed (TN-016) |
 
 ---
 
@@ -155,6 +156,9 @@ flowchart TD
 
     Mendokumentasikan implementasi dan standardisasi alur *Continuous Integration* (CI) berbasis Declarative Jenkinsfile pada repositori kakas Go `tmctl` dan daemon `tm-agent`, penegakan 4-Stage Quality Gates, deterministik kompilasi silang multi-OS (`linux/amd64`, `linux/arm64`, `windows/amd64`), penandatanganan integritas manifest SHA-256 (`checksums.txt`), pengarsipan biner rilis (`archiveArtifacts`), serta integrasi rilis artefak ke dalam Stack CD Hub `tomcat-monitoring` (`TASK-TM-030`).
 
+16. **[TN-016 — Execute Live Multi-OS CI/CD Pipeline Verification in Jenkins Controller & Consolidate Global Architecture](TN-016-execute-live-multi-os-cicd-pipeline-verification-in-jenkins-controller-and-consolidate-global-architecture.md)**
+
+    Mendokumentasikan eksekusi dan verifikasi *live* alur *Continuous Integration* (CI) dan *Continuous Deployment* (CD) pada peladen Jenkins Controller (`http://localhost:8080`) untuk repositori operator CLI `tmctl`, agen background `tm-agent`, dan orkestrator stack `tomcat-monitoring` di atas *dedicated build agent* `builder-01` (Rootless Podman DooD), kelulusan 100% Quality Gates, pengarsipan artefak biner multi-OS (`linux/amd64`, `linux/arm64`, `windows/amd64`) dan manifest SHA-256 (`checksums.txt`), orkestrasi deployment *zero-touch* via Ansible Thin Orchestrator & `tmctl`, kelulusan pengujian tanggap insiden *TomcatDown* dengan pengiriman laporan SRE ke Mailpit via Postfix STARTTLS + SASL Relay, serta konsolidasi arsitektur global dan manual referensi teknis (`TASK-TM-031`).
 
 ---
 
@@ -178,7 +182,5 @@ flowchart TD
 - [TM-ADR-0025 — Delineate Responsibilities Between Jenkins Release Orchestration and Ansible Configuration Provisioning](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0025.md)
 - [TM-ADR-0026 — Adopt Adaptive Multi-Engine Container Runtime Portability for Podman and Docker Environments](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0026.md)
 - [TM-ADR-0027 — Adopt Container Engine Socket API and Unified Cross-Platform Tooling for Multi-OS Orchestration](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md)
-- [PS-ADR-0007 — Use Pipeline as Code](../../../../adr/personal-site/adr-records/PS-ADR-0007.md)
-- [PS-ADR-0008 — Adopt Stage-Based CI Pipeline](../../../../adr/personal-site/adr-records/PS-ADR-0008.md)
 - [PS-ADR-0007 — Use Pipeline as Code](../../../../adr/personal-site/adr-records/PS-ADR-0007.md)
 - [PS-ADR-0008 — Adopt Stage-Based CI Pipeline](../../../../adr/personal-site/adr-records/PS-ADR-0008.md)

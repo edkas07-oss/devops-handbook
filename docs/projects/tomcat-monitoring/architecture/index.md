@@ -419,6 +419,8 @@ flowchart TD
 | Diagnostic Service | Menerima seluruh alert operasional Tomcat melalui webhook HTTPS, memvalidasi skema payload, mengumpulkan evidence terbatas, mendistribusikan evaluasi melalui Multi-Domain Diagnostic Dispatcher dengan 20 built-in decision branches (TD, AH, GC, TH) serta custom rules (TD-09..TD-18), mengelompokkan kategori domain, menghasilkan canonical result, dan bertindak sebagai otoritas tunggal pengirim notifikasi insiden (TM-ADR-0016, TM-ADR-0023); beroperasi murni sebagai read-only advisory engine tanpa wewenang auto-remediation (TM-ADR-0014); image `0.1.5` terverifikasi live di `devops-lab` |
 | SQLite | Menyimpan event secara durable sebelum membalas HTTP 202 (TM-ADR-0015), menyimpan incident, deduplication, canonical result, custom rules (dengan kolom category), dan delivery state lokal pada volume persisten `diagnostic_data` (TM-ADR-0009) |
 | Restricted Event Collector | Mengumpulkan event host dan status container yang telah dinormalisasi ke spool terbatas (`/tmp/diagnostic-spool`) dengan penulisan atomik `.tmp` -> `.json` (TM-ADR-0008) |
+| `tmctl` (Unified Operator CLI) | Kakas baris perintah tunggal berbasis Go (`CGO_ENABLED=0`) untuk orkestrasi armada kontainer, manajemen aturan AI, autentikasi registri, dan validasi platform via Container Engine Socket API lintas Linux dan Windows (TM-ADR-0027, TN-012) |
+| `tm-agent` (Event Collector Daemon) | Agen latar belakang berbasis Go (`CGO_ENABLED=0`) yang berlangganan streaming event Container Engine Socket API secara real-time dan menuliskan bukti spool atomik sesuai skema kanonikal `event-record-v1` (TM-ADR-0008, TM-ADR-0027, TN-013) |
 | Integration Bridge | Mengubah webhook menjadi event yang diterima TrueSight (dinonaktifkan pada lab; TM-ADR-0012) |
 
 ## Failure Domain & Rule Categorization Taxonomy
@@ -496,6 +498,101 @@ Untuk mempermudah manajemen aturan deklaratif dan mempercepat eskalasi insiden k
 | [TM-ADR-0020](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0020.md) | Mengadopsi Self-Monitoring Diagnostic Service dan Emergency Fallback Routing (Zero Silent Failure). |
 | [TM-ADR-0021](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0021.md) | Mengadopsi Layered Resilience, Container Auto-Healing (`--restart=on-failure:5`), dan Pemisahan Domain Monitoring. |
 | [TM-ADR-0022](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0022.md) | Mengadopsi Sinyal Emas GC dan Kejenuhan Konkurensi Menggantikan Ambang Batas Statis Mentah. |
+| [TM-ADR-0024](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0024.md) | Mengadopsi Pola Arsitektur Decoupled Component CI dan Orchestrated Stack CD Pipeline. |
+| [TM-ADR-0025](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0025.md) | Memisahkan Batas Tanggung Jawab antara Jenkins Release Orchestration dan Ansible Configuration Provisioning. |
+| [TM-ADR-0026](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0026.md) | Mengadopsi Portabilitas Multi-Engine Container Runtime Adaptif untuk Lingkungan Podman dan Docker. |
+| [TM-ADR-0027](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | Mengadopsi Container Engine Socket API dan Kakas Terpadu Cross-Platform untuk Orkestrasi Multi-OS. |
+
+## Cross-Platform Container Engine Socket API Architecture
+
+Untuk meniadakan keterikatan pada shell spesifik sistem operasi (seperti Bash di Linux atau PowerShell di Windows), platform mengadopsi arsitektur orkestrasi berbasis **Container Engine Socket REST API** ([TM-ADR-0027](../../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md)). Seluruh interaksi siklus hidup kontainer (`tmctl`) dan penyerapan bukti insiden (`tm-agent`) berkomunikasi langsung dengan soket engine:
+
+```mermaid
+flowchart TD
+    subgraph Multi_OS_Workstation["Multi-OS Management & Execution Planes"]
+        direction TB
+        CLI["tmctl<br/>(Unified Go Operator CLI)"]
+        AGENT["tm-agent<br/>(Go Event Collector Daemon)"]
+        ANSIBLE["Ansible Thin Orchestrator<br/>(deploy-stack.yml)"]
+        ANSIBLE -->|Command Execution| CLI
+    end
+
+    subgraph Socket_Transports["OS-Agnostic Socket Transports"]
+        direction TB
+        UDS["Linux / macOS:<br/>Unix Domain Socket<br/>/run/user/&lt;uid&gt;/podman/podman.sock<br/>/var/run/docker.sock"]
+        PIPE["Windows Native:<br/>Windows Named Pipe<br/>\\\\.\\pipe\\docker_engine"]
+        TCP["Remote Node:<br/>TCP mTLS Socket<br/>tcp://&lt;host&gt;:2375 or :2376"]
+    end
+
+    subgraph Container_Engines["Target Container Engines"]
+        direction TB
+        PODMAN["Rootless Podman 4.x / 5.x<br/>(Libpod API / Docker Compat API)"]
+        DOCKER["Docker Engine 24.x+<br/>(Docker REST API)"]
+    end
+
+    subgraph Monitoring_Workloads["Platform Container Stack"]
+        direction TB
+        C1["tomcat-jmx-exporter (:8083, :9404)"]
+        C2["prometheus (:9090)"]
+        C3["alertmanager (:9093)"]
+        C4["diagnostic-service (:8443)"]
+        C5["mailpit (:1025, :8025)"]
+        C6["postfix-relay (:587)"]
+    end
+
+    CLI -->|Auto-detect & HTTP over Socket| Socket_Transports
+    AGENT -->|Streaming /events over Socket| Socket_Transports
+    Socket_Transports --> Container_Engines
+    Container_Engines --> Monitoring_Workloads
+```
+
+### Karakteristik Transport Soket Multi-OS
+
+1. **Auto-Discovery Socket Transparan:** `tmctl` dan `tm-agent` mendeteksi soket yang aktif secara mandiri dengan urutan evaluasi variabel lingkungan `$CONTAINER_HOST` $\rightarrow$ `$XDG_RUNTIME_DIR/podman/podman.sock` $\rightarrow$ `/var/run/docker.sock` $\rightarrow$ Named Pipe `\\.\pipe\docker_engine`.
+2. **Kompilasi Statis Nir-Dependensi (`CGO_ENABLED=0`):** Menghasilkan biner mandiri untuk arsitektur `linux/amd64`, `linux/arm64`, dan `windows/amd64` tanpa memerlukan pustaka dinamis sistem operasi.
+3. **Pemisahan Batas Keamanan Bukti Spool:** `tm-agent` adalah satu-satunya komponen yang memiliki akses ke socket runtime, menulis berkas bukti berformat `event-record-v1` ke direktori spool persisten berizin `0700` (`0600` per berkas), dan Diagnostic Service mengonsumsi spool secara *read-only* (`:ro,z`).
+
+## 4-Layer CI/CD Pipeline Architecture
+
+Siklus pengiriman platform Tomcat Monitoring diatur melalui **4 Lapisan Arsitektur CI/CD** yang terintegrasi pada peladen Jenkins Controller (`http://localhost:8080`) di atas agen DooD `builder-01`:
+
+```mermaid
+flowchart TD
+    subgraph L1["1. Application Code Layer (Microservice)"]
+        R1["Repositori: tomcat-diagnostic-service"]
+        P1["Pipeline CI (7 Quality Gates):<br/>Static Linting, 62 Unit/Schema Tests,<br/>OCI Image Packaging & Ephemeral Smoke Test"]
+        R1 --> P1
+    end
+
+    subgraph L2["2. Host Daemon & Agent Layer (Multi-OS)"]
+        R2["Repositori: tm-agent"]
+        P2["Pipeline CI (5 Quality Gates):<br/>gofmt, go vet, 16 Unit Tests,<br/>Cross-Compilation, Spool Test & Checksums"]
+        R2 --> P2
+    end
+
+    subgraph L3["3. Unified Operator CLI Layer (Multi-OS)"]
+        R3["Repositori: tmctl"]
+        P3["Pipeline CI (4 Quality Gates):<br/>Static Validation, Unit Tests,<br/>Cross-Compilation (Linux/Windows) & Checksums"]
+        R3 --> P3
+    end
+
+    subgraph L4["4. Platform Infrastructure & Stack Orchestration Layer"]
+        R4["Repositori: tomcat-monitoring (IaC)"]
+        P4["Pipeline CD Hub (4 Stages):<br/>Platform Validation, Rootless Agent Isolation,<br/>Ansible Thin Deploy (via tmctl & tm-agent),<br/>Live Verification Suite (Postfix & Incident)"]
+        R4 --> P4
+    end
+
+    P1 -.->|Immutable OCI Image| L4
+    P2 -.->|Archived Multi-OS Daemon Binaries & Checksums| L4
+    P3 -.->|Archived Static CLI Binaries & Checksums| L4
+```
+
+| Lapisan (*Layer*) | Repositori & Pipeline | Tanggung Jawab & Gerbang Mutu (*Quality Gates*) | Artefak Rilis (*Release Artifact*) |
+| :--- | :--- | :--- | :--- |
+| **1. Application** | `tomcat-diagnostic-service` | 7 Quality Gates: Linting, 62 Unit Tests, OCI Image Digest Pinning, Smoke Test | OCI Container Image (`sha256:...`) |
+| **2. Host Daemon** | `tm-agent` | 5 Quality Gates: Linting, 16 Unit Tests, Deterministic Build, Spool Test, Archiving | `tm-agent` (Linux amd64/arm64, Windows amd64) + `checksums.txt` |
+| **3. Operator CLI** | `tmctl` | 4 Quality Gates: Linting, Go Unit Tests, Deterministic Cross-Compilation, Archiving | `tmctl` (Linux amd64/arm64, Windows amd64) + `checksums.txt` |
+| **4. Stack CD Hub** | `tomcat-monitoring` | 4 Stages: Platform Validation, Runtime Isolation, Ansible Deployment, Live Verification Suite | Verified Multi-Container Stack Deployment & Live Incident Audit |
 
 ## Container Auto-Healing & Resilience Architecture
 
