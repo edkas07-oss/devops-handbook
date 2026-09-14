@@ -627,6 +627,28 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
   - Seluruh artefak biner multi-OS tersimpan di Jenkins artifact repository dan laporan 7-seksi SRE diterima di Mailpit via Postfix Relay.
 - **Referensi:** [TM-ADR-0024](../../adr/tomcat-monitoring/adr-records/TM-ADR-0024.md), [TM-ADR-0025](../../adr/tomcat-monitoring/adr-records/TM-ADR-0025.md), [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md), [TN-011](engineering-journal/continuous-integration-and-deployment/TN-011-design-cross-platform-container-engine-api-orchestration-and-agent-architecture.md), [TN-012](engineering-journal/continuous-integration-and-deployment/TN-012-implement-unified-cross-platform-operator-cli-tmctl.md), [TN-013](engineering-journal/continuous-integration-and-deployment/TN-013-implement-unified-cross-platform-event-collector-daemon-tm-agent.md), [TN-014](engineering-journal/continuous-integration-and-deployment/TN-014-refactor-ansible-roles-into-thin-orchestrator-based-on-tmctl-and-os-fact-branching.md), [TN-015](engineering-journal/continuous-integration-and-deployment/TN-015-implement-production-ready-cicd-pipelines-for-tmctl-and-tm-agent-multi-os-artifacts-and-stack-release-hub-integration.md), [TN-016](engineering-journal/continuous-integration-and-deployment/TN-016-execute-live-multi-os-cicd-pipeline-verification-in-jenkins-controller-and-consolidate-global-architecture.md).
 
+#### TASK-TM-032: Deployment Armada Cloud Remote AWS Free Tier, Provisi Ansible Lintas-Lingkungan, dan Verifikasi Live Cloud CI/CD (Fase Cloud)
+
+- **Status:** `Completed (Fase Cloud)` ✅
+- **Deskripsi:**
+  Mengonfigurasi dan memperkuat target node Amazon EC2 (AWS Free Tier `t2.micro`, Amazon Linux 2023, 2GB swap, Docker Engine, systemd user linger), meregistrasi kredensial SSH `aws-ec2-ssh-key` pada Jenkins Controller, merefaktor inventori dan roles Ansible untuk dukungan multi-lingkungan dan fix Docker volume permission UID `1000:1000`, mengeksekusi pipeline Jenkins CD multi-lingkungan (`DEPLOY_ENV=aws-staging`) Build #6 dengan status 100% SUCCESS, serta membuktikan investigasi insiden *live* `TomcatDown` dari penangkapan soket `tm-agent` hingga penerimaan Laporan 7-Seksi SRE di Mailpit via Postfix STARTTLS Relay di lingkungan AWS Cloud.
+- **Kebutuhan Teknis:**
+  - Host hardening EC2: pembuatan 2GB swap (`/swapfile`, `vm.swappiness=10`), instalasi Docker 25.0.16, user session linger (`loginctl enable-linger ec2-user`), dan GID refresh (`systemctl restart user@1000.service`).
+  - Inventori & Roles Ansible: pembuatan `inventories/aws-staging.ini` & `inventories/aws-production.ini`, `chown 1000:1000` pada Docker named volume `diagnostic_data`, touch placeholder `postfix-ca.crt`, auto-generation JMX Keystore via `keytool`, dan dynamic SSH injection via `ANSIBLE_SSH_KEY_FILE`.
+  - Jenkins CD Pipeline: parameter `DEPLOY_ENV`, binding kredensial terisolasi `aws-ec2-ssh-key` via `withCredentials`, dan remote SSH Live Verification Suite.
+  - Simulasi insiden live `TomcatDown` di AWS EC2 dan penerimaan laporan kanonikal SRE di Mailpit.
+- **Kriteria Penerimaan (*Acceptance Criteria*):**
+  - Instans AWS EC2 `t2.micro` stabil tanpa *Kernel OOM Killer* saat 6 kontainer beroperasi bersamaan.
+  - Pipeline Jenkins CD Build #6 berhasil 100% `SUCCESS` dan seluruh verifikasi remote via SSH lulus.
+  - Simulasi insiden `TomcatDown` menghasilkan bukti JSON valid di spool `0700` dan Laporan 7-Seksi SRE diterima di Mailpit via Postfix STARTTLS (Port 587).
+  - Pembakuan [TM-ADR-0028](../../adr/tomcat-monitoring/adr-records/TM-ADR-0028.md), [TN-017](engineering-journal/continuous-integration-and-deployment/TN-017-aws-free-tier-cloud-remote-fleet-deployment-cross-environment-ansible-provisioning-and-cloud-cicd-live-verification.md), dan SOP Deployment Cloud.
+- **Bukti Verifikasi (*Verification Evidence*):**
+  - Didokumentasikan secara lengkap pada [TN-017](engineering-journal/continuous-integration-and-deployment/TN-017-aws-free-tier-cloud-remote-fleet-deployment-cross-environment-ansible-provisioning-and-cloud-cicd-live-verification.md).
+  - Jenkins CD Pipeline Build #6 berstatus `SUCCESS` (durasi 192s).
+  - Verifikasi SSH pada 6 endpoint dan daemon `tm-agent` berstatus `OK` & `ACTIVE`.
+  - Bukti penerimaan email insiden di Mailpit (`0qGQcQJKNI8PkckDZm0R8E`) dan email pemulihan `[RESOLVED]` (`80pGk8YnZc6uC787lCskYq`).
+- **Referensi:** [TM-ADR-0024](../../adr/tomcat-monitoring/adr-records/TM-ADR-0024.md), [TM-ADR-0025](../../adr/tomcat-monitoring/adr-records/TM-ADR-0025.md), [TM-ADR-0026](../../adr/tomcat-monitoring/adr-records/TM-ADR-0026.md), [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md), [TM-ADR-0028](../../adr/tomcat-monitoring/adr-records/TM-ADR-0028.md), [TN-017](engineering-journal/continuous-integration-and-deployment/TN-017-aws-free-tier-cloud-remote-fleet-deployment-cross-environment-ansible-provisioning-and-cloud-cicd-live-verification.md).
+
 ---
 
 ## 🛠️ Implementation Priority Matrix
@@ -653,6 +675,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-029** | Refaktorisasi Ansible Roles berbasis `tmctl` | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tomcat-monitoring` / Ansible | Thin declarative orchestrator & OS Fact Branching (TN-014) |
 | **TASK-TM-030** | CI/CD Pipelines & Multi-OS Artifacts Hub | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | `tmctl`, `tm-agent`, `tomcat-monitoring` | CI multi-OS biner, checksums manifest, & Stack CD Hub (TN-015) |
 | **TASK-TM-031** | Live Multi-OS CI/CD Verification & Global Architecture | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | Jenkins Controller / All | Verifikasi live Jenkins, biner multi-OS di controller, & konsolidasi manual (TN-016) |
+| **TASK-TM-032** | AWS Free Tier Remote Fleet Deployment & Cloud CI/CD | **P1 (High)** | `Completed` ✅ | [TM-ADR-0028](../../adr/tomcat-monitoring/adr-records/TM-ADR-0028.md) | AWS EC2 / Jenkins / Ansible | Zero-touch AWS cloud deployment, swap hardening, & incident response (TN-017) |
 | **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | `Descoped` ⚪ | TM-ADR-0014 | Diagnostic Service | Digantikan arsip dossier 7-seksi terpusat |
 | **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Rule saturasi thread pool 100% (TN-004) |
 | **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Sinyal Emas GC Pause, Overhead, Old Gen (TN-004) |
@@ -669,6 +692,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 - [Diagnostic MVP Gap Register](diagnostic-mvp/gap-register.md)
 - [Tomcat Monitoring Architecture](architecture/index.md)
 - [Continuous Integration and Deployment Engineering Journal](engineering-journal/continuous-integration-and-deployment/index.md)
+- [SOP: Panduan Deployment Armada Cloud AWS](operations/aws-cloud-fleet-deployment-guide.md)
 - [SOP: Panduan Migrasi Enterprise Container Registry](operations/enterprise-container-registry-migration-guide.md)
 - [TM-ADR-0014 — Enforce Zero Automatic Remediation](../../adr/tomcat-monitoring/adr-records/TM-ADR-0014.md)
 - [TM-ADR-0015 — Adopt Asynchronous Webhook Ingestion with Durable SQLite Acceptance Pattern](../../adr/tomcat-monitoring/adr-records/TM-ADR-0015.md)
@@ -678,5 +702,6 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 - [TM-ADR-0025 — Delineate Responsibilities Between Jenkins Release Orchestration and Ansible Configuration Provisioning](../../adr/tomcat-monitoring/adr-records/TM-ADR-0025.md)
 - [TM-ADR-0026 — Adopt Adaptive Multi-Engine Container Runtime Portability for Podman and Docker Environments](../../adr/tomcat-monitoring/adr-records/TM-ADR-0026.md)
 - [TM-ADR-0027 — Adopt Container Engine Socket API and Unified Cross-Platform Tooling for Multi-OS Orchestration](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md)
+- [TM-ADR-0028 — Adopt Cloud-Native Remote Fleet Orchestration, Multi-Engine Socket API Portability, and AWS Free Tier Integration](../../adr/tomcat-monitoring/adr-records/TM-ADR-0028.md)
 - [TN-020 — Consolidate Diagnostic MVP Portfolio and Plan Next Phase](engineering-journal/diagnostic-mvp-pilot/TN-020-consolidate-diagnostic-mvp-portfolio-and-plan-next-phase.md)
 

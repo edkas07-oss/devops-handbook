@@ -91,6 +91,7 @@ flowchart TD
 | **Ansible Roles Refactoring (`tmctl` & Multi-OS)** | Refaktorisasi Ansible roles menjadi thin orchestrator berbasis biner `tmctl` dan `tm-agent` dengan OS Fact Branching Linux systemd vs Windows Service (TASK-TM-029) | Completed (TN-014) |
 | **Multi-OS CI Pipelines & Stack Release Hub** | Implementasi declarative Jenkinsfile multi-OS untuk `tmctl` dan `tm-agent`, penegakan 4-Stage Quality Gates, SHA-256 fingerprint hashing, artifact archiving, dan integrasi Stack CD Hub (TASK-TM-030) | Completed (TN-015) |
 | **Live Multi-OS CI/CD Pipeline Verification & Architecture Consolidation** | Eksekusi dan verifikasi live pipeline multi-OS pada Jenkins Controller untuk `tmctl`, `tm-agent`, dan `tomcat-monitoring`, pengarsipan artefak biner lintas platform & manifest SHA-256, deployment zero-touch Ansible & `tmctl`, serta konsolidasi arsitektur global (TASK-TM-031) | Completed (TN-016) |
+| **AWS Free Tier Cloud Remote Fleet Deployment & Live CI/CD Verification** | Penyediaan target node AWS EC2 (AL2023 t2.micro), 2GB swap hardening, integrasi Jenkins credentials `aws-ec2-ssh-key`, refaktorisasi Ansible cross-environment, eksekusi build #6, dan live incident simulation (TASK-TM-032) | Completed (TN-017) |
 
 ---
 
@@ -160,6 +161,10 @@ flowchart TD
 
     Mendokumentasikan eksekusi dan verifikasi *live* alur *Continuous Integration* (CI) dan *Continuous Deployment* (CD) pada peladen Jenkins Controller (`http://localhost:8080`) untuk repositori operator CLI `tmctl`, agen background `tm-agent`, dan orkestrator stack `tomcat-monitoring` di atas *dedicated build agent* `builder-01` (Rootless Podman DooD), kelulusan 100% Quality Gates, pengarsipan artefak biner multi-OS (`linux/amd64`, `linux/arm64`, `windows/amd64`) dan manifest SHA-256 (`checksums.txt`), orkestrasi deployment *zero-touch* via Ansible Thin Orchestrator & `tmctl`, kelulusan pengujian tanggap insiden *TomcatDown* dengan pengiriman laporan SRE ke Mailpit via Postfix STARTTLS + SASL Relay, serta konsolidasi arsitektur global dan manual referensi teknis (`TASK-TM-031`).
 
+17. **[TN-017 — AWS Free Tier Cloud Remote Fleet Deployment, Cross-Environment Ansible Provisioning, and Cloud CI/CD Live Verification](TN-017-aws-free-tier-cloud-remote-fleet-deployment-cross-environment-ansible-provisioning-and-cloud-cicd-live-verification.md)**
+
+    Mendokumentasikan penyediaan dan penguatan target node Amazon EC2 (AWS Free Tier t2.micro, Amazon Linux 2023, 2GB swap, Docker Engine, systemd linger), pendaftaran kredensial `aws-ec2-ssh-key` pada Jenkins Controller, refaktorisasi Ansible roles untuk Docker named volume UID fix & dynamic SSH injection, eksekusi otomatis pipeline CD Build #6 (`DEPLOY_ENV=aws-staging`) dengan status 100% SUCCESS, serta pembuktian simulasi insiden *live* `TomcatDown` dari penangkapan soket `tm-agent` hingga penerimaan Laporan 7-Seksi SRE di Mailpit via Postfix STARTTLS Relay di AWS Cloud (`TASK-TM-032`).
+
 ---
 
 ## 🎓 Lessons Learned
@@ -168,6 +173,7 @@ flowchart TD
 2. **Kesiapan Produksi Ditentukan Sejak Perancangan Awal:** Menambahkan parameterisasi registry, penegakan isolasi secret, dan mekanisme rollback otomatis sejak fase desain mencegah timbulnya *technical debt* saat kode dipindahkan dari lab ke server produksi enterprise.
 3. **Portabilitas Multi-Engine Menghilangkan Keterikatan Infrastruktur:** Penggunaan helper adaptif berbasis shell POSIX memungkinkan eksekusi skrip otomasi yang seragam di lingkungan Red Hat (Podman) maupun Debian/Ubuntu (Docker) tanpa konfigurasi manual tambahan.
 4. **Container Engine Socket API Melampaui Batasan OS:** Menggunakan antarmuka soket/API resmi kontainer engine membebaskan platform dari ketergantungan pada shell host OS (Bash vs PowerShell) dan menghasilkan interaksi streaming event yang jauh lebih tangguh dan terstruktur.
+5. **Manajemen Swap & Volume Izin Kunci Ketahanan Cloud Murah:** Pada node cloud terbatas seperti AWS Free Tier (1GB RAM), konfigurasi swap 2GB dan otomatisasi perbaikan izin UID Docker (`chown 1000:1000`) pada named volume menjamin seluruh kontainer dan daemon beroperasi tanpa risiko OOM killer atau permission error.
 
 ---
 
@@ -178,9 +184,11 @@ flowchart TD
 - [Monitoring Integration and Runtime Deployment](../monitoring-integration-and-runtime-deployment/index.md)
 - [Runtime Monitoring Foundation](../runtime-monitoring-foundation/index.md)
 - [Follow-up Tasks Backlog](../../follow-up-tasks.md)
+- [SOP: Panduan Deployment Armada Cloud AWS](../../operations/aws-cloud-fleet-deployment-guide.md)
 - [TM-ADR-0024 — Adopt Decoupled Component CI and Orchestrated Stack CD Pipeline Architecture](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0024.md)
 - [TM-ADR-0025 — Delineate Responsibilities Between Jenkins Release Orchestration and Ansible Configuration Provisioning](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0025.md)
 - [TM-ADR-0026 — Adopt Adaptive Multi-Engine Container Runtime Portability for Podman and Docker Environments](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0026.md)
 - [TM-ADR-0027 — Adopt Container Engine Socket API and Unified Cross-Platform Tooling for Multi-OS Orchestration](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md)
+- [TM-ADR-0028 — Adopt Cloud-Native Remote Fleet Orchestration, Multi-Engine Socket API Portability, and AWS Free Tier Integration](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0028.md)
 - [PS-ADR-0007 — Use Pipeline as Code](../../../../adr/personal-site/adr-records/PS-ADR-0007.md)
 - [PS-ADR-0008 — Adopt Stage-Based CI Pipeline](../../../../adr/personal-site/adr-records/PS-ADR-0008.md)

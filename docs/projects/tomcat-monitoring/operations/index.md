@@ -125,6 +125,7 @@ Untuk prosedur operasional pengelolaan basis pengetahuan diagnosis (*declarative
 
 * [Tomcat Monitoring Operator CLI (`tmctl`) Reference](../references/tmctl-cli-reference.md)
 * [Tomcat Diagnostic Event Collector Daemon (`tm-agent`) Reference](../references/tm-agent-daemon-reference.md)
+* [SOP: Panduan Deployment Armada Cloud AWS (EC2 Free Tier)](aws-cloud-fleet-deployment-guide.md)
 * [SOP: Panduan Migrasi Enterprise Container Registry](enterprise-container-registry-migration-guide.md)
 * [Runbook: AI Knowledge Enrichment & Declarative Rule Management](ai-knowledge-enrichment-and-rule-management-runbook.md)
 * [Tomcat Diagnostic Service REST API Reference](../references/diagnostic-service-rest-api-reference.md)
