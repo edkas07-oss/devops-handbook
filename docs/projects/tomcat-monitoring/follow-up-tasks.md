@@ -668,7 +668,20 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
   - SSH key auth berhasil: `ec2amaz-darmlje\administrator`.
   - Ansible Playbook RECAP: `aws-ec2-win-01 : ok=9 changed=1 unreachable=0 failed=0 skipped=36`.
   - Bukti penulisan berkas evidence di `C:\monitoring\spool\1789381549962275300_collector_status.json`.
-- **Referensi:** [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md), [TM-ADR-0028](../../adr/tomcat-monitoring/adr-records/TM-ADR-0028.md), [TN-017](engineering-journal/continuous-integration-and-deployment/TN-017-aws-free-tier-cloud-remote-fleet-deployment-cross-environment-ansible-provisioning-and-cloud-cicd-live-verification.md), [TN-018](engineering-journal/continuous-integration-and-deployment/TN-018-aws-windows-fleet-deployment-cross-platform-ansible-provisioning-and-live-verification.md).
+#### TASK-TM-034: Standardisasi Distribusi Citra Pihak Ketiga (Mailpit) ke Enterprise Container Registry & Otomatisasi Air-Gapped Cloud Provisioning
+
+- **Status:** `Planned / In-Backlog` ⏳
+- **Deskripsi:**
+  Mengintegrasikan citra pihak ketiga (`ghcr.io/axllent/mailpit`) ke dalam repositori Container Registry internal (`harbor.internal.corp:5000` atau AWS ECR) serta menyelaraskan alur sinkronisasi citra pada pipeline CD dan Ansible Playbook untuk mendukung provisioning cloud yang sepenuhnya terisolasi (*air-gapped / single source of truth*), mengeliminasi dependensi penarikan langsung dari registry publik eksternal saat bootstrap armada baru.
+- **Kebutuhan Teknis:**
+  - Mirroring/pushing citra `mailpit` ke registry privat dengan namespace terpadu (`{{ registry_url }}/{{ registry_namespace }}/mailpit:v1.31.0`).
+  - Penyesuaian variabel `mailpit_image` pada `inventories/group_vars/all.yml` agar mengikuti pola `registry_url` seperti citra lainnya.
+  - Penyesuaian `roles/role_container_stack/tasks/pull_images.yml` untuk memvalidasi digest dan pull policy terpusat.
+  - Standardisasi skrip `user_data` EC2 Amazon Linux 2023 (`dnf install -y docker`) dan Windows OpenSSH bootstrap pada repositori dokumentasi/IaC.
+- **Kriteria Penerimaan (*Acceptance Criteria*):**
+  - Seluruh armada (Linux & Windows) menarik citra murni dari registry privat tanpa bergantung pada koneksi langsung ke `ghcr.io`.
+  - Deployment pada node baru (fresh instance) berhasil 100% secara idempoten dalam mode semi-air-gapped / zero external registry pull.
+- **Referensi:** [TM-ADR-0026](../../adr/tomcat-monitoring/adr-records/TM-ADR-0026.md), [TM-ADR-0028](../../adr/tomcat-monitoring/adr-records/TM-ADR-0028.md), [TN-010](engineering-journal/continuous-integration-and-deployment/TN-010-implement-plug-and-play-container-registry-integration.md), [TN-017](engineering-journal/continuous-integration-and-deployment/TN-017-aws-free-tier-cloud-remote-fleet-deployment-cross-environment-ansible-provisioning-and-cloud-cicd-live-verification.md).
 
 ---
 
@@ -698,6 +711,7 @@ Kategori ini mencakup pekerjaan infrastruktur dan platform monitoring menyeluruh
 | **TASK-TM-031** | Live Multi-OS CI/CD Verification & Global Architecture | **P1 (High)** | `Completed` ✅ | [TM-ADR-0027](../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md) | Jenkins Controller / All | Verifikasi live Jenkins, biner multi-OS di controller, & konsolidasi manual (TN-016) |
 | **TASK-TM-032** | AWS Free Tier Linux Cloud Fleet Deployment & CI/CD | **P1 (High)** | `Completed` ✅ | [TM-ADR-0028](../../adr/tomcat-monitoring/adr-records/TM-ADR-0028.md) | AWS EC2 / Jenkins / Ansible | Zero-touch AWS Linux cloud deployment, swap hardening, & incident response (TN-017) |
 | **TASK-TM-033** | AWS Free Tier Windows Cloud Fleet Deployment & Multi-OS | **P1 (High)** | `Completed` ✅ | [TM-ADR-0028](../../adr/tomcat-monitoring/adr-records/TM-ADR-0028.md) | AWS Windows / Ansible / tm-agent | Multi-OS Hierarchical Grouping, Windows OpenSSH hardening, & Windows fleet live verification (TN-018) |
+| **TASK-TM-034** | Distribusi Citra Upstream (Mailpit) & Registry Air-Gapped | **P2 (Medium)** | `Planned` ⏳ | [TM-ADR-0028](../../adr/tomcat-monitoring/adr-records/TM-ADR-0028.md) / [TN-010](engineering-journal/continuous-integration-and-deployment/TN-010-implement-plug-and-play-container-registry-integration.md) | Registry / Ansible / Fleet | Zero external pull & single registry source for cloud provisioning |
 | **TASK-TM-006** | Audit Trail Endpoint Tindakan Operator | **P2 (Medium)** | `Descoped` ⚪ | TM-ADR-0014 | Diagnostic Service | Digantikan arsip dossier 7-seksi terpusat |
 | **TASK-TM-007** | Rulepack Thread Starvation | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Rule saturasi thread pool 100% (TN-004) |
 | **TASK-TM-008** | Rulepack Memory Pressure & GC | **P2 (Medium)** | `Completed` ✅ | TM-ADR-0017 / TM-ADR-0022 | Prometheus | Sinyal Emas GC Pause, Overhead, Old Gen (TN-004) |
