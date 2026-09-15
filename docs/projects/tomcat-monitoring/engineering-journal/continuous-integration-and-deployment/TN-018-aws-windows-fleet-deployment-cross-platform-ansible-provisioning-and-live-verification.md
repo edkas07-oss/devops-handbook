@@ -92,8 +92,9 @@ Hasil investigasi operasional membuktikan adanya perbedaan perilaku signifikan a
 | **Inisialisasi Host Keys** | Otomatis dibuat saat instalasi capability dengan ACL yang sudah kompatibel. | **Tidak otomatis dibuat**; jika dibuat manual mewarisi ACL permisif dari `C:\ProgramData\ssh`. | `sshd.exe` menolak private key (*UNPROTECTED PRIVATE KEY FILE*). **Wajib** me-reset ACL via .NET `FileSecurity` (SYSTEM + Admins only, inheritance disabled). |
 | **Service Account `sshd`** | Berjalan di bawah `NT SERVICE\sshd` dengan SID mapping built-in. | `NT SERVICE\sshd` memicu **SID Lookup Error 1332**; explicit ACE untuk sshd justru ditolak OpenSSH. | **Wajib** mengikat service account ke `LocalSystem` (`sc.exe config sshd obj= LocalSystem`). |
 | **Dependensi `ssh-agent`** | Terpasang dan aktif secara otomatis saat instalasi. | Sering berada pada status `Disabled` (Error 1058 saat start). | **Wajib** mengubah startup ke `Automatic`, mengaktifkan service, dan menambahkan dependensi (`sc.exe config sshd depend= ssh-agent`). |
-| **Peluncuran Proses Latar Belakang** | `wmic.exe` didepresiasi; PowerShell `Start-Process` bekerja mulus. | `wmic.exe` mengalami parsing failure: parameter `--spool-dir` dianggap **`Invalid Verb Switch.`**. | **Standardisasi**: Menggunakan `Start-Process -FilePath ... -ArgumentList ... -PassThru` di seluruh task Ansible Windows. |
+| **Peluncuran Proses Latar Belakang** | `wmic.exe` didepresiasi; `Start-Process` terikat ke SSH Job Object (`KILL_ON_JOB_CLOSE`). | `wmic.exe` mengalami parsing failure (`Invalid Verb Switch.`); `Start-Process` mati saat SSH disconnect. | **Standardisasi**: Menggunakan PowerShell COM/WMI `([wmiclass]'Win32_Process').Create('...')`. Mengeksekusi biner secara independen di luar pohon Job Object SSH dan mendukung seluruh argumen double-dash. |
 | **Driver Kernel Containers (Docker)** | Modul container driver termuat secara modern; setup via static zip/engine. | Mewajibkan aktivasi feature `Containers` dan **Reboot Komputer** (`Restart-Computer -Force`). | Reboot diwajibkan setelah `Install-WindowsFeature -Name Containers` agar storage driver `windowsfilter` aktif. |
+| **Truststore & Secret Paths Alertmanager** | Volume mount Linux (`/run/secrets/tomcat-monitoring/...`). | Resolusi path Windows relatif terhadap direktori config (`C:\monitoring\config\alertmanager\run\secrets\...`). | **Materialisasi Otomatis**: `role_host_prep` secara deklaratif membuat direktori `run\secrets\tomcat-monitoring` dan memetakan cert CA serta bearer token. |
 
 ---
 
@@ -152,13 +153,13 @@ Restart-Service sshd
 
 - **`role_host_prep`:**
   - Linux: Membuat direktori `~/.local/share/...`, menyinkronkan scripts, menginstal `tmctl` Linux.
-  - Windows: Menggunakan `ansible.windows.win_file` untuk membuat `C:\monitoring` dan subfolder, lalu menginstal `tmctl.exe` via `ansible.windows.win_copy` dengan path delegasi stat yang baku.
+  - Windows: Menggunakan `ansible.windows.win_file` untuk membuat `C:\monitoring` dan subfolder, menginstal `tmctl.exe` via `ansible.windows.win_copy`, dan mematerialisasikan truststore/secrets Alertmanager ke `C:\monitoring\config\alertmanager\run\secrets\tomcat-monitoring`.
 - **`role_event_collector`:**
   - Linux: Mendaftarkan dan mengaktifkan systemd user unit `tm-agent.service`.
-  - Windows: Mentransfer `tm-agent.exe` ke `C:\monitoring\bin\tm-agent.exe`, mengelola proses daemon latar belakang secara idempoten menggunakan native PowerShell `Start-Process -FilePath ... -ArgumentList '--spool-dir "..."' -PassThru` (mengeliminasi bug `wmic Invalid Verb Switch`), dan memastikan spool directory `C:\monitoring\spool` aktif.
+  - Windows: Mentransfer `tm-agent.exe` ke `C:\monitoring\bin\tm-agent.exe`, mengelola proses daemon latar belakang secara idempoten menggunakan COM/WMI `([wmiclass]'Win32_Process').Create(...)` (menghindari terminasi Job Object SSH dan bug parsing `wmic.exe`), dan memastikan spool directory `C:\monitoring\spool` aktif.
 - **`role_container_stack`:**
   - Linux: Menerapkan orchestrasi kontainer via `tmctl` dan container engine (Docker/Podman).
-  - Windows: Menjalankan native platform components (`prometheus.exe`, `alertmanager.exe`, `mailpit.exe`) secara terpadu (*self-instrumented*) dengan Win32 `Start-Process` background process management dan verifikasi endpoint HTTP readiness (`:9090/-/ready`, `:9093/-/ready`, `:8025/api/v1/messages`).
+  - Windows: Menjalankan native platform components (`prometheus.exe`, `alertmanager.exe`, `mailpit.exe`) secara terpadu (*self-instrumented*) dengan WMI `Win32_Process.Create` background process management dan verifikasi endpoint HTTP readiness (`:9090/-/ready`, `:9093/-/ready`, `:8025/api/v1/messages`).
 
 ---
 
