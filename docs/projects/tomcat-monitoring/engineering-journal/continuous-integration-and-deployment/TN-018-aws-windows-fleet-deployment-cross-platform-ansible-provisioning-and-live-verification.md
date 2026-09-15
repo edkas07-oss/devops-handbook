@@ -83,12 +83,13 @@ ansible_ssh_private_key_file="{{ lookup('env', 'ANSIBLE_SSH_KEY_FILE') | default
 ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
 ```
 
-### 2. Analisis Perbandingan Perilaku OpenSSH & Runtime (Windows Server 2019 vs 2022)
+### 2. Matriks Komparasi Perilaku & Fitur OS (Windows Server 2019 vs 2022)
 
-Hasil investigasi operasional membuktikan adanya perbedaan perilaku signifikan antara **Windows Server 2019** dan **Windows Server 2022** dalam menangani OpenSSH, hak akses berkas, dan peluncuran proses latar belakang:
+Hasil investigasi operasional membuktikan adanya perbedaan perilaku signifikan antara **Windows Server 2019 Datacenter** dan **Windows Server 2022 Datacenter** dalam menangani OpenSSH, hak akses berkas, daemons latar belakang, dan runtime container:
 
 | Dimensi Komparasi | Windows Server 2022 Datacenter | Windows Server 2019 Datacenter | Dampak Operasional & Solusi Kanonikal |
 | :--- | :--- | :--- | :--- |
+| **Versi Paket OpenSSH** | OpenSSH v8.6p1+ bawaan sistem modern dengan integrasi akun virtual. | OpenSSH v7.7p1 (porting awal Win32). | Server 2019 memerlukan penanganan ACL manual dan binding akun `LocalSystem`. |
 | **Inisialisasi Host Keys** | Otomatis dibuat saat instalasi capability dengan ACL yang sudah kompatibel. | **Tidak otomatis dibuat**; jika dibuat manual mewarisi ACL permisif dari `C:\ProgramData\ssh`. | `sshd.exe` menolak private key (*UNPROTECTED PRIVATE KEY FILE*). **Wajib** me-reset ACL via .NET `FileSecurity` (SYSTEM + Admins only, inheritance disabled). |
 | **Service Account `sshd`** | Berjalan di bawah `NT SERVICE\sshd` dengan SID mapping built-in. | `NT SERVICE\sshd` memicu **SID Lookup Error 1332**; explicit ACE untuk sshd justru ditolak OpenSSH. | **Wajib** mengikat service account ke `LocalSystem` (`sc.exe config sshd obj= LocalSystem`). |
 | **Dependensi `ssh-agent`** | Terpasang dan aktif secara otomatis saat instalasi. | Sering berada pada status `Disabled` (Error 1058 saat start). | **Wajib** mengubah startup ke `Automatic`, mengaktifkan service, dan menambahkan dependensi (`sc.exe config sshd depend= ssh-agent`). |
@@ -96,7 +97,171 @@ Hasil investigasi operasional membuktikan adanya perbedaan perilaku signifikan a
 | **Driver Kernel Containers (Docker)** | Modul container driver termuat secara modern; setup via static zip/engine. | Mewajibkan aktivasi feature `Containers` dan **Reboot Komputer** (`Restart-Computer -Force`). | Reboot diwajibkan setelah `Install-WindowsFeature -Name Containers` agar storage driver `windowsfilter` aktif. |
 | **Truststore & Secret Paths Alertmanager** | Volume mount Linux (`/run/secrets/tomcat-monitoring/...`). | Resolusi path Windows relatif terhadap direktori config (`C:\monitoring\config\alertmanager\run\secrets\...`). | **Materialisasi Otomatis**: `role_host_prep` secara deklaratif membuat direktori `run\secrets\tomcat-monitoring` dan memetakan cert CA serta bearer token. |
 
-### 2.1 Jaminan Kompatibilitas Lintas Generasi Windows Server (Backward & Forward Compatibility Guarantee)
+---
+
+### 2.1 Rincian Investigasi 7 Masalah Operasional Windows Server 2019 vs 2022
+
+#### 1. Investigasi Masalah 1: Kegagalan SSH Handshake & Host Key Permissions (UNPROTECTED PRIVATE KEY FILE)
+* **Pesan Error Log Lapangan:**
+  ```text
+  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  @         WARNING: UNPROTECTED PRIVATE KEY FILE!          @
+  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Permissions for 'C:\ProgramData\ssh\ssh_host_rsa_key' are too open.
+  It is required that your private key files are NOT accessible by others.
+  This private key will be ignored.
+  sshd: no hostkeys available -- exiting.
+  ```
+  dan saat konfigurasi service account:
+  ```text
+  LookupAccountName() failed: 1332 (ERROR_NONE_MAPPED)
+  ```
+* **Akar Masalah (Root Cause):**
+  * Di **Windows Server 2022**, instalasi OpenSSH v8.6p1+ otomatis membuat host key dengan ACL ketat dan akun virtual `NT SERVICE\sshd` telah memiliki pemetaan SID sistem internal yang valid.
+  * Di **Windows Server 2019**, OpenSSH v7.7p1 tidak membuat host key secara otomatis saat penambahan capability. Ketika operator menjalankan `ssh-keygen -A`, berkas kunci privat mewarisi izin dari folder induk `C:\ProgramData\ssh` (`BUILTIN\Users` dan `NT AUTHORITY\Authenticated Users` memiliki hak read). Selain itu, akun `NT SERVICE\sshd` belum terdaftar secara global di SAM sehingga memicu error 1332. Jika administrator memberikan ACE eksplisit kepada `NT SERVICE\sshd`, OpenSSH v7.7 justru menganggap kunci tersebut *overly permissive* dan menolaknya.
+  * Utilitas baris perintah `icacls /inheritance:r` pada Windows Server 2019 terbukti meninggalkan residual inherited ACEs.
+* **Solusi Kanonikal:**
+  1. Menggunakan .NET API `System.Security.AccessControl.FileSecurity` dengan parameter `SetAccessRuleProtection($true, $false)` untuk memutus pewarisan dan menghapus seluruh ACE warisan secara total.
+  2. Memberikan hak `FullControl` hanya kepada SID `S-1-5-18` (`NT AUTHORITY\SYSTEM`) dan `S-1-5-32-544` (`BUILTIN\Administrators`).
+  3. Mengikat service account `sshd` langsung ke `LocalSystem` (`sc.exe config sshd obj= "LocalSystem"`).
+
+#### 2. Investigasi Masalah 2: Dependensi & Status Disabled Layanan `ssh-agent` (Win32 Error 1058)
+* **Pesan Error Log Lapangan:**
+  ```text
+  Start-Service : Service 'OpenSSH Authentication Agent (ssh-agent)' cannot be started due to the following error:
+  Cannot start service ssh-agent on computer '.'.
+  System.Management.Automation.ActionPreferenceStopException: The service cannot be started, either because it is disabled
+  or because it has no enabled devices associated with it. (Exception from HRESULT: 0x80070422 / Win32 Error 1058)
+  ```
+* **Akar Masalah (Root Cause):**
+  * Di **Windows Server 2022**, layanan `ssh-agent` dipasang dengan status startup `Manual` sehingga dapat langsung diaktifkan kapan saja.
+  * Di **Windows Server 2019**, paket OpenSSH menetapkan startup type `ssh-agent` ke status `Disabled`. Setiap pemanggilan `Start-Service ssh-agent` tanpa modifikasi startup type akan langsung melempar exception fatal HRESULT `0x80070422`.
+* **Solusi Kanonikal:**
+  Eksplisit mengubah tipe startup ke `Automatic` sebelum menyalakan service:
+  ```powershell
+  Set-Service -Name ssh-agent -StartupType Automatic
+  Start-Service ssh-agent
+  sc.exe config sshd depend= ssh-agent
+  ```
+
+#### 3. Investigasi Masalah 3: Kegagalan Parsing Argumen CLI WMIC (`Invalid Verb Switch.`)
+* **Pesan Error Log Lapangan:**
+  ```text
+  fatal: [aws-ec2-win-01]: FAILED! => changed=true 
+    output: |-
+      wmic : Invalid Verb Switch.
+      At line:3 char:12
+      +     $res = wmic process call create '"C:\monitoring\bin\tm-agent.exe" ...
+      +            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+          + CategoryInfo          : NotSpecified: (Invalid Verb Switch.:String) [], RemoteException
+          + FullyQualifiedErrorId : NativeCommandError
+  ```
+* **Akar Masalah (Root Cause):**
+  * Pada playbook Ansible Windows awal, pembuatan proses latar belakang menggunakan utilitas baris perintah `wmic process call create '"<bin>" --flag1 "val1"'`.
+  * Parser CLI `wmic.exe` bawaan **Windows Server 2019** (PowerShell 5.1) mengalami *token misinterpretation*. Parser menganggap setiap parameter yang diawali tanda hubung ganda (`--spool-dir`, `--config.file`, `--storage.tsdb.path`) sebagai *verb switch* milik WMIC itu sendiri, bukan argumen untuk aplikasi target, sehingga melemparkan galat `Invalid Verb Switch.`.
+  * Pada **Windows Server 2022**, `wmic.exe` telah berstatus *Deprecated Feature on Demand*.
+* **Solusi Kanonikal:**
+  Mengeliminasi ketergantungan pada biner CLI `wmic.exe` dan bermigrasi ke antarmuka pemrograman PowerShell COM/WMI internal: `([wmiclass]'Win32_Process').Create(...)`.
+
+#### 4. Investigasi Masalah 4: Terminasi Daemon oleh Windows Job Object (`KILL_ON_JOB_CLOSE`)
+* **Pesan Error Log Lapangan:**
+  ```text
+  fatal: [aws-ec2-win-01]: FAILED! => changed=true 
+    output: |-
+      tm-agent daemon is not running
+      At line:5 char:5
+      +     throw "tm-agent daemon is not running"
+      +     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+          + CategoryInfo          : OperationStopped: (tm-agent daemon is not running:String) [], RuntimeException
+          + FullyQualifiedErrorId : tm-agent daemon is not running
+  ```
+  serta kegagalan pada verifikasi kesiapan stack:
+  ```text
+  Windows Stack Readiness Failure: Mailpit: Unable to connect to the remote server; Prometheus: Unable to connect to the remote server; Alertmanager: Unable to connect to the remote server
+  ```
+* **Akar Masalah (Root Cause):**
+  * Ketika perintah `Start-Process -FilePath ... -PassThru` digunakan untuk menggantikan WMIC, proses memang berhasil dibuat secara lokal di dalam sesi PowerShell yang sedang berjalan.
+  * Namun, saat Ansible mengeksekusi modul `ansible.windows.win_powershell` melalui koneksi OpenSSH (`ansible_connection=ssh`), Windows OpenSSH menempatkan sesi runner ke dalam **Windows Job Object**.
+  * Berdasarkan arsitektur subsistem OpenSSH Windows, Job Object tersebut memiliki konfigurasi batas `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`.
+  * Begitu task Ansible selesai dan koneksi SSH ditutup (*closed session*), kernel Windows **secara instan mematikan (*terminate*) seluruh proses anak** yang berada di dalam Job Object tersebut (`tm-agent.exe`, `prometheus.exe`, `alertmanager.exe`, `mailpit.exe`). Akibatnya, pada task verifikasi berikutnya, seluruh proses telah mati.
+* **Solusi Kanonikal:**
+  Menggunakan pemanggilan antarmuka COM/WMI:
+  ```powershell
+  $res = ([wmiclass]'Win32_Process').Create('C:\monitoring\bin\tm-agent.exe --spool-dir C:\monitoring\spool')
+  ```
+  Pemanggilan `Win32_Process.Create` didelegasikan ke WMI Provider Service host (`WmiPrvSE.exe` / `svchost.exe`). Proses anak yang dihasilkan berjalan di bawah konteks subsistem WMI, **terlepas sepenuhnya (*fully detached*) dari pohon Windows Job Object milik sesi SSH**, sehingga daemon tetap hidup dan persisten tanpa terpengaruh oleh pembukaan/penutupan sesi SSH Ansible.
+
+#### 5. Investigasi Masalah 5: Crash Alertmanager pada Target Fresh akibat Ketiadaan Truststore Path Windows
+* **Pesan Error Log Lapangan:**
+  ```text
+  time=2026-09-15T16:13:54.164Z level=ERROR source=coordinator.go:131 msg="one or more config change subscribers failed to apply new config" component=configuration file=C:\monitoring\config\alertmanager\alertmanager.yml err="unable to read CA cert: unable to read file C:\monitoring\config\alertmanager\run\secrets\tomcat-monitoring\diagnostic-service-ca.crt: open C:\monitoring\config\alertmanager\run\secrets\tomcat-monitoring\diagnostic-service-ca.crt: The system cannot find the path specified."
+  ```
+* **Akar Masalah (Root Cause):**
+  * Berkas konfigurasi `config/alertmanager/alertmanager.yml` mendefinisikan rute webhook dengan path truststore `/run/secrets/tomcat-monitoring/diagnostic-service-ca.crt`.
+  * Pada Linux, direktori ini dimount secara native melalui kontainer volume.
+  * Pada Windows, biner native Go `alertmanager.exe` yang dijalankan dari direktori konfigurasi `C:\monitoring\config\alertmanager` me-resolve path non-drive letter (`/run/secrets/...`) secara relatif menjadi: `C:\monitoring\config\alertmanager\run\secrets\tomcat-monitoring\...`.
+  * Pada pengujian awal di Server 2022, folder ini sempat terbentuk secara ad-hoc saat pengujian manual. Namun pada target *fresh install* Windows Server 2019, folder beserta material sertifikat tersebut belum ada di disk, menyebabkan `alertmanager.exe` langsung mengalami crash saat inisialisasi konfigurasi.
+* **Solusi Kanonikal:**
+  Menambahkan task deklaratif di `roles/role_host_prep/tasks/secrets_and_tls.yml` yang secara otomatis membuat direktori `C:\monitoring\config\alertmanager\run\secrets\tomcat-monitoring` dan memetakan cert CA serta bearer token secara idempoten di seluruh target Windows:
+  ```yaml
+  - name: Ensure Alertmanager secrets directory exists on Windows host
+    ansible.windows.win_file:
+      path: "C:\\monitoring\\config\\alertmanager\\run\\secrets\\tomcat-monitoring"
+      state: directory
+    when: ansible_os_family == "Windows"
+
+  - name: Materialize Alertmanager webhook URL and bearer token on Windows host
+    ansible.windows.win_copy:
+      content: "{{ item.content }}"
+      dest: "C:\\monitoring\\config\\alertmanager\\run\\secrets\\tomcat-monitoring\\{{ item.name }}"
+    loop:
+      - { name: "diagnostic-service-webhook-url", content: "https://127.0.0.1:8443/api/v1/alerts/alertmanager\r\n" }
+      - { name: "diagnostic-service-bearer-token", content: "{{ host_prep_default_bearer_token }}\r\n" }
+    when: ansible_os_family == "Windows"
+
+  - name: Materialize Alertmanager CA certificate on Windows host
+    ansible.windows.win_copy:
+      src: "{{ host_prep_tls_dir }}\\server.crt"
+      dest: "C:\\monitoring\\config\\alertmanager\\run\\secrets\\tomcat-monitoring\\diagnostic-service-ca.crt"
+      remote_src: true
+    when: ansible_os_family == "Windows"
+  ```
+
+#### 6. Investigasi Masalah 6: Bug Evaluasi Ternary Jinja2 pada Delegasi Stat Biner Kontroler
+* **Pesan Error Log Lapangan:**
+  Task transfer biner Windows selalu berstatus `skipped`, sehingga biner `tm-agent.exe` dan `tmctl.exe` tidak terpasang di target Windows:
+  ```text
+  TASK [role_event_collector : Install tm-agent.exe binary on Windows host] ******
+  skipping: [aws-ec2-win-01]
+  ```
+* **Akar Masalah (Root Cause):**
+  Task pengecekan biner pada *control node* (`delegate_to: localhost`) menggunakan ekspresi Jinja2 ternary berkondisi `path: "{{ (str) if (str) is file else ... }}"`. Di dalam Ansible Jinja2 templating engine, test `is file` tidak melakukan pembacaan *filesystem* secara langsung pada host, melainkan selalu mengembalikan nilai `false`. Akibatnya, path beralih ke fallback path yang salah, menghasilkan `stat.exists = false`, dan melewati task `win_copy`.
+* **Solusi Kanonikal:**
+  Menstandarkan target pengecekan biner secara langsung dan deterministik:
+  ```yaml
+  - name: Check existence of tm-agent.exe binary on control node
+    ansible.builtin.stat:
+      path: "{{ playbook_dir }}/../tm-agent/bin/windows_amd64/tm-agent.exe"
+    register: tm_agent_win_src_stat
+    delegate_to: localhost
+    when: ansible_os_family == "Windows"
+  ```
+
+#### 7. Investigasi Masalah 7: Kernel Windows Containers & Driver Filter Storage `windowsfilter` (Docker Engine)
+* **Pesan Error Log Lapangan:**
+  Eksekusi daemon Docker gagal dengan error initialization storage driver:
+  ```text
+  fatal: failed to start daemon: error initializing graphdriver: driver not supported: windowsfilter
+  ```
+* **Akar Masalah (Root Cause):**
+  * Di **Windows Server 2022**, driver kernel container termuat secara dinamis.
+  * Di **Windows Server 2019**, modul `DockerMsftProvider` telah usang (*deprecated*). Pengaktifan fitur Windows `Containers` (`Install-WindowsFeature -Name Containers`) **mewajibkan restart komputer (*reboot*) fisik/instans (`Restart-Computer -Force`)** agar filter driver kernel `windowsfilter.sys` diaktifkan ke dalam Windows Subsystem kernel tree. Tanpa reboot, `dockerd.exe` gagal menginisialisasi layer storage container.
+* **Solusi Kanonikal:**
+  Memasukkan langkah restart terisolasi pada skrip bootstrap instalasi Docker Windows Server 2019 sebelum mendaftarkan service `dockerd --register-service`.
+
+---
+
+### 2.2 Jaminan Kompatibilitas Lintas Generasi Windows Server (Backward & Forward Compatibility Guarantee)
 
 Seluruh perbaikan yang dirancang untuk mengatasi anomali pada Windows Server 2019 telah dievaluasi secara ketat terhadap arsitektur Windows Server 2022 untuk menjamin interoperabilitas penuh (*zero regressions*):
 
