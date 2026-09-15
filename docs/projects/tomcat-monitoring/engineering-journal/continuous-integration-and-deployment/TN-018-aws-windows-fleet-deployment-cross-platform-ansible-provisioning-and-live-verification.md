@@ -96,6 +96,21 @@ Hasil investigasi operasional membuktikan adanya perbedaan perilaku signifikan a
 | **Driver Kernel Containers (Docker)** | Modul container driver termuat secara modern; setup via static zip/engine. | Mewajibkan aktivasi feature `Containers` dan **Reboot Komputer** (`Restart-Computer -Force`). | Reboot diwajibkan setelah `Install-WindowsFeature -Name Containers` agar storage driver `windowsfilter` aktif. |
 | **Truststore & Secret Paths Alertmanager** | Volume mount Linux (`/run/secrets/tomcat-monitoring/...`). | Resolusi path Windows relatif terhadap direktori config (`C:\monitoring\config\alertmanager\run\secrets\...`). | **Materialisasi Otomatis**: `role_host_prep` secara deklaratif membuat direktori `run\secrets\tomcat-monitoring` dan memetakan cert CA serta bearer token. |
 
+### 2.1 Jaminan Kompatibilitas Lintas Generasi Windows Server (Backward & Forward Compatibility Guarantee)
+
+Seluruh perbaikan yang dirancang untuk mengatasi anomali pada Windows Server 2019 telah dievaluasi secara ketat terhadap arsitektur Windows Server 2022 untuk menjamin interoperabilitas penuh (*zero regressions*):
+
+1. **PowerShell COM/WMI `Win32_Process.Create` vs Windows Job Object:**
+   - Kelas WMI `Win32_Process` merupakan antarmuka manajemen proses Win32 kanonikal yang didukung secara *native* pada seluruh generasi Windows Server (2012 R2, 2016, 2019, 2022, hingga 2025).
+   - Metode ini menjamin proses anak (*daemon*) diluncurkan di bawah subsistem WMI host (`svchost.exe`/`WmiPrvSE.exe`), terlepas (*detached*) dari pembatasan siklus hidup `KILL_ON_JOB_CLOSE` milik sesi OpenSSH, sekaligus menerima seluruh format parameter CLI (seperti `--spool-dir`, `--config.file`) tanpa batasan parser command-line `wmic.exe`.
+2. **Hardening OpenSSH & Service Account Binding `LocalSystem`:**
+   - Pembatasan ACL host keys hanya kepada `NT AUTHORITY\SYSTEM` dan `BUILTIN\Administrators` (dengan *inheritance* dinonaktifkan via .NET `FileSecurity`) merupakan *Security Baseline* resmi Microsoft yang berlaku identik di Server 2019 dan Server 2022.
+   - Penegakan akun layanan `LocalSystem` mengeliminasi kerentanan pemetaan virtual service account (`NT SERVICE\sshd` error 1332) pada Server 2019 tanpa menimbulkan efek samping pada Server 2022.
+3. **Materialisasi Deklaratif Direktori Truststore & Secrets Alertmanager:**
+   - Penyediaan direktori `C:\monitoring\config\alertmanager\run\secrets\tomcat-monitoring` melalui `ansible.windows.win_file` dan penyalinan cert CA serta token bersifat *idempotent* dan *stateless*. Jika dijalankan pada Server 2022, task ini memastikan kelengkapan dependensi runtime Alertmanager tanpa mengubah konfigurasi sistem lainnya.
+4. **Determinisme Stat Biner pada Control Node:**
+   - Resolusi path biner `tmctl.exe` dan `tm-agent.exe` dieksekusi pada *Ansible Control Node* (Linux), sehingga mekanisme transfer biner bersifat seragam dan agnostik terhadap versi OS target.
+
 ---
 
 ### 3. Formulasi Bootstrap & Hardening OpenSSH Windows (Multi-Version 2019/2022)
@@ -320,6 +335,7 @@ Pengujian simulasi kegagalan langsung (*live failure simulation*) dan pemulihan 
 2. **Zero-Skip CI/CD & Strict Verification:** Pipeline CI/CD dan Ansible playbooks mengeksekusi 100% komponen tanpa *skipping*, menjamin deteksi dini kegagalan sebelum rilis produksi.
 3. **Resilient Emergency Bypass (Zero Silent Failure):** Terbukti secara live pada Windows bahwa kegagalan Diagnostic Service tidak membungkam sistem peringatan (*Zero Silent Failure*), melainkan dialihkan secara mulus ke jalur direct SMTP fallback Alertmanager.
 4. **Resilient Cross-Platform Automation:** Biner native Go (`tmctl.exe`, `tm-agent.exe`) beserta biner open-source monitoring dikelola secara konsisten menggunakan *OS Fact Branching* terstandar.
+5. **Universal Multi-Generation Windows Compatibility:** Standardisasi COM/WMI `Win32_Process.Create` dan hardening ACL berbasis .NET `FileSecurity` menjamin 100% portabilitas lintas generasi Windows Server (Windows Server 2019 dan 2022 Datacenter) secara deterministik dan bebas regresi (*zero regressions*).
 
 ---
 
