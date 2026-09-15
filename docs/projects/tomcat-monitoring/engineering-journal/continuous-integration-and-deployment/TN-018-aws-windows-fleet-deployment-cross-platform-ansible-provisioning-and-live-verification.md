@@ -196,7 +196,7 @@ Verifikasi Node: aws-ec2-win-01 (Administrator@54.173.79.150) [OS: WINDOWS]
 4. Memeriksa status proses daemons / services...
 ✔ tm-agent daemon: ACTIVE (PID: 896)
 ✔ Prometheus TSDB: ACTIVE (PID: 3436)
-✔ Alertmanager: ACTIVE (PID: 1516)
+✔ Alertmanager: ACTIVE (PID: 1132)
 ✔ Mailpit SMTP/UI: ACTIVE (PID: 1868)
 5. Memeriksa endpoint HTTP/REST readiness...
 ✔ Prometheus HTTP :9090 (/-/ready): OK
@@ -209,19 +209,85 @@ Verifikasi Node: aws-ec2-win-01 (Administrator@54.173.79.150) [OS: WINDOWS]
 ✔ Verifikasi host aws-ec2-win-01 (54.173.79.150) SELESAI DENGAN SUKSES 100%.
 ```
 
+### 4. Eksekusi Live Incident Testing: Diagnostic Service Down (Emergency Bypass) & Service Recovery
+
+Pengujian simulasi kegagalan langsung (*live failure simulation*) dan pemulihan (*recovery verification*) dieksekusi secara end-to-end pada host target Windows Server 2022 (`aws-ec2-win-01` / `54.173.79.150`):
+
+#### A. Skenario 1: Simulasi Kegagalan Diagnostic Service (Emergency Fallback Bypass)
+
+1. **Simulasi Service Down:** Proses Diagnostic Service dihentikan pada target Windows (`Stop-Process -Name diagnostic-service -Force`).
+2. **Deteksi Target Down pada Prometheus:** Prometheus mendeteksi target `http://127.0.0.1:8443/health` berstatus `down`:
+   ```json
+   {
+     "discoveredLabels": {
+       "__address__": "127.0.0.1:8443",
+       "__metrics_path__": "/health",
+       "__scheme__": "http",
+       "job": "tomcat-diagnostic-service"
+     },
+     "scrapeUrl": "http://127.0.0.1:8443/health",
+     "health": "down",
+     "lastError": "Get \"http://127.0.0.1:8443/health\": dial tcp 127.0.0.1:8443: connectex: No connection could be made because the target machine actively refused it."
+   }
+   ```
+3. **Evaluasi Rule `DiagnosticServiceDown`:** Prometheus mengevaluasi aturan `up{job="tomcat-diagnostic-service"} == 0` (for: 1m), status bertransisi dari `pending` ke `firing`:
+   ```json
+   {
+     "state": "firing",
+     "name": "DiagnosticServiceDown",
+     "query": "up{job=\"tomcat-diagnostic-service\"} == 0",
+     "labels": {
+       "alertname": "DiagnosticServiceDown",
+       "check": "service-availability",
+       "job": "tomcat-diagnostic-service",
+       "service": "diagnostic-service",
+       "severity": "critical",
+       "environment": "aws-staging",
+       "host": "aws-ec2-win-01",
+       "instance": "127.0.0.1:8443"
+     },
+     "annotations": {
+       "summary": "Diagnostic Service target unreachable",
+       "description": "Prometheus cannot scrape Diagnostic Service target 127.0.0.1:8443; automated incident notification pipeline is disconnected. Operator must inspect the service container immediately."
+     }
+   }
+   ```
+4. **Aktivasi Emergency Bypass Route di Alertmanager:** Alertmanager mencocokkan matcher `alertname = "DiagnosticServiceDown"` dan mengaktifkan receiver `direct-email-emergency`, membypass webhook dan mengirimkan email insiden darurat langsung ke Mailpit via SMTP port `:1025`.
+5. **Validasi Mailpit Inbox:** Email alert darurat `[FIRING]` berhasil diterima di Mailpit (`http://54.173.79.150:8025/api/v1/messages`):
+   - **ID Pesan:** `dSwQJYFgNu9zcbd6UZfpAA`
+   - **From:** `alertmanager@tomcat-monitoring.invalid`
+   - **To:** `operator@tomcat-monitoring.invalid`
+   - **Subject:** `[FIRING] [EMERGENCY] Diagnostic Service Alert: DiagnosticServiceDown (Instance: 127.0.0.1:8443)`
+   - **Template:** HTML Banner Merah (`🚨 [ EMERGENCY ] Direct Alert Notification`, Severity: `CRITICAL`), rincian teknis insiden, serta instruksi tindakan langsung operator.
+
+#### B. Skenario 2: Pemulihan Layanan (Service Recovery)
+
+1. **Pemulihan Service:** Diagnostic Service dijalankan kembali (`C:\monitoring\bin\diagnostic-service.exe --port=8443`), merespons endpoint `GET http://127.0.0.1:8443/health` dengan HTTP 200 OK.
+2. **Deteksi Recovery pada Prometheus:** Target `tomcat-diagnostic-service` kembali berstatus `health: "up"`, alert `DiagnosticServiceDown` berubah menjadi `inactive/resolved`.
+3. **Pengiriman Notifikasi `[RESOLVED]`:** Alertmanager memproses resolusi dan mengirimkan email pemulihan langsung via SMTP ke Mailpit:
+   - **ID Pesan:** `Jb868226Jqwjf2jpEMbLTP`
+   - **From:** `alertmanager@tomcat-monitoring.invalid`
+   - **To:** `operator@tomcat-monitoring.invalid`
+   - **Subject:** `[RESOLVED] [EMERGENCY] Diagnostic Service Alert: DiagnosticServiceDown (Instance: 127.0.0.1:8443)`
+   - **Template:** HTML Banner Hijau (`[ RESOLVED ] Diagnostic Service Restored`, Severity: `normal`), ringkasan `Service Recovery Summary` ("Diagnostic Service target 127.0.0.1:8443 has recovered and is scrapeable again. Automated incident notification pipeline is restored."), dan penutupan status darurat.
+
 ---
 
 ## 📈 Impact & Architectural Benefits
 
 1. **Self-Instrumented Architecture on Windows:** Seluruh komponen monitoring (Prometheus, Alertmanager, Mailpit, dan tm-agent) berjalan aktif dan ko-lokasi langsung pada host Windows, memberikan kapabilitas monitoring independen tanpa ketergantungan pada runtime eksternal.
 2. **Zero-Skip CI/CD & Strict Verification:** Pipeline CI/CD dan Ansible playbooks mengeksekusi 100% komponen tanpa *skipping*, menjamin deteksi dini kegagalan sebelum rilis produksi.
-3. **Resilient Cross-Platform Automation:** Biner native Go (`tmctl.exe`, `tm-agent.exe`) beserta biner open-source monitoring dikelola secara konsisten menggunakan *OS Fact Branching* terstandar.
+3. **Resilient Emergency Bypass (Zero Silent Failure):** Terbukti secara live pada Windows bahwa kegagalan Diagnostic Service tidak membungkam sistem peringatan (*Zero Silent Failure*), melainkan dialihkan secara mulus ke jalur direct SMTP fallback Alertmanager.
+4. **Resilient Cross-Platform Automation:** Biner native Go (`tmctl.exe`, `tm-agent.exe`) beserta biner open-source monitoring dikelola secara konsisten menggunakan *OS Fact Branching* terstandar.
 
 ---
 
 ## 🔗 Related Documentation
 
+- [TM-ADR-0016 — Designate Diagnostic Service as Canonical Incident Notification Authority](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0016.md)
+- [TM-ADR-0020 — Adopt Zero Silent Failure Policy and Direct Emergency SMTP Bypass Routing](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0020.md)
 - [TM-ADR-0027 — Adopt Container Engine Socket API and Unified Cross-Platform Tooling for Multi-OS Orchestration](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0027.md)
 - [TM-ADR-0028 — Adopt Cloud-Native Remote Fleet Orchestration, Multi-Engine Socket API Portability, and AWS Free Tier Integration](../../../../adr/tomcat-monitoring/adr-records/TM-ADR-0028.md)
+- [TN-001 — Implement and Verify Diagnostic Service Self-Monitoring and Direct Emergency SMTP Routing](../monitoring-platform-integration/TN-001-implement-and-verify-diagnostic-service-self-monitoring-and-emergency-smtp-routing.md)
 - [TN-017 — AWS Free Tier Linux Cloud Fleet Deployment and Verification](TN-017-aws-free-tier-cloud-remote-fleet-deployment-cross-environment-ansible-provisioning-and-cloud-cicd-live-verification.md)
 - [Follow-up Tasks Register](../../follow-up-tasks.md)
