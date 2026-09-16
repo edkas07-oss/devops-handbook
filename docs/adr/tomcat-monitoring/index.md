@@ -40,6 +40,8 @@ konsekuensi keputusan arsitektur yang memengaruhi implementasi project.
 | [**TM-ADR-0026**](adr-records/TM-ADR-0026.md){: target="_blank" } | Adopt Adaptive Multi-Engine Container Runtime Portability for Podman and Docker Environments | Tomcat Monitoring | Container Runtime, Platform Portability, and Infrastructure Abstraction Architecture | Accepted | 2026-09-13 |
 | [**TM-ADR-0027**](adr-records/TM-ADR-0027.md){: target="_blank" } | Adopt Container Engine Socket API and Unified Cross-Platform Tooling for Multi-OS Orchestration | Tomcat Monitoring | Platform Portability, Multi-OS Orchestration, and Tooling Architecture | Accepted | 2026-09-13 |
 | [**TM-ADR-0028**](adr-records/TM-ADR-0028.md){: target="_blank" } | Adopt Cloud-Native Remote Fleet Orchestration, Multi-Engine Socket API Portability, and AWS Free Tier Integration | Tomcat Monitoring | Hybrid-Cloud Infrastructure, Deployment Orchestration, and Fleet Portability | Accepted | 2026-09-14 |
+| [**TM-ADR-0029**](adr-records/TM-ADR-0029.md){: target="_blank" } | Adopt Multi-OS Flexible Deployment Topology, Granular Component Selection, and TLS Lifecycle Governance | Tomcat Monitoring | Deployment Topology, CI/CD Parametrization, Multi-OS Portability, and Security Lifecycle | Accepted | 2026-09-16 |
+
 
 ## 🗺️ ADR Mapping
 

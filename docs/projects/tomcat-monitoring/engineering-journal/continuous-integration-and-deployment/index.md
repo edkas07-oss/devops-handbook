@@ -92,6 +92,9 @@ flowchart TD
 | **Multi-OS CI Pipelines & Stack Release Hub** | Implementasi declarative Jenkinsfile multi-OS untuk `tmctl` dan `tm-agent`, penegakan 4-Stage Quality Gates, SHA-256 fingerprint hashing, artifact archiving, dan integrasi Stack CD Hub (TASK-TM-030) | Completed (TN-015) |
 | **Live Multi-OS CI/CD Pipeline Verification & Architecture Consolidation** | Eksekusi dan verifikasi live pipeline multi-OS pada Jenkins Controller untuk `tmctl`, `tm-agent`, dan `tomcat-monitoring`, pengarsipan artefak biner lintas platform & manifest SHA-256, deployment zero-touch Ansible & `tmctl`, serta konsolidasi arsitektur global (TASK-TM-031) | Completed (TN-016) |
 | **AWS Free Tier Cloud Remote Fleet Deployment & Live CI/CD Verification** | Penyediaan target node AWS EC2 (AL2023 t2.micro), 2GB swap hardening, integrasi Jenkins credentials `aws-ec2-ssh-key`, refaktorisasi Ansible cross-environment, eksekusi build #6, dan live incident simulation (TASK-TM-032) | Completed (TN-017) |
+| **AWS Windows Fleet Deployment & Cross-Platform Provisioning** | Penyediaan target node AWS EC2 Windows Server 2022 (`aws-ec2-win-01`), integrasi OpenSSH, inventori `aws-staging.ini`, dan provisioning cross-platform Ansible (TASK-TM-033) | Completed (TN-018) |
+| **Windows Container Migration (Docker NanoServer) & Multi-OS Refactoring** | Migrasi stack monitoring Windows ke Docker NanoServer process isolation, packaging Node.js diagnostic-service, modularisasi roles/docker multi-OS, dan verifikasi live (TASK-TM-034) | Completed (TN-019) |
+| **Flexible Deployment Topology, Granular Component Selection & TLS Governance** | Implementasi profil topologi deployment (all_in_one, monitoring_node, central_hub, custom), parameter Jenkinsfile, TLS auto-renewal (<30d), custom SSL, pembersihan direktori target, dan penyempurnaan template alert (TASK-TM-035) | Completed (TN-020) |
 
 ---
 
@@ -164,6 +167,19 @@ flowchart TD
 17. **[TN-017 — AWS Free Tier Linux (Amazon Linux 2023) Cloud Remote Fleet Deployment, Cross-Environment Ansible Provisioning, and Cloud CI/CD Live Verification](TN-017-aws-free-tier-cloud-remote-fleet-deployment-cross-environment-ansible-provisioning-and-cloud-cicd-live-verification.md)**
 
     Mendokumentasikan penyediaan dan penguatan target node Amazon EC2 (AWS Free Tier t2.micro, Amazon Linux 2023, 2GB swap, Docker Engine, systemd linger), pendaftaran kredensial `aws-ec2-ssh-key` pada Jenkins Controller, refaktorisasi Ansible roles untuk Docker named volume UID fix & dynamic SSH injection, eksekusi otomatis pipeline CD Build #6 (`DEPLOY_ENV=aws-staging`) dengan status 100% SUCCESS, serta pembuktian simulasi insiden *live* `TomcatDown` dari penangkapan soket `tm-agent` hingga penerimaan Laporan 7-Seksi SRE di Mailpit via Postfix STARTTLS Relay di AWS Cloud (`TASK-TM-032`).
+
+18. **[TN-018 — AWS Windows Fleet Deployment, Cross-Platform Ansible Provisioning, and Live Verification](TN-018-aws-windows-fleet-deployment-cross-platform-ansible-provisioning-and-live-verification.md)**
+
+    Mendokumentasikan penyediaan target node AWS EC2 Windows Server 2022 (`aws-ec2-win-01`), integrasi OpenSSH host, inventori Ansible multi-OS (`inventories/aws-staging.ini`), provisioning lintas platform Ansible, dan eksekusi live verification (`TASK-TM-033`).
+
+19. **[TN-019 — Windows Container Migration (Docker NanoServer), All-in-One Diagnostic Packaging, Multi-OS Modular Refactoring, and AWS Live Verification](TN-019-windows-container-migration-nanoserver-packaging-and-multi-os-modular-refactoring.md)**
+
+    Mendokumentasikan migrasi menyeluruh Windows background executable ke Docker NanoServer process isolation containers (`prometheus`, `alertmanager`, `mailpit`, `tm-agent`, `diagnostic-service`), penyalinan netapi32.dll helper, modularisasi Ansible roles & Dockerfile multi-OS (`tasks/linux/` vs `tasks/windows/`), serta verifikasi live di AWS EC2 (`TASK-TM-034`).
+
+20. **[TN-020 — Implement Flexible Multi-OS Deployment Topology, Granular Component Selection, and TLS Lifecycle Governance](TN-020-implement-flexible-multi-os-deployment-topology-and-ssl-lifecycle-governance.md)**
+
+    Mendokumentasikan implementasi profil topologi deployment (`all_in_one`, `monitoring_node`, `central_hub`, `custom`), penambahan parameter Jenkinsfile & variabel konfigurasi, mekanisme auto-renewal TLS (<30d) dan custom SSL, pembersihan direktori Windows target (hanya `.ps1` dan `tmctl.exe`), serta penyempurnaan template alert (`DiagnosticServiceDown` dan `TomcatDown`) (`TASK-TM-035`).
+
 
 ---
 
