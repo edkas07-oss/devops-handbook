@@ -95,6 +95,9 @@ flowchart TD
 | **AWS Windows Fleet Deployment & Cross-Platform Provisioning** | Penyediaan target node AWS EC2 Windows Server 2022 (`aws-ec2-win-01`), integrasi OpenSSH, inventori `aws-staging.ini`, dan provisioning cross-platform Ansible (TASK-TM-033) | Completed (TN-018) |
 | **Windows Container Migration (Docker NanoServer) & Multi-OS Refactoring** | Migrasi stack monitoring Windows ke Docker NanoServer process isolation, packaging Node.js diagnostic-service, modularisasi roles/docker multi-OS, dan verifikasi live (TASK-TM-034) | Completed (TN-019) |
 | **Flexible Deployment Topology, Granular Component Selection & TLS Governance** | Implementasi profil topologi deployment (all_in_one, monitoring_node, central_hub, custom), parameter Jenkinsfile, TLS auto-renewal (<30d), custom SSL, pembersihan direktori target, dan penyempurnaan template alert (TASK-TM-035) | Completed (TN-020) |
+| **Host Monitoring Directory Architecture & Logging Model** | Arsitektur direktori host persisten dan standarisasi pure container logging (stdout/stderr) via docker logs (TASK-TM-035) | Completed (TN-021) |
+| **Host Monitoring Standardization to `tm_data`** | Standarisasi direktori host monitoring ke `tm_data` (/opt/tm_data & C:\tm_data) di seluruh inventori dan roles (TASK-TM-035) | Completed (TN-022) |
+| **Automated Windows Docker Provisioning & Dual-Container Mode** | Otomatisasi provisi Docker Engine Windows Server via remote SSH, penanganan reboot storage driver windowsfilter, System32 placement, dan Dual-Container Mode (TASK-TM-036) | Completed (TN-023) |
 
 ---
 
@@ -179,6 +182,18 @@ flowchart TD
 20. **[TN-020 — Implement Flexible Multi-OS Deployment Topology, Granular Component Selection, and TLS Lifecycle Governance](TN-020-implement-flexible-multi-os-deployment-topology-and-ssl-lifecycle-governance.md)**
 
     Mendokumentasikan implementasi profil topologi deployment (`all_in_one`, `monitoring_node`, `central_hub`, `custom`), penambahan parameter Jenkinsfile & variabel konfigurasi, mekanisme auto-renewal TLS (<30d) dan custom SSL, pembersihan direktori Windows target (hanya `.ps1` dan `tmctl.exe`), serta penyempurnaan template alert (`DiagnosticServiceDown` dan `TomcatDown`) (`TASK-TM-035`).
+
+21. **[TN-021 — Host Monitoring Directory Architecture Persistence and Container Logging Model](TN-021-host-monitoring-directory-architecture-persistence-and-container-logging-model.md)**
+
+    Mendokumentasikan arsitektur direktori host monitoring dan standarisasi model pencatatan log kontainer murni (*pure container logging*) melalui `docker logs`.
+
+22. **[TN-022 — Standardize Host Monitoring Directory to TM Data and Pure Container Logging](TN-022-standardize-host-monitoring-directory-to-tm-data-and-pure-container-logging.md)**
+
+    Mendokumentasikan standarisasi direktori host monitoring ke `tm_data` (`/opt/tm_data` pada Linux dan `C:\tm_data` pada Windows) di seluruh inventori dan konfigurasi.
+
+23. **[TN-023 — Automated Windows Docker Engine Provisioning, Remote SSH Bootstrap, and Dual-Container Mode Orchestration](TN-023-automated-windows-docker-engine-provisioning-remote-bootstrap-and-dual-container-orchestration.md)**
+
+    Mendokumentasikan otomatisasi provisi Docker Engine pada Windows Server (2019/2022) dari jarak jauh via SSH (`install-docker-windows-remote.sh` dan `install-docker-windows.ps1`), penanganan otomatis reboot storage driver `windowsfilter` (Exit Code 3010), penempatan biner ke `C:\Windows\System32\` untuk eksekusi non-interaktif instan, serta integrasi Dual-Container Mode (`WINDOWS_CONTAINER_MODE`) pada Ansible playbooks dan Jenkins CD Pipeline (`TASK-TM-036`).
 
 
 ---
