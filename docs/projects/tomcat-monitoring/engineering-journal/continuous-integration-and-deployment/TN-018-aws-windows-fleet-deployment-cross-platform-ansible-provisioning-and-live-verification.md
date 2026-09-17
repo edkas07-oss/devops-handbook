@@ -292,8 +292,9 @@ sc.exe config sshd depend= ssh-agent
 Set-Service -Name ssh-agent -StartupType Automatic
 Start-Service ssh-agent
 
-# 3. Tetapkan Default Shell ke PowerShell
-New-ItemProperty -Path "HKLM:\SOFTWARE\OpenSSH" -Name DefaultShell -Value "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -PropertyType String -Force
+# 3. Tetapkan Default Shell ke PowerShell via reg.exe (Bebas Line-Wrap)
+$ps = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+reg add HKLM\SOFTWARE\OpenSSH /v DefaultShell /d $ps /f
 
 # 4. Generate Host Keys & Terapkan ACL Ketat (Fix UNPROTECTED PRIVATE KEY FILE)
 & "C:\Windows\System32\OpenSSH\ssh-keygen.exe" -A
@@ -321,7 +322,9 @@ Set-Content "C:\ProgramData\ssh\sshd_config" @(
 
 # 6. Injeksi Kunci Publik RSA Bebas Wrapping via Base64 Decode
 $bytes = [Convert]::FromBase64String("<BASE64_ENCODED_PUBLIC_KEY>")
+if (-not (Test-Path "$env:USERPROFILE\.ssh")) { New-Item -Path "$env:USERPROFILE\.ssh" -ItemType Directory | Out-Null }
 [System.IO.File]::WriteAllBytes("$env:USERPROFILE\.ssh\authorized_keys", $bytes)
+[System.IO.File]::WriteAllBytes("C:\ProgramData\ssh\administrators_authorized_keys", $bytes)
 
 # 7. Buka Firewall Port 22 dan Aktifkan Service
 Get-NetFirewallRule -DisplayName "*OpenSSH*" | Enable-NetFirewallRule -ErrorAction SilentlyContinue
