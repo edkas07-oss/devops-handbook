@@ -3,20 +3,23 @@
 | Property | Value |
 | --- | --- |
 | **ADR ID** | TM-ADR-0030 |
-| **Title** | Standardize Host Monitoring Directory to `tm_data`, Parameterized Drive Mounting, and Pure Container Logging Model |
+| **Title** | Standardize Host Workspace Directory to `tm-home`, Two-Tier Storage Architecture, Parameterized Drive Mounting, and Pure Container Logging Model |
 | **Project** | Tomcat Monitoring |
 | **Section** | Host Storage Architecture, Directory Namespace, Drive Parametrization, and Container Observability |
 | **Status** | Accepted |
-| **Date** | 2026-09-16 |
+| **Date** | 2026-09-16 (Updated: 2026-09-17) |
 
 ---
 
 ## 🔍 Overview
 
 Dokumen keputusan arsitektur (*Architecture Decision Record* — ADR) ini menetapkan:
-1. **Standarisasi Penamaan Direktori Monitoring (*Explicit Monitoring Namespace*)**: Mengubah direktori generik `monitoring` (misal `C:\monitoring` atau `/opt/monitoring`) menjadi **`tm_data`** (`C:\tm_data` pada Windows, `/tm_data` pada Linux) sebagai *Single Source of Truth* persistensi monitoring.
-2. **Penentuan Drive / Mount Volume Berbasis Konfigurasi (*Configurable Base Storage & Drives*)**: Seluruh path instalasi dan bind-mount volume dapat dikonfigurasi secara fleksibel melalui Ansible Inventory (`.ini`), file `CONFIG` (`TM_ROOT_DIR`), maupun Jenkins parameter, mendukung lingkungan server dengan partisi disk terpisah (misal drive `D:\`, `E:\` di Windows atau `/data/` di Linux).
-3. **Penerapan Model Pure Container Logging (*12-Factor App Factor XI*)**: Mengeliminasi direktori file log statis di host (`logs/`), mengalihkan seluruh pencatatan log komponen secara murni ke aliran `stdout`/`stderr` kontainer yang dapat diinspeksi langsung via perintah `docker logs` / `podman logs`.
+1. **Standarisasi Penamaan Direktori Host (*Explicit Home Namespace*)**: Mengubah direktori generik `monitoring` menjadi **`tm-home`** (`C:\tm-home` pada Windows, `/opt/tm-home` pada Linux) yang mengadopsi standar ekosistem Tomcat/Java (`CATALINA_HOME`, `JAVA_HOME`) sebagai *Host Control Plane & Tooling Workspace*.
+2. **Pemisahan Dua Mekanisme Penyimpanan (*Two-Tier Storage Architecture*)**:
+   - **Tier 1 (Container Engine Named Volumes)**: Penyimpanan stateful database ber-I/O tinggi (Prometheus TSDB, SQLite `diagnostic.db`, Alertmanager state, Mailpit DB) dikelola langsung oleh Docker/Podman engine volume subsystem untuk menjamin performa native, integritas database, dan isolasi permissions.
+   - **Tier 2 (Host Home Directory `tm-home`)**: Direktori di sisi host untuk menyimpan konfigurasi deklaratif (`config/`), kredensial runtime (`secrets/`), sertifikat TLS (`tls/`), buffer event inter-process (`spool/`), serta biner CLI operator (`bin/` dan `scripts/`).
+3. **Penentuan Drive / Mount Storage Berbasis Konfigurasi (*Configurable Base Storage & Drives*)**: Seluruh path instalasi dan bind-mount volume dapat dikonfigurasi secara fleksibel melalui Ansible Inventory (`.ini`), file `CONFIG` (`TM_ROOT_DIR`), maupun Jenkins parameter, mendukung lingkungan server dengan partisi disk terpisah (misal drive `D:\tm-home` di Windows atau `/opt/tm-home` di Linux).
+4. **Penerapan Model Pure Container Logging (*12-Factor App Factor XI*)**: Mengeliminasi direktori file log statis di host (`logs/`), mengalihkan seluruh pencatatan log komponen secara murni ke aliran `stdout`/`stderr` kontainer yang diinspeksi langsung via perintah `docker logs` / `podman logs`.
 
 ---
 
@@ -25,63 +28,82 @@ Dokumen keputusan arsitektur (*Architecture Decision Record* — ADR) ini meneta
 Pada iterasi awal, platform Tomcat Monitoring menggunakan nama direktori generik `C:\monitoring` di Windows dan path `$project_root` di Linux. Evaluasi arsitektur mengidentifikasi beberapa pertimbangan desain:
 
 1. **Ambiguitas Penamaan Direktori Host:**
-   Nama generik `monitoring` berpotensi ambigu jika pada server target terdapat stack monitoring lain atau aplikasi pihak ketiga. Penggunaan prefiks yang jelas seperti `tm_data` (*Tomcat Monitoring Data*) memberikan identitas eksplisit dan keteraturan tata kelola file host.
-2. **Kebutuhan Partisi Storage Fleksibel (Multi-Drive Production):**
-   Di lingkungan produksi enterprise, disk sistem operasi (`C:\` di Windows atau `/` di Linux) biasanya berkapasitas terbatas. Data time-series TSDB Prometheus, database triase insiden SQLite, dan spool buffer sering kali dialokasikan ke partisi/volume storage khusus (misal drive `D:\tm_data` atau `/data/tm_data`). Diperlukan parameter konfigurasi deklaratif yang memungkinkan pemilihan drive/mount point secara dinamis.
-3. **Pembersihan Direktori Log Statis (*Log Redundancy Elimination*):**
-   Karena seluruh komponen monitoring (`prometheus`, `alertmanager`, `mailpit`, `diagnostic-service`, `tm-agent`) berjalan di dalam kontainer terisolasi, pembuatan direktori `logs/` di host tidak diperlukan dan memicu kebingungan bagi operator SRE. Sesuai standar Cloud-Native, log komponen harus mengalir ke subsystem container logging standard.
+   Nama generik `monitoring` atau nama yang berakhiran `_data` berpotensi ambigu karena memberi kesan bahwa seluruh database mentah ada di folder tersebut. Penamaan **`tm-home`** memberikan identitas yang sangat jelas sesuai konvensi Tomcat/Java, menandakan bahwa direktori ini adalah rumah instalasi dan kontrol host.
+2. **Pembedaan Mekanisme Penyimpanan Database vs Host Configuration:**
+   Database time-series (TSDB WAL) dan SQLite memerlukan performa disk I/O yang konsisten serta penanganan file lock yang aman dari friksi filesystem cross-platform. Penggunaan *Named Volumes* pada kontainer engine menyelesaikan masalah ini, sementara file konfigurasi YAML dan sertifikat tetap nyaman diakses dan diedit di host melalui *Bind-Mounts* pada `tm-home`.
+3. **Kebutuhan Partisi Storage Fleksibel (Multi-Drive Production):**
+   Di lingkungan produksi enterprise, disk sistem operasi (`C:\` di Windows atau `/` di Linux) biasanya berkapasitas terbatas. Seluruh path `tm-home` dapat dialokasikan ke partisi khusus (misal drive `D:\tm-home` atau `/data/tm-home`) secara deklaratif.
+4. **Pembersihan Direktori Log Statis (*Log Redundancy Elimination*):**
+   Karena seluruh komponen monitoring berjalan di dalam kontainer terisolasi, pembuatan direktori `logs/` di host tidak diperlukan. Log komponen mengalir ke subsystem container logging standar.
 
 ---
 
 ## 💡 Arsitektur & Keputusan Desain
 
-### 1. Struktur Hierarki Direktori `tm_data`
+### 1. Model Dua Mekanisme Penyimpanan (*Two-Tier Storage Model*)
 
 ```text
-tm_data/                                        # Root Directory (C:\tm_data atau /tm_data)
+                                  STORAGE ARCHITECTURE
+   ┌──────────────────────────────────────────────────────────────────────────────────┐
+   │ 1. Container Engine Named Volumes (Managed by Docker / Podman Engine Subsystem)   │
+   │    • prometheus_data      ──► TSDB chunks & WAL (:9090)                          │
+   │    • diagnostic_data      ──► SQLite diagnostic.db state machine (:8443)         │
+   │    • alertmanager_data    ──► Silences & notification logs (:9093)               │
+   │    • mailpit_data         ──► Mailbox SQLite database (:8025)                    │
+   │    • tomcat_logs          ──► Catalina runtime logs intake (optional volume)     │
+   ├──────────────────────────────────────────────────────────────────────────────────┤
+   │ 2. Host Home Directory (tm-home: C:\tm-home or /opt/tm-home)                      │
+   │    • config/    [ro bind] ──► Declarative YAML/JSON configurations               │
+   │    • secrets/   [ro bind] ──► 0400 Bearer tokens & credentials                   │
+   │    • tls/       [ro bind] ──► X.509 Certificates & private keys                  │
+   │    • spool/     [rw bind] ──► 0700 Event snapshots from tm-agent                 │
+   │    • bin/     [host-only] ──► Operator CLI binaries (tmctl, tm-agent)            │
+   │    • scripts/ [host-only] ──► Operational verification suites                    │
+   └──────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2. Struktur Hierarki Direktori `tm-home`
+
+```text
+tm-home/                                        # Root Home Directory (C:\tm-home atau /opt/tm-home)
 ├── config/                                     # [Bind-Mount ro] Konfigurasi deklaratif komponen
 │   ├── alertmanager/                           # alertmanager.yml & secrets
 │   ├── diagnostic-service/                     # application.json, targets.json
 │   ├── prometheus/                             # prometheus.yml, alert rules
 │   ├── rules/                                  # Rulepack catalog JSON
 │   └── telegraf/                               # health-check.conf
-├── data/                                       # [Bind-Mount rw] Persistent state databases
-│   ├── prometheus/                             # TSDB time-series chunks & WAL
-│   ├── alertmanager/                           # Active silences & nflog
-│   ├── mailpit/                                # mailpit.db SQLite store
-│   └── diagnostic/                             # diagnostic.db SQLite store
-├── spool/                                      # [Bind-Mount rw] Inter-container event buffer
+├── spool/                                      # [Bind-Mount rw] Inter-container event buffer (0700)
 ├── tls/ & jmx-tls/                             # [Bind-Mount ro] Sertifikat TLS & Keystore
-├── secrets/                                    # [Bind-Mount ro] Kredensial & bearer tokens
+├── secrets/                                    # [Bind-Mount ro] Kredensial & bearer tokens (0400)
 ├── bin/                                        # [Host Only] Tooling CLI operator (tmctl.exe / tmctl)
 └── scripts/                                    # [Host Only] Skrip operasional verifikasi pipeline
 ```
 
-### 2. Parameterisasi Path & Drive Konfigurasi
+### 3. Parameterisasi Path & Drive Konfigurasi
 
 Variabel root dikelola secara modular pada berbagai tingkatan:
 
 1. **Ansible Inventory (`inventories/aws-staging.ini`)**:
    ```ini
    [windows_nodes:vars]
-   tm_root_dir=C:\tm_data
-   project_root=C:\tm_data
-   spool_dir=C:\tm_data\spool
-   secrets_dir=C:\tm_data\secrets
-   tls_dir=C:\tm_data\tls
-   jmx_tls_dir=C:\tm_data\jmx-tls
-   tmctl_bin=C:\tm_data\bin\tmctl.exe
+   tm_root_dir=C:\tm-home
+   project_root=C:\tm-home
+   spool_dir=C:\tm-home\spool
+   secrets_dir=C:\tm-home\secrets
+   tls_dir=C:\tm-home\tls
+   jmx_tls_dir=C:\tm-home\jmx-tls
+   tmctl_bin=C:\tm-home\bin\tmctl.exe
    ```
 2. **File Konfigurasi Standalone (`CONFIG`)**:
    ```bash
-   TM_ROOT_DIR="C:\tm_data"    # Mendukung D:\tm_data, /tm_data, /data/tm_data
+   TM_ROOT_DIR="C:\tm-home"    # Mendukung D:\tm-home, /opt/tm-home, dll.
    ```
 3. **Jenkins Parameterized Build (`Jenkinsfile`)**:
    Parameter `TM_ROOT_DIR` yang menginjeksi `-e custom_tm_root_dir` secara dinamis ke Ansible.
 
-### 3. Pure Container Logging Engine Model
+### 4. Pure Container Logging Engine Model
 
-* Tidak ada folder `logs/` yang dibuat di dalam `tm_data`.
+* Tidak ada folder `logs/` yang dibuat di dalam `tm-home`.
 * Seluruh log komponen diakses oleh SRE melalui perintah standar:
   ```powershell
   docker logs diagnostic-service --tail 50
@@ -96,12 +118,13 @@ Variabel root dikelola secara modular pada berbagai tingkatan:
 ## ⚖️ Konsekuensi & Dampak (*Consequences*)
 
 ### Positif:
-1. **Identitas Jelas & Rapi**: Nama `tm_data` secara eksplisit menandakan ruang data khusus Tomcat Monitoring.
-2. **Portabilitas Storage Total**: Memungkinkan operator memindahkan data stack monitoring ke disk `D:\`, `E:\`, atau mount point `/data` hanya dengan mengubah satu baris konfigurasi.
-3. **Observabilitas Efisien**: Menghilangkan redundansi file log lokal dan memanfaatkan subsystem logging bawaan engine kontainer.
+1. **Identitas Jelas & Familiar**: Nama `tm-home` mengadopsi standar Java/Tomcat, memperjelas fungsinya sebagai ruang kontrol & tooling di host.
+2. **Integritas & Kecepatan Database**: Penggunaan Named Volumes untuk TSDB dan SQLite memisahkan beban I/O database dari filesystem host.
+3. **Portabilitas Storage Total**: Memungkinkan operator memindahkan direktori kerja monitoring ke disk `D:\`, `E:\`, atau mount point `/opt/` hanya dengan mengubah variabel konfigurasi.
+4. **Observabilitas Efisien**: Menghilangkan redundansi file log lokal dan memanfaatkan subsystem logging bawaan engine kontainer.
 
 ### Penyesuaian:
-1. Seluruh task Ansible, path bind-mount kontainer, file konfigurasi JSON, dan script verifikasi diselaraskan untuk mengacu ke variabel `{{ project_root }}` / `C:\tm_data`.
+1. Seluruh task Ansible, path bind-mount kontainer, file konfigurasi JSON, dan script verifikasi diselaraskan untuk mengacu ke variabel `{{ project_root }}` / `C:\tm-home` / `/opt/tm-home`.
 
 ---
 
@@ -109,4 +132,4 @@ Variabel root dikelola secara modular pada berbagai tingkatan:
 
 * **Status**: Accepted & Implemented
 * **Approved by**: Eddy Wiyatno
-* **Date**: 2026-09-16
+* **Date**: 2026-09-16 (Revised: 2026-09-17)
