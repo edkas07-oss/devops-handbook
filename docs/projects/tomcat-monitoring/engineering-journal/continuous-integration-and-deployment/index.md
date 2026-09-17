@@ -98,6 +98,7 @@ flowchart TD
 | **Host Monitoring Directory Architecture & Logging Model** | Arsitektur direktori host persisten dan standarisasi pure container logging (stdout/stderr) via docker logs (TASK-TM-035) | Completed (TN-021) |
 | **Host Monitoring Standardization to `tm_data`** | Standarisasi direktori host monitoring ke `tm_data` (/opt/tm_data & C:\tm_data) di seluruh inventori dan roles (TASK-TM-035) | Completed (TN-022) |
 | **Automated Windows Docker Provisioning & Dual-Container Mode** | Otomatisasi provisi Docker Engine Windows Server via remote SSH, penanganan reboot storage driver windowsfilter, System32 placement, dan Dual-Container Mode (TASK-TM-036) | Completed (TN-023) |
+| **Automated Linux Host Bootstrap & Runtime Provisioning** | Otomatisasi provisi host Linux via remote SSH, inspeksi runtime aktif, default instalasi Podman dengan fallback otomatis ke Docker (AL2023), swap hardening, dan lingering (TASK-TM-037) | Completed (TN-024) |
 
 ---
 
@@ -194,6 +195,10 @@ flowchart TD
 23. **[TN-023 — Automated Windows Docker Engine Provisioning, Remote SSH Bootstrap, and Dual-Container Mode Orchestration](TN-023-automated-windows-docker-engine-provisioning-remote-bootstrap-and-dual-container-orchestration.md)**
 
     Mendokumentasikan otomatisasi provisi Docker Engine pada Windows Server (2019/2022) dari jarak jauh via SSH (`install-docker-windows-remote.sh` dan `install-docker-windows.ps1`), penanganan otomatis reboot storage driver `windowsfilter` (Exit Code 3010), penempatan biner ke `C:\Windows\System32\` untuk eksekusi non-interaktif instan, serta integrasi Dual-Container Mode (`WINDOWS_CONTAINER_MODE`) pada Ansible playbooks dan Jenkins CD Pipeline (`TASK-TM-036`).
+
+24. **[TN-024 — Automated Linux Host Bootstrap, Container Runtime Detection, and Multi-Distro Provisioning](TN-024-automated-linux-host-bootstrap-container-runtime-detection-and-multi-distro-provisioning.md)**
+
+    Mendokumentasikan otomatisasi provisi node Linux dari jarak jauh via SSH (`bootstrap-linux-host-remote.sh` dan `bootstrap-linux-host.sh`), inspeksi runtime yang ada (skip install jika sehat), instalasi default Podman dengan fallback otomatis ke Docker Engine pada Amazon Linux 2023, penguatan 2GB Swap memory, serta aktivasi systemd user session lingering (`TASK-TM-037`).
 
 
 ---
