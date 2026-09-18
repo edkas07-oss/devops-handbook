@@ -15,7 +15,7 @@
 
 Dokumen keputusan arsitektur (*Architecture Decision Record* — ADR) ini menetapkan standarisasi:
 1. **Penerapan Hak Akses NTFS Berbasis *Least Privilege* pada Named Volume Windows Containers**: Menolak penggunaan jalan pintas yang tidak aman (seperti menjalankan kontainer sebagai `ContainerAdministrator` atau memberikan hak `FullControl` pada host), dan secara formal mewajibkan pemberian hak akses granular **`Modify` (`(OI)(CI)M`)** kepada grup **`BUILTIN\Users`** khusus pada subdirektori data volume aplikasi (`C:\ProgramData\docker\volumes\<name>\_data`) dan host bind mounts (`spool/`, `data/`).
-2. **Penyelarasan Namespace Direktori Konfigurasi Kontainer Windows (`tm-home`)**: Menyelesaikan inkonsistensi path antara *Docker volume bind mount* dan *Dockerfile ENTRYPOINT* pada komponen `diagnostic-service` dan `tm-agent` di Windows NanoServer agar sepenuhnya patuh terhadap standarisasi [TM-ADR-0030](TM-ADR-0030.md) (`C:\tm-home\config\diagnostic-service\application.json` dan `C:\tm-home\spool`).
+2. **Penyelarasan Namespace Direktori Konfigurasi Kontainer Windows (`tm_home`)**: Menyelesaikan inkonsistensi path antara *Docker volume bind mount* dan *Dockerfile ENTRYPOINT* pada komponen `diagnostic-service` dan `tm-agent` di Windows NanoServer agar sepenuhnya patuh terhadap standarisasi [TM-ADR-0030](TM-ADR-0030.md) (`C:\tm_home\config\diagnostic-service\application.json` dan `C:\tm_home\spool`).
 3. **Integritas Toolchain & Dependensi Runtime SQLite Bawaan (*Built-in `node:sqlite` Standard Library*)**: Mengukuhkan arsitektur *zero external C++ native build dependencies* pada `tomcat-diagnostic-service` yang mengandalkan modul bawaan resmi Node.js standard library (`node:sqlite` / `DatabaseSync`), serta menetapkan standar *base image* kontainer minimal **Node.js 22 LTS (v22.14.0+ / `node:22-alpine`)** di seluruh platform Linux dan Windows.
 
 ---
@@ -37,7 +37,7 @@ Pada siklus pengujian multi-node *Zero-Touch Deployment* ke target host cloud (A
 ### 2. Inkonsistensi Path Konfigurasi Diagnostic Service pada Windows NanoServer
 * **Gejala:** Kontainer `diagnostic-service` pada host Windows gagal memulai dengan status `Restarting` dan log `Tomcat Diagnostic Service startup failed: ConfigurationError`.
 * **Akar Masalah:**
-  Playbook Ansible me-mount volume konfigurasi ke `C:\tm-home\config\diagnostic-service` sesuai [TM-ADR-0030](TM-ADR-0030.md), namun berkas Dockerfile legacy `docker/windows/diagnostic-service.Dockerfile` mengeksekusi instruksi `ENTRYPOINT` yang mencari berkas di `C:/monitoring/config/diagnostic-service/application.json`.
+  Playbook Ansible me-mount volume konfigurasi ke `C:\tm_home\config\diagnostic-service` sesuai [TM-ADR-0030](TM-ADR-0030.md), namun berkas Dockerfile legacy `docker/windows/diagnostic-service.Dockerfile` mengeksekusi instruksi `ENTRYPOINT` yang mencari berkas di `C:/monitoring/config/diagnostic-service/application.json`.
 
 ### 3. Ketidaksesuaian Versi Base Image Node.js Linux terhadap Modul `node:sqlite`
 * **Gejala:** Service `diagnostic-service` di Linux mengalami kegagalan readiness probe pada `https://127.0.0.1:8443/health`.
@@ -63,7 +63,7 @@ Pada siklus pengujian multi-node *Zero-Touch Deployment* ke target host cloud (A
  │ Windows NanoServer Containers (Execution Context: ContainerUser / Non-Admin)            │
  │   • Mailpit Container            ──► Writes to C:\data\mailpit.db           [SUCCESS]   │
  │   • Prometheus Container         ──► Writes to C:\prometheus\data\queries   [SUCCESS]   │
- │   • Diagnostic Service Container ──► Reads C:\tm-home\config\application.json [SUCCESS]│
+ │   • Diagnostic Service Container ──► Reads C:\tm_home\config\application.json [SUCCESS]│
  └─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -76,9 +76,9 @@ Pada siklus pengujian multi-node *Zero-Touch Deployment* ke target host cloud (A
    * **Propagation:** `None`
    * **Akses Administratif:** Tidak memberikan hak `FullControl` (mencegah modifikasi *ownership* dan *security descriptors*).
 
-### 2. Standarisasi Universal Path Namespace `C:\tm-home`
-1. Seluruh Dockerfile Windows (`diagnostic-service.Dockerfile`, `tm-agent.Dockerfile`) distandarisasi untuk menggunakan prefix `C:\tm-home` sebagai path kerja dan volume mount point.
-2. Berkas konfigurasi runtime Windows [`application.win.json`](../../../../tomcat-monitoring/config/diagnostic-service/application.win.json) mendefinisikan lokasi sertifikat, secret bearer token, target allowlist, dan spool secara eksplisit di bawah namespace `C:\tm-home\`.
+### 2. Standarisasi Universal Path Namespace `C:\tm_home`
+1. Seluruh Dockerfile Windows (`diagnostic-service.Dockerfile`, `tm-agent.Dockerfile`) distandarisasi untuk menggunakan prefix `C:\tm_home` sebagai path kerja dan volume mount point.
+2. Berkas konfigurasi runtime Windows [`application.win.json`](../../../../tomcat-monitoring/config/diagnostic-service/application.win.json) mendefinisikan lokasi sertifikat, secret bearer token, target allowlist, dan spool secara eksplisit di bawah namespace `C:\tm_home\`.
 
 ### 3. Standarisasi Engine & Image Node.js 22 LTS
 1. Standarisasi *Linux Base Image* pada [`docker/linux/diagnostic-service.Dockerfile`](../../../../tomcat-monitoring/docker/linux/diagnostic-service.Dockerfile) menggunakan `node:22-alpine`.
