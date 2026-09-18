@@ -45,6 +45,10 @@ project yang didokumentasikan.
   memerlukan record; jangan menyalin raw conversation sebagai dokumentasi.
 - Jika fakta, keputusan, atau current state belum dapat dibuktikan, tandai
   ketidakpastian dan jangan menuliskannya sebagai hasil terverifikasi.
+- **Strict Security Principles:** Dilarang merekomendasikan atau mendokumentasikan
+  jalan pintas yang melanggar prinsip keamanan (misal: elevating privileges ke root /
+  ContainerAdministrator tanpa least-privilege, mematikan verifikasi TLS secara
+  sembarangan, atau memberikan hak akses wildcard `0777` / `FullControl`).
 
 ## Approval Requirements
 
