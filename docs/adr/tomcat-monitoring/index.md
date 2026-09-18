@@ -75,6 +75,9 @@ konsekuensi keputusan arsitektur yang memengaruhi implementasi project.
 | TM-ADR-0026 | Adopt Adaptive Multi-Engine Container Runtime Portability for Podman and Docker Environments | CI/CD TN-008, TASK-TM-020 |
 | TM-ADR-0027 | Adopt Container Engine Socket API and Unified Cross-Platform Tooling for Multi-OS Orchestration | CI/CD TN-011, TASK-TM-026 |
 | TM-ADR-0028 | Adopt Cloud-Native Remote Fleet Orchestration, Multi-Engine Socket API Portability, and AWS Free Tier Integration | CI/CD TN-017, TASK-TM-032 |
+| TM-ADR-0029 | Adopt Multi-OS Flexible Deployment Topology, Granular Component Selection, and TLS Lifecycle Governance | CI/CD TN-018 |
+| TM-ADR-0030 | Standardize Host Workspace Directory to `tm-home`, Two-Tier Storage Architecture, Parameterized Drive Mounting, and Pure Container Logging Model | CI/CD TN-019 |
+| TM-ADR-0031 | Granular Least-Privilege NTFS Volume Access Controls for Non-Admin Windows Containers, Configuration Namespace Alignment, and Diagnostic Runtime Integrity | CI/CD TN-020 |
 
 
 ## 📝 Summary
