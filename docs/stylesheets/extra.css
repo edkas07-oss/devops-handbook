@@ -2,41 +2,44 @@
    Full Width Container Override
    ================================================== */
 
-/* Memperluas area utama dokumen */
+/* Memperluas area utama dokumen secara proporsional */
 .md-grid {
-  max-width: 100% !important;
-  margin-left: 1rem;
-  margin-right: 1rem;
-}
-
-/* Memperluas area konten teks/tabel di bagian tengah */
-.md-content {
-  max-width: 100% !important;
+  max-width: 88rem; /* 1408px - lebar dan nyaman dibaca */
 }
 
 /* ==================================================
    Sidebar Navigation & TOC Styling
+   WAJIB dibungkus Media Query agar tidak merusak
+   tampilan Tablet & Mobile (mencegah sidebar overlap teks)
    ================================================== */
 
-/* Adjust width sidebar kiri & kanan */
-.md-sidebar--primary,
-.md-sidebar--secondary {
-  width: 16rem !important; /* Default ~12.1rem, tingkatkan sesuai kebutuhan (misal: 14rem - 16rem) */
+/* Sidebar Kiri (Navigasi Dokumen) - Hanya aktif di Desktop (>= 76.25em / 1220px) */
+@media screen and (min-width: 76.25em) {
+  .md-sidebar--primary {
+    width: 14rem;
+  }
 }
 
-/* Memperbesar ukuran font navigasi kiri */
+/* Sidebar Kanan (Table of Contents) - Aktif mulai breakpoint Laptop (>= 60em / 960px) */
+@media screen and (min-width: 60em) {
+  .md-sidebar--secondary {
+    width: 14rem;
+  }
+}
+
+/* Ukuran font navigasi kiri */
 .md-nav--primary .md-nav__link {
-  font-size: 0.75rem !important; /* Default ~0.65rem - 0.7rem */
+  font-size: 0.75rem;
 }
 
-/* Memperbesar ukuran font Table of Contents (kanan) */
+/* Ukuran font Table of Contents (kanan) */
 .md-sidebar--secondary .md-nav__link {
-  font-size: 0.75rem !important;
+  font-size: 0.75rem;
 }
 
-/* Memperbesar judul "Table of contents" di atas sidebar kanan */
+/* Judul "Table of contents" di atas sidebar kanan */
 .md-nav--secondary .md-nav__title {
-  font-size: 0.85rem !important;
+  font-size: 0.85rem;
   font-weight: bold;
 }
 
@@ -47,14 +50,14 @@
 .md-typeset .md-typeset__scrollwrap,
 .md-typeset .md-typeset__table {
   display: block;
-  width: 100% !important;
+  width: 100%;
   margin: 1em 0;
 }
 
 .md-typeset table:not([class]) {
-  display: table !important;
-  width: 100% !important;
-  table-layout: auto !important;
+  display: table;
+  width: 100%;
+  table-layout: auto;
 }
 
 .md-typeset table:not([class]) th,
@@ -85,22 +88,22 @@
 /* Kolom 1: Rapat pas isi */
 .md-typeset table:not([class]) tr th:first-child:nth-last-child(3),
 .md-typeset table:not([class]) tr td:first-child:nth-last-child(3) {
-  white-space: nowrap !important;
-  width: auto !important;
+  white-space: nowrap;
+  width: auto;
 }
 
-/* Kolom 2: Rapat pas isi (Menghilangkan gap renggang jika isinya pendek) */
+/* Kolom 2: Rapat pas isi */
 .md-typeset table:not([class]) tr th:nth-child(2):nth-last-child(2),
 .md-typeset table:not([class]) tr td:nth-child(2):nth-last-child(2) {
-  white-space: wrap !important;
-  width: auto !important;
+  white-space: normal;
+  width: auto;
 }
 
 /* Kolom 3: Menyerap seluruh sisa ruang ke kanan */
 .md-typeset table:not([class]) tr th:last-child:nth-child(3),
 .md-typeset table:not([class]) tr td:last-child:nth-child(3) {
-  white-space: normal !important;
-  width: auto !important;
+  white-space: normal;
+  width: auto;
 }
 
 /* --------------------------------------------------
@@ -109,27 +112,27 @@
 /* Kolom 1: Rapat pas isi */
 .md-typeset table:not([class]) tr th:first-child:nth-last-child(4),
 .md-typeset table:not([class]) tr td:first-child:nth-last-child(4) {
-  white-space: nowrap !important;
-  width: 10% !important;
+  white-space: nowrap;
+  width: 10%;
 }
 
 /* Kolom 2: Rapat pas isi */
 .md-typeset table:not([class]) tr th:nth-child(2):nth-last-child(3),
 .md-typeset table:not([class]) tr td:nth-child(2):nth-last-child(3) {
-  white-space: wrap !important;
-  width: auto !important;
+  white-space: normal;
+  width: auto;
 }
 
 /* Kolom 3: Rapat pas isi */
 .md-typeset table:not([class]) tr th:nth-child(3):nth-last-child(2),
 .md-typeset table:not([class]) tr td:nth-child(3):nth-last-child(2) {
-  white-space: wrap !important;
-  width: auto !important;
+  white-space: normal;
+  width: auto;
 }
 
 /* Kolom 4: Menyerap seluruh sisa ruang ke kanan */
 .md-typeset table:not([class]) tr th:last-child:nth-child(4),
 .md-typeset table:not([class]) tr td:last-child:nth-child(4) {
-  white-space: wrap !important;
-  width: auto !important;
+  white-space: normal;
+  width: auto;
 }
