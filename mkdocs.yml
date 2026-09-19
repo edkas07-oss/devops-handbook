@@ -1,6 +1,7 @@
 site_name: DevOps Engineering Handbook
 site_description: Personal Knowledge Base for DevOps Engineering
 site_author: Eddy Wiyatno
+site_url: https://edkas07-oss.github.io/devops-handbook/
 
 theme:
   name: material
