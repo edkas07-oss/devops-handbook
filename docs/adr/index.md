@@ -61,6 +61,7 @@ Setiap project memiliki **Project Identifier** yang digunakan sebagai namespace 
 | **NI** | NGINX Image | Generic runtime container untuk menyajikan static website. |
 | **LA** | Linux Automation | Project automation untuk monitoring dan operational workflow pada sistem Linux. |
 | **TM** | Tomcat Monitoring | Monitoring ringan untuk Apache Tomcat dengan embedded runtime instrumentation. |
+| **TC** | Apache Tomcat Enterprise | Containerization, Hardening, VA, Update Management, dan Multi-Platform Operator CLI. |
 
 Contoh penggunaan identifier:
 
@@ -72,6 +73,7 @@ US-ADR-0001
 NI-ADR-0001
 LA-ADR-0001
 TM-ADR-0001
+TC-ADR-0001
 ```
 
 !!! note "ADR Scope"
@@ -79,7 +81,7 @@ TM-ADR-0001
     Prefix ADR ditentukan berdasarkan **ruang lingkup keputusan**, bukan berdasarkan lokasi dokumen.
 
     - **HB-ADR** digunakan untuk keputusan yang berlaku pada seluruh DevOps Engineering Handbook.
-    - **Project ADR** digunakan untuk keputusan yang hanya berlaku pada project tertentu, seperti **PS-ADR**, **UB-ADR**, **US-ADR**, **NI-ADR**, **LA-ADR**, atau **TM-ADR**.
+    - **Project ADR** digunakan untuk keputusan yang hanya berlaku pada project tertentu, seperti **PS-ADR**, **UB-ADR**, **US-ADR**, **NI-ADR**, **LA-ADR**, **TM-ADR**, atau **TC-ADR**.
 
     Sebagai contoh:
 
