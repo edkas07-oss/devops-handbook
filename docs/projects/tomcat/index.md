@@ -73,12 +73,12 @@ flowchart TD
 
 | No | Pilar Solusi | Status | Fokus Implementasi |
 | :---: | :--- | :---: | :--- |
-| **1** | **Modernisasi Container** | `Completed` | OCI Containerfile standar, Podman rootless runtime, mount volume modular. |
-| **2** | **Self-Instrumented Monitoring** | `Completed` | Prometheus JMX Exporter agent, metrik JVM/thread/memory, Telegraf synthetic check. |
-| **3** | **Security Hardening** | `In Progress` | Non-root UID 1001, read-only FS, penghapusan shutdown port (-1), security headers. |
-| **4** | **Vulnerability Assessment** | `Planned` | CI/CD Trivy scanning, OWASP dependency checking, audit kepatuhan CIS Benchmark. |
-| **5** | **Manajemen Update** | `Planned` | Blue-Green deployment pipeline, graceful shutdown SIGTERM handling, rollback instan. |
-| **6** | **Manajemen SSL Certificate** | `Planned` | Otomasi ACME/Let's Encrypt, native OpenSSL PEM connector, JMX hot-reload tanpa restart. |
+| **1** | **Modernisasi Container** | `Completed` | Greenfield OCI Containerfile standar, Podman rootless runtime, mount volume modular (`conf:ro`, `webapps`, `logs`). |
+| **2** | **Self-Instrumented Monitoring** | `Completed` | Prometheus JMX Exporter agent, metrik JVM/thread/memory, Telegraf synthetic check, metrics parser di `tcctl`. |
+| **3** | **Security Hardening** | `Completed` | Non-root UID 1001, read-only rootfs, noexec tmpfs, shutdown port (-1), 9 aturan CIS Benchmark audit offline di `tcctl`. |
+| **4** | **Vulnerability Assessment** | `Completed` | CI/CD Trivy container scanning, automated quality gate thresholding (HIGH/CRITICAL), compliance reports di `tcctl va`. |
+| **5** | **Manajemen Update** | `Completed` | Blue-Green zero-downtime deployment, automated health probe loop, instant rollback orchestration di `tcctl deploy`. |
+| **6** | **Manajemen SSL Certificate** | `Completed` | Native OpenSSL PEM connector (port 8443), self-signed generator, CSR creation, key matching setup, dan expiry check di `tcctl ssl`. |
 
 ---
 

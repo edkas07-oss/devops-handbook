@@ -36,12 +36,16 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 
     Mencatat konsolidasi tooling ke repositori baru `tcctl` berbasis Go, kompilasi multi-platform (Linux & Windows), adopsi Engine Runtime Named Volumes (Opsi 2), dan validasi audit offline pada host volume mountpoint saat kontainer off.
 
+3. **[TN-003 — Implement SSL/TLS Management and Native PEM Connector](TN-003-implement-ssl-tls-management-and-native-pem-connector.md)**
+
+    Mencatat penyelesaian Pilar 6: konfigurasi konektor HTTPS native OpenSSL PEM di port 8443, pembuatan sertifikat self-signed, pembuatan CSR untuk CA eksternal, validasi kesesuaian kunci, dan quality gate kadaluarsa pada `tcctl`.
+
 !!! note "Phase Output"
 
     Fase ini menghasilkan dua repositori operasional yang telah terverifikasi penuh:
     
-    - Repositori `tomcat` (`/home/eddywiyatno/git/tomcat`): Berisi hardened `Containerfile`, baseline XML configurations di `conf/`, sample webapps, serta skrip otomasi CIS audit, Trivy scan, dan Blue-Green deployment.
-    - Repositori `tcctl` (`/home/eddywiyatno/git/tcctl`): Berisi codebase Go 1.23+ dan biner mandiri `bin/tcctl` (Linux) serta `bin/tcctl.exe` (Windows) dengan kapabilitas hardening audit, volume management, vulnerability quality gate, synthetic health monitoring, dan deployment orchestration.
+    - Repositori `tomcat` (`/home/eddywiyatno/git/tomcat`): Berisi hardened `Containerfile`, baseline XML configurations di `conf/` (termasuk native PEM connector 8443), sample webapps, serta skrip otomasi CIS audit, Trivy scan, dan Blue-Green deployment.
+    - Repositori `tcctl` (`/home/eddywiyatno/git/tcctl`): Berisi codebase Go 1.23+ dan biner mandiri `bin/tcctl` (Linux) serta `bin/tcctl.exe` (Windows) dengan kapabilitas hardening audit, volume management, vulnerability quality gate, synthetic health monitoring, SSL/TLS lifecycle (self-signed, CSR, setup, check), dan deployment orchestration.
 
 ## 🎓 Lessons Learned
 
@@ -49,6 +53,7 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 - **Rootless Podman Tmpfs Permissions**: Pada Rootless Podman, flag tmpfs tidak boleh menggunakan opsi numerik host `uid=1001`, melainkan harus menggunakan `mode=1777` agar proses unprivileged di dalam user namespace kontainer memiliki akses tulis yang valid.
 - **Offline Storage Inspectability**: Engine Runtime Named Volumes (`podman volume`) menyimpan data fisik di path host (`~/.local/share/containers/storage/volumes/<vol>/_data/`), memungkinkan audit statis dan seeding konfigurasi dilakukan tanpa perlu menjalankan kontainer terlebih dahulu.
 - **Cross-Platform Go Portability**: Mengembangkan operator CLI dengan Go menghasilkan biner statis mandiri (`CGO_ENABLED=0`) tanpa dependensi interpreter eksternal, menghilangkan beban sinkronisasi antara Bash dan PowerShell.
+- **Native OpenSSL PEM vs Keystore**: Tomcat 9.0+ mendukung file PEM standar secara natif melalui Apache Tomcat Native library, mengeliminasi kebutuhan konversi Java Keystore (`.jks`) dan mempermudah otomasi dengan Corporate CA atau Let's Encrypt.
 
 ## 🔗 Related Documentation
 
@@ -57,7 +62,9 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 - [Security Hardening Guide](../../security-hardening/index.md)
 - [Vulnerability Assessment Guide](../../vulnerability-assessment/index.md)
 - [Update Management Guide](../../update-management/index.md)
+- [SSL Management Guide](../../ssl-management/index.md)
 - [TC-ADR-0001: Greenfield Container Architecture](../../../../adr/tomcat/adr-records/TC-ADR-0001.md)
 - [TC-ADR-0002: CIS XML Hardening Quality Gate](../../../../adr/tomcat/adr-records/TC-ADR-0002.md)
 - [TC-ADR-0003: Engine Runtime Named Volumes](../../../../adr/tomcat/adr-records/TC-ADR-0003.md)
 - [TC-ADR-0004: Unified Go Operator tcctl](../../../../adr/tomcat/adr-records/TC-ADR-0004.md)
+- [TC-ADR-0005: Native OpenSSL PEM Connector & TLS Lifecycle](../../../../adr/tomcat/adr-records/TC-ADR-0005.md)
