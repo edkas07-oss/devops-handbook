@@ -26,6 +26,7 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 | **Vulnerability Assessment** | Trivy security scanner integration (`scripts/scan.sh` & `tcctl va scan`) dengan automated quality gate. | Completed |
 | **Observability & Deploy** | Synthetic HTTP health probe, JMX metrics parser, dan Blue-Green deployment runner dengan automated rollback. | Completed |
 | **Pure GitOps & Staging Rollout** | Arsitektur Pure Pull-Based GitOps (`tcctl gitops sync` via `systemd --user timer`), refactoring temporary staging container rollout (`<name>-staging` -> `<name>`), dan Day-1 self-destructing bootstrap key. | Design Accepted |
+| **Windows Container & Operator Testing** | Provisioning Windows Containers di Windows Server 2022 AWS, instalasi Docker CE v27.5.1, Tooling PATH, dan validasi live `tcctl.exe` (Audit CIS & SSL check). | Completed |
 
 ## 📄 Technical Notes
 
@@ -45,6 +46,10 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 
     Mencatat blueprint arsitektur transformasi operasional enterprise: refactoring zero-downtime rollout dengan temporary staging container (`<name>-staging`) dan promosi nama kanonikal (`<name>`), adopsi Pure Pull-Based GitOps otonom via `systemd --user timer`, dan penyelesaian paradoks Day-1 brownfield bootstrapping melalui self-destructing ephemeral SSH access.
 
+5. **[TN-005 — Verify Windows Container Runtime Provisioning and tcctl Operator Testing](TN-005-verify-windows-container-runtime-provisioning-and-tcctl-operator-testing.md)**
+
+    Mencatat sinkronisasi repositori berdampingan ke host Windows Server 2022 di AWS EC2, provisioning runtime Windows Containers dan Docker Engine Community Edition, penyediaan tooling Git dan Trivy, pengujian live biner `tcctl.exe` (Audit CIS dan SSL volume check), serta rekapitulasi analisis akar masalah dan solusi teknis selama instalasi.
+
 !!! note "Phase Output"
 
     Fase ini menghasilkan dua repositori operasional yang telah terverifikasi penuh:
@@ -62,6 +67,7 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 - **GitOps Orthodoxy on VMs**: Menjalankan skrip push via SSH dari CI/Ansible ke host target bukanlah GitOps, melainkan Scripted Push. GitOps sejati mensyaratkan target reconciler otonom (`tcctl gitops sync`) yang menarik manifes secara periodik, menjamin zero-inbound network footprint dan pemulihan deviasi (*self-healing*) otomatis.
 - **The Self-Destructing Bootstrap Pattern**: Mengatasi paradoks instalasi Day-1 pada brownfield VM dapat diselesaikan dengan menyertakan instruksi `sed -i` pembersihan kunci SSH pada baris terakhir skrip instalasi, memusnahkan kredensial sementara tanpa memerlukan intervensi manual tambahan.
 - **Clean Container Naming**: Penggunaan suffix `-blue`/`-green` secara permanen membingungkan operator dan sistem monitoring. Mekanisme temporary staging container (`<name>-staging`) memungkinkan promosi nama kanonikal (`<name>`) secara mulus pasca-verifikasi readiness probe.
+- **Windows Containers Network & Storage Portability**: Arsitektur Windows Containers menggunakan driver jaringan NAT HNS (bukan bridge) dan direktori volume fisik pada `C:\ProgramData\docker\volumes\<name>\_data`. Biner `tcctl.exe` terbukti mampu menginspeksi dan memverifikasi kriptografi volume secara offline pada Windows.
 
 ## 🔗 Related Documentation
 
