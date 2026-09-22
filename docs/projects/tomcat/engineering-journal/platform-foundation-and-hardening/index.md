@@ -25,6 +25,7 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 | **Engine Runtime Named Volumes** | Decoupling state menggunakan named volume (`_conf:ro,Z`, `_webapps:Z`, `_logs:Z`). Auto-seeding templates & offline host mountpoint inspection terverifikasi. | Completed |
 | **Vulnerability Assessment** | Trivy security scanner integration (`scripts/scan.sh` & `tcctl va scan`) dengan automated quality gate. | Completed |
 | **Observability & Deploy** | Synthetic HTTP health probe, JMX metrics parser, dan Blue-Green deployment runner dengan automated rollback. | Completed |
+| **Pure GitOps & Staging Rollout** | Arsitektur Pure Pull-Based GitOps (`tcctl gitops sync` via `systemd --user timer`), refactoring temporary staging container rollout (`<name>-staging` -> `<name>`), dan Day-1 self-destructing bootstrap key. | Design Accepted |
 
 ## 📄 Technical Notes
 
@@ -40,6 +41,10 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 
     Mencatat penyelesaian Pilar 6: konfigurasi konektor HTTPS native OpenSSL PEM di port 8443, pembuatan sertifikat self-signed, pembuatan CSR untuk CA eksternal, validasi kesesuaian kunci, dan quality gate kadaluarsa pada `tcctl`.
 
+4. **[TN-004 — Design Pure Pull-Based GitOps, Temporary Staging Rollout, and Self-Destructing Bootstrap](TN-004-design-pure-pull-based-gitops-temporary-staging-rollout-and-self-destructing-bootstrap.md)**
+
+    Mencatat blueprint arsitektur transformasi operasional enterprise: refactoring zero-downtime rollout dengan temporary staging container (`<name>-staging`) dan promosi nama kanonikal (`<name>`), adopsi Pure Pull-Based GitOps otonom via `systemd --user timer`, dan penyelesaian paradoks Day-1 brownfield bootstrapping melalui self-destructing ephemeral SSH access.
+
 !!! note "Phase Output"
 
     Fase ini menghasilkan dua repositori operasional yang telah terverifikasi penuh:
@@ -54,6 +59,9 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 - **Offline Storage Inspectability**: Engine Runtime Named Volumes (`podman volume`) menyimpan data fisik di path host (`~/.local/share/containers/storage/volumes/<vol>/_data/`), memungkinkan audit statis dan seeding konfigurasi dilakukan tanpa perlu menjalankan kontainer terlebih dahulu.
 - **Cross-Platform Go Portability**: Mengembangkan operator CLI dengan Go menghasilkan biner statis mandiri (`CGO_ENABLED=0`) tanpa dependensi interpreter eksternal, menghilangkan beban sinkronisasi antara Bash dan PowerShell.
 - **Native OpenSSL PEM vs Keystore**: Tomcat 9.0+ mendukung file PEM standar secara natif melalui Apache Tomcat Native library, mengeliminasi kebutuhan konversi Java Keystore (`.jks`) dan mempermudah otomasi dengan Corporate CA atau Let's Encrypt.
+- **GitOps Orthodoxy on VMs**: Menjalankan skrip push via SSH dari CI/Ansible ke host target bukanlah GitOps, melainkan Scripted Push. GitOps sejati mensyaratkan target reconciler otonom (`tcctl gitops sync`) yang menarik manifes secara periodik, menjamin zero-inbound network footprint dan pemulihan deviasi (*self-healing*) otomatis.
+- **The Self-Destructing Bootstrap Pattern**: Mengatasi paradoks instalasi Day-1 pada brownfield VM dapat diselesaikan dengan menyertakan instruksi `sed -i` pembersihan kunci SSH pada baris terakhir skrip instalasi, memusnahkan kredensial sementara tanpa memerlukan intervensi manual tambahan.
+- **Clean Container Naming**: Penggunaan suffix `-blue`/`-green` secara permanen membingungkan operator dan sistem monitoring. Mekanisme temporary staging container (`<name>-staging`) memungkinkan promosi nama kanonikal (`<name>`) secara mulus pasca-verifikasi readiness probe.
 
 ## 🔗 Related Documentation
 
@@ -68,3 +76,7 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 - [TC-ADR-0003: Engine Runtime Named Volumes](../../../../adr/tomcat/adr-records/TC-ADR-0003.md)
 - [TC-ADR-0004: Unified Go Operator tcctl](../../../../adr/tomcat/adr-records/TC-ADR-0004.md)
 - [TC-ADR-0005: Native OpenSSL PEM Connector & TLS Lifecycle](../../../../adr/tomcat/adr-records/TC-ADR-0005.md)
+- [TC-ADR-0006: Refactor Zero-Downtime Rollout to Temporary Staging Containers](../../../../adr/tomcat/adr-records/TC-ADR-0006.md)
+- [TC-ADR-0007: Adoption of Pure Pull-Based GitOps via Autonomous Host Reconciler](../../../../adr/tomcat/adr-records/TC-ADR-0007.md)
+- [TC-ADR-0008: Zero-Touch Day-1 Host Bootstrapping via Self-Destructing Ephemeral SSH Access](../../../../adr/tomcat/adr-records/TC-ADR-0008.md)
+
