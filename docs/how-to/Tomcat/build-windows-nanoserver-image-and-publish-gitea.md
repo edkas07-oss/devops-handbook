@@ -200,10 +200,19 @@ Metode ini memungkinkan host production lain melakukan `docker pull` secara lang
    docker push localhost:3000/gitadm/tomcat:9.0-jdk21
    ```
 
-Pada server target masa depan yang terisolasi, image cukup ditarik dengan:
-```powershell
-docker pull localhost:3000/gitadm/tomcat:9.0-jdk17
-```
+4. **Verifikasi Image di Gitea Web UI**:
+   Setelah proses push selesai, image container dapat langsung dipantau melalui antarmuka web Gitea:
+   - **Halaman Daftar Paket**: Buka [http://localhost:3000/gitadm/-/packages](http://localhost:3000/gitadm/-/packages).
+   - **Tautan Langsung Paket `tomcat`**: Buka [http://localhost:3000/gitadm/-/packages/container/tomcat/9.0-jdk21](http://localhost:3000/gitadm/-/packages/container/tomcat/9.0-jdk21).
+
+   !!! tip "Lokasi Image Container di Gitea"
+       Image OCI/Docker berada di level akun user/organisasi (`gitadm`), bukan di dalam menu repository source code biasa. Di halaman package tersebut, klik tab **Versions** untuk melihat ketiga varian tag (`9.0-jdk11`, `9.0-jdk17`, `9.0-jdk21`), metadata platform `windows/amd64`, rincian ukuran layer, dan digest SHA-256.
+
+5. **Menarik (*Pull*) Image di Server Target**:
+   Pada server target masa depan yang terisolasi, image cukup ditarik dengan:
+   ```powershell
+   docker pull localhost:3000/gitadm/tomcat:9.0-jdk17
+   ```
 
 ---
 
