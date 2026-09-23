@@ -17,6 +17,7 @@ Panduan ini mendokumentasikan cara:
 - Menyediakan multi-versi Java runtime (Eclipse Temurin JRE 11, 17, dan 21) menggunakan satu *Dockerfile* modular.
 - Mengonfigurasi distribusi image offline melalui Gitea Container Registry bawaan (`/v2/`) dan file arsip `.tar`.
 - Memvalidasi interaktivitas `tcctl deploy` dalam mendeteksi dan menjalankan container berbasis image lokal.
+- Menghindari jebakan operasional (*operational pitfalls*) umum pada PowerShell dan Docker Windows.
 
 ---
 
@@ -89,31 +90,31 @@ Remove-Item -Recurse -Force "temp", "tomcat.zip"
 
 ### 2. Buat Dockerfile Modular Multi-Java
 
-Buat file `C:\build\Dockerfile` yang memanfaatkan *build argument* (`ARG`) untuk fleksibilitas versi Java runtime:
+Gunakan sintaks array string `@( ... ) | Set-Content` untuk membuat file `C:\build\Dockerfile`. Format ini aman dari masalah indentasi yang sering terjadi pada PowerShell:
 
 ```powershell
-@'
-ARG JAVA_TAG=17-jre-nanoserver-ltsc2022
-FROM eclipse-temurin:${JAVA_TAG}
+@(
+    "ARG JAVA_TAG=17-jre-nanoserver-ltsc2022",
+    'FROM eclipse-temurin:${JAVA_TAG}',
+    'ENV CATALINA_HOME="C:\usr\local\tomcat"',
+    'WORKDIR C:\usr\local\tomcat',
+    'COPY tomcat C:\usr\local\tomcat',
+    'EXPOSE 8080 8443',
+    'CMD ["cmd.exe", "/c", "bin\\catalina.bat", "run"]'
+) | Set-Content -Path "C:\build\Dockerfile" -Encoding ASCII
 
-ENV CATALINA_HOME="C:\usr\local\tomcat"
-WORKDIR C:\usr\local\tomcat
-
-# Salin direktori tomcat hasil ekstraksi ke dalam container
-COPY tomcat C:\usr\local\tomcat
-
-EXPOSE 8080 8443
-
-# Entrypoint menjalankan catalina.bat run via cmd.exe
-CMD ["cmd.exe", "/c", "bin\\catalina.bat", "run"]
-'@ | Set-Content -Path "C:\build\Dockerfile" -Encoding ASCII
+# Verifikasi isi Dockerfile
+Get-Content C:\build\Dockerfile
 ```
+
+!!! note "Cukup Dijalankan Sekali Saja"
+    Langkah pembuatan Dockerfile ini **hanya perlu dijalankan 1 kali**. Baris `ARG JAVA_TAG=17-...` hanyalah nilai *default*. Saat proses build di Langkah 3, nilai ini akan ditimpa (*override*) secara dinamis menggunakan parameter `--build-arg`.
 
 ---
 
 ### 3. Build Varian Image Java (JDK 11, 17, 21)
 
-Jalankan build untuk ketiga versi Java LTS yang didukung NanoServer:
+Jalankan proses build untuk ketiga versi Java LTS. Docker akan otomatis mengunduh base image Eclipse Temurin NanoServer yang bersangkutan dan memasukkan binary Apache Tomcat ke dalamnya:
 
 ```powershell
 # Build varian Java 11
@@ -134,10 +135,18 @@ docker images
 Hasil yang diharapkan menunjukkan ukuran yang sangat efisien:
 ```text
 REPOSITORY   TAG        IMAGE ID       CREATED         SIZE
-tomcat       9.0-jdk21  a1b2c3d4e5f6   1 minute ago    195MB
-tomcat       9.0-jdk17  b2c3d4e5f6a1   2 minutes ago   188MB
-tomcat       9.0-jdk11  c3d4e5f6a1b2   3 minutes ago   182MB
+tomcat       9.0-jdk21  406e457bc8ed   1 minute ago    456MB
+tomcat       9.0-jdk17  0789b6cb3d6f   2 minutes ago   435MB
+tomcat       9.0-jdk11  3b5ceae84cd7   3 minutes ago   430MB
 ```
+
+!!! tip "Jika Image Berstatus `<none>:<none>`"
+    Jika parameter `-t` terpotong saat paste perintah build, image tetap berhasil dibuat namun tanpa label nama. Cukup beri tag manual menggunakan Image ID tanpa perlu build ulang:
+    ```powershell
+    docker tag <IMAGE_ID_JAVA11> tomcat:9.0-jdk11
+    docker tag <IMAGE_ID_JAVA17> tomcat:9.0-jdk17
+    docker tag <IMAGE_ID_JAVA21> tomcat:9.0-jdk21
+    ```
 
 ---
 
@@ -157,16 +166,21 @@ Metode ini memungkinkan host production lain melakukan `docker pull` secara lang
    *Port `3000` pada host Windows kini terhubung langsung ke Gitea di PC lokal Anda.*
 
 2. **Izinkan Insecure Registry HTTP** (di PowerShell host Windows):
-   Karena registry internal menggunakan HTTP (bukan HTTPS publik), daftarkan ke `daemon.json`:
+   Karena registry internal menggunakan protokol HTTP (bukan HTTPS publik), daftarkan ke `daemon.json`. Pastikan folder induk dibuat terlebih dahulu untuk mencegah error `DirectoryNotFoundException`:
    ```powershell
+   # 1. Pastikan folder induk config ada
    $configDir = "C:\ProgramData\docker\config"
    if (-not (Test-Path $configDir)) {
        New-Item -ItemType Directory -Force -Path $configDir | Out-Null
    }
+
+   # 2. Tulis insecure-registries ke daemon.json
    $configPath = "$configDir\daemon.json"
    $json = if (Test-Path $configPath) { Get-Content $configPath -Raw | ConvertFrom-Json } else { @{} }
    $json | Add-Member -NotePropertyName "insecure-registries" -NotePropertyValue @("localhost:3000") -Force
    $json | ConvertTo-Json | Set-Content $configPath -Encoding ASCII
+
+   # 3. Restart Docker Engine
    Restart-Service docker
    ```
 
@@ -252,10 +266,28 @@ C:\Users\Administrator\tcctl.exe deploy run --name tomcat-prod --port 8080 --htt
 
 ## ⚠️ Troubleshooting & Catatan Penting
 
+### PowerShell Here-String Indentation Trap (Stuck pada Prompt `>>`)
+
+Saat meng-copy-paste script yang menggunakan sintaks *here-string* (`@' ... '@`) ke terminal PowerShell:
+- Tanda penutup `'@` **wajib berada tepat di karakter pertama baris** (tanpa spasi atau indentasi sama sekali).
+- Jika ada spasi di depan `'@`, PowerShell tidak akan mengenalinya sebagai penutup dan akan terus menunggu input baris baru dengan prompt `>>`.
+- **Solusi**: Tekan `Ctrl + C` untuk membatalkan, dan gunakan sintaks array string `@( ... ) | Set-Content` yang kebal terhadap masalah spasi dan indentasi.
+
+### Error "Could not find a part of the path C:\ProgramData\docker\config\daemon.json"
+
+Secara default, instalasi Docker CE di Windows Server tidak langsung membuat subfolder `config` di bawah `C:\ProgramData\docker`.
+- Perintah `Set-Content` akan melempar `DirectoryNotFoundException` jika folder induknya belum ada.
+- **Solusi**: Selalu jalankan `New-Item -ItemType Directory -Force -Path "C:\ProgramData\docker\config"` sebelum menulis file konfigurasi `daemon.json`.
+
+### Menangani "docker: The term is not recognized" pada Sesi SSH Baru
+
+Service OpenSSH (`sshd`) di Windows Server me-*cache* daftar `PATH` saat service pertama kali dinyalakan. Jika Docker diinstal setelah service `sshd` aktif, sesi SSH baru tidak akan mewarisi folder Docker secara otomatis.
+- **Solusi**: Daftarkan path Docker secara permanen ke All-Users PowerShell Profile (`$PSHOME\profile.ps1`) atau jalankan `Restart-Service sshd`.
+
 ### Mengapa NanoServer Hanya Mendukung Java 11 ke Atas?
 
 - **NanoServer (`nanoserver:ltsc2022`)**: Merupakan OS container Windows paling ramping (~100–170 MB). NanoServer menghilangkan subsistem grafis Win32, konsol legasi GDI, dan font subsistem. Java 11, 17, dan 21 dirancang *headless-native* sehingga berjalan sempurna di atas NanoServer.
-- **Java 8 (Legacy Dependency)**: Memerlukan dependensi Win32 DLL tertentu dan subsistem font yang tidak ada di NanoServer. Oleh karena itu, jika aplikasi mutlak memerlukan Java 8, Anda **wajib** menggunakan base image **ServerCore (`servercore:ltsc2022`)** yang berukuran sekitar ~4.5 GB.
+- **Java 8 (Legacy Dependency)**: Memerlukan dependensi Win32 DLL tertentu dan subsistem font yang tidak ada di NanoServer. Jika aplikasi mutlak memerlukan Java 8, Anda **wajib** menggunakan base image **ServerCore (`servercore:ltsc2022`)** yang berukuran sekitar ~4.5 GB.
 
 ### Mengatasi Error "server gave HTTP response to HTTPS client"
 
