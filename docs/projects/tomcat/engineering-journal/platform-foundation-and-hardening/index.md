@@ -50,6 +50,10 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 
     Mencatat sinkronisasi repositori berdampingan ke host Windows Server 2022 di AWS EC2, provisioning runtime Windows Containers dan Docker Engine Community Edition, penyediaan tooling Git dan Trivy, pengujian live biner `tcctl.exe` (Audit CIS dan SSL volume check), serta rekapitulasi analisis akar masalah dan solusi teknis selama instalasi.
 
+6. **[TN-006 — Standardize Enterprise Drive Separation, Docker Data-Root, and Host Bind-Mount Hierarchy](TN-006-standardize-enterprise-drive-separation-docker-data-root-and-host-bind-mount-hierarchy.md)**
+
+    Mencatat resolusi kegagalan SCM timeout pada OpenSSH Server Windows, penanganan otentikasi multi-key SSH client (`IdentitiesOnly=yes`), dekopling skrip Day-1 dari perkakas CI/CD untuk pengujian Manual UAT, serta pembakuan arsitektur pemisahan drive data (`data-root: D:\docker`) dan hierarki Host Bind-Mount transparan (`<Drive>:\tomcats\<instance_name>\[conf, webapps, logs]`) sesuai [TC-ADR-0009](../../../../adr/tomcat/adr-records/TC-ADR-0009.md).
+
 !!! note "Phase Output"
 
     Fase ini menghasilkan dua repositori operasional yang telah terverifikasi penuh:
@@ -68,6 +72,7 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 - **The Self-Destructing Bootstrap Pattern**: Mengatasi paradoks instalasi Day-1 pada brownfield VM dapat diselesaikan dengan menyertakan instruksi `sed -i` pembersihan kunci SSH pada baris terakhir skrip instalasi, memusnahkan kredensial sementara tanpa memerlukan intervensi manual tambahan.
 - **Clean Container Naming**: Penggunaan suffix `-blue`/`-green` secara permanen membingungkan operator dan sistem monitoring. Mekanisme temporary staging container (`<name>-staging`) memungkinkan promosi nama kanonikal (`<name>`) secara mulus pasca-verifikasi readiness probe.
 - **Windows Containers Network & Storage Portability**: Arsitektur Windows Containers menggunakan driver jaringan NAT HNS (bukan bridge) dan direktori volume fisik pada `C:\ProgramData\docker\volumes\<name>\_data`. Biner `tcctl.exe` terbukti mampu menginspeksi dan memverifikasi kriptografi volume secara offline pada Windows.
+- **Enterprise Drive Separation & Native NTFS Bind I/O**: Memisahkan partisi OS (`C:\`) dan partisi data (`D:\docker` dan `D:\tomcats`) melindungi Windows Server dari disk space exhaustion akibat citra kontainer multi-gigabyte. Pada Windows Server Process Isolation, Host Bind Mount dieksekusi langsung oleh filter driver NTFS kernel tanpa overhead virtualisasi, memberikan kecepatan I/O identik dengan named volume namun jauh lebih mudah diakses oleh operator.
 
 ## 🔗 Related Documentation
 
@@ -85,4 +90,5 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 - [TC-ADR-0006: Refactor Zero-Downtime Rollout to Temporary Staging Containers](../../../../adr/tomcat/adr-records/TC-ADR-0006.md)
 - [TC-ADR-0007: Adoption of Pure Pull-Based GitOps via Autonomous Host Reconciler](../../../../adr/tomcat/adr-records/TC-ADR-0007.md)
 - [TC-ADR-0008: Zero-Touch Day-1 Host Bootstrapping via Self-Destructing Ephemeral SSH Access](../../../../adr/tomcat/adr-records/TC-ADR-0008.md)
+- [TC-ADR-0009: Enterprise Drive Separation and Transparent Host Bind-Mount Hierarchy](../../../../adr/tomcat/adr-records/TC-ADR-0009.md)
 
