@@ -233,7 +233,7 @@ dikenal dapat mengindikasikan salah alamat atau serangan *man-in-the-middle*.
 
 ## Optional Client Configuration
 
-Konfigurasi pada `~/.ssh/config` dapat menyederhanakan perintah koneksi:
+Konfigurasi pada `~/.ssh/config` dapat menyederhanakan perintah koneksi, mengaktifkan heartbeat anti-putus (*KeepAlive*), dan tunneling:
 
 ```sshconfig
 Host builder-01
@@ -241,6 +241,9 @@ Host builder-01
     User <remote-user>
     IdentityFile ~/.ssh/id_ed25519_jenkins_agent
     IdentitiesOnly yes
+    ServerAliveInterval 30
+    ServerAliveCountMax 5
+    TCPKeepAlive yes
 ```
 
 Setelah itu, koneksi dapat dijalankan dengan:
@@ -254,6 +257,9 @@ Gunakan permission berikut:
 ```bash
 chmod 600 ~/.ssh/config
 ```
+
+!!! tip "Panduan Lengkap Tips & Trik SSH"
+    Untuk panduan detail mengenai cara kerja KeepAlive, trik restart SSHD di Windows, dan Reverse Port Forwarding, baca [SSH KeepAlive Anti-Putus dan Reverse Port Forwarding](../configure-ssh-keepalive-and-reverse-tunnel.md).
 
 ## Troubleshooting
 
