@@ -7,3 +7,4 @@ arrange:
 - TN-004-design-pure-pull-based-gitops-temporary-staging-rollout-and-self-destructing-bootstrap.md
 - TN-005-verify-windows-container-runtime-provisioning-and-tcctl-operator-testing.md
 - TN-006-standardize-enterprise-drive-separation-docker-data-root-and-host-bind-mount-hierarchy.md
+- TN-007-build-windows-nanoserver-multi-java-gitea-registry-and-tcctl-verification.md

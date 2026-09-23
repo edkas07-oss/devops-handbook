@@ -54,6 +54,10 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 
     Mencatat resolusi kegagalan SCM timeout pada OpenSSH Server Windows, penanganan otentikasi multi-key SSH client (`IdentitiesOnly=yes`), dekopling skrip Day-1 dari perkakas CI/CD untuk pengujian Manual UAT, serta pembakuan arsitektur pemisahan drive data (`data-root: D:\docker`) dan hierarki Host Bind-Mount transparan (`<Drive>:\tomcats\<instance_name>\[conf, webapps, logs]`) sesuai [TC-ADR-0009](../../../../adr/tomcat/adr-records/TC-ADR-0009.md).
 
+7. **[TN-007 — Build Windows Container Tomcat NanoServer Multi-Java, Gitea OCI Registry Integration, and tcctl Interactive Provisioning Verification](TN-007-build-windows-nanoserver-multi-java-gitea-registry-and-tcctl-verification.md)**
+
+    Mencatat perakitan container image Windows Apache Tomcat di atas NanoServer (Java 11, 17, 21), integrasi distribusi offline via Gitea OCI Container Registry melalui SSH Reverse Tunnel, resolusi 6 kendala operasional (here-string indentation, Dockerfile backslash escape, OpenSSH environment caching, insecure registry path, dan Tomcat JRE requirement), serta verifikasi live deployment interaktif biner `tcctl.exe` dengan status HEALTHY (HTTP 8080 & HTTPS 8443).
+
 !!! note "Phase Output"
 
     Fase ini menghasilkan dua repositori operasional yang telah terverifikasi penuh:

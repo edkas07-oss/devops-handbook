@@ -81,24 +81,27 @@ Invoke-WebRequest -Uri "https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.98/
 Expand-Archive -Path "tomcat.zip" -DestinationPath "temp"
 Move-Item "temp\apache-tomcat-9.0.98" "tomcat"
 Remove-Item -Recurse -Force "temp", "tomcat.zip"
+
+# 4. Tambahkan setenv.bat agar Tomcat mengenali JRE Temurin (mengalihkan ke JRE_HOME)
+Set-Content -Path "C:\build\tomcat\bin\setenv.bat" -Value 'set "JRE_HOME=%JAVA_HOME%" & set "JAVA_HOME="'
 ```
 
-!!! tip "Keuntungan Binary Eksternal"
-    Mengunduh dan mengekstrak file `.zip` di host sebelum build membuat proses build Docker menjadi deterministik, hemat layer, dan tidak memerlukan utilitas ekstraksi pihak ketiga di dalam container NanoServer.
+!!! tip "Mengapa Membutuhkan setenv.bat?"
+    Image Temurin JRE mengekspor variabel `JAVA_HOME`. Script `catalina.bat` secara default mewajibkan compiler `javac.exe` jika `JAVA_HOME` didefinisikan (beranggapan bahwa `JAVA_HOME` adalah JDK lengkap). File `setenv.bat` otomatis mengalihkan nilai tersebut ke `JRE_HOME` sehingga Tomcat hanya memvalidasi `java.exe` dan dapat berjalan normal.
 
 ---
 
 ### 2. Buat Dockerfile Modular Multi-Java
 
-Gunakan sintaks array string `@( ... ) | Set-Content` untuk membuat file `C:\build\Dockerfile`. Format ini aman dari masalah indentasi yang sering terjadi pada PowerShell:
+Gunakan sintaks array string `@( ... ) | Set-Content` untuk membuat file `C:\build\Dockerfile`. Gunakan *forward slash* (`/`) untuk path Windows guna menghindari masalah *backslash escaping*:
 
 ```powershell
 @(
-    "ARG JAVA_TAG=17-jre-nanoserver-ltsc2022",
+    "ARG JAVA_TAG=11-jre-nanoserver-ltsc2022",
     'FROM eclipse-temurin:${JAVA_TAG}',
-    'ENV CATALINA_HOME="C:\usr\local\tomcat"',
-    'WORKDIR C:\usr\local\tomcat',
-    'COPY tomcat C:\usr\local\tomcat',
+    'ENV CATALINA_HOME="C:/usr/local/tomcat"',
+    'WORKDIR C:/usr/local/tomcat',
+    'COPY tomcat .',
     'EXPOSE 8080 8443',
     'CMD ["cmd.exe", "/c", "bin\\catalina.bat", "run"]'
 ) | Set-Content -Path "C:\build\Dockerfile" -Encoding ASCII
@@ -108,7 +111,7 @@ Get-Content C:\build\Dockerfile
 ```
 
 !!! note "Cukup Dijalankan Sekali Saja"
-    Langkah pembuatan Dockerfile ini **hanya perlu dijalankan 1 kali**. Baris `ARG JAVA_TAG=17-...` hanyalah nilai *default*. Saat proses build di Langkah 3, nilai ini akan ditimpa (*override*) secara dinamis menggunakan parameter `--build-arg`.
+    Langkah pembuatan Dockerfile ini **hanya perlu dijalankan 1 kali**. Baris `ARG JAVA_TAG=11-...` hanyalah nilai *default*. Saat proses build di Langkah 3, nilai ini akan ditimpa (*override*) secara dinamis menggunakan parameter `--build-arg`. Penggunaan `C:/usr/local/tomcat` dengan *forward slash* adalah standar resmi Docker untuk menghindari error `the working directory is invalid`.
 
 ---
 
@@ -251,7 +254,7 @@ Jika Anda tidak ingin mengonfigurasi insecure registry dan lebih memilih distrib
 Setelah image tersedia di repositori Docker lokal host Windows, jalankan perintah deployment `tcctl`:
 
 ```powershell
-C:\Users\Administrator\tcctl.exe deploy run --name tomcat-prod --port 8080 --https-port 8443
+C:\Users\Administrator\tcctl.exe deploy run --name tomcat-lab --port 8080 --https-port 8443
 ```
 
 `tcctl` akan secara otomatis memindai Docker lokal dan menyajikan menu interaktif:
@@ -259,16 +262,42 @@ C:\Users\Administrator\tcctl.exe deploy run --name tomcat-prod --port 8080 --htt
 ```text
 ℹ Discovered available Tomcat / Java images in local container repository:
    [1] tomcat:9.0-jdk11
-   [2] tomcat:9.0-jdk17
-   [3] tomcat:9.0-jdk21
-   [4] localhost:3000/gitadm/tomcat:9.0-jdk17
+   [2] eclipse-temurin:21-jre-nanoserver-ltsc2022
+   [3] localhost/tomcat:9.0-jdk21
+   [4] eclipse-temurin:17-jre-nanoserver-ltsc2022
+   [5] localhost/tomcat:9.0-jdk17
+   [6] eclipse-temurin:11-jre-nanoserver-ltsc2022
 
- Select image to deploy [1-4] (default: 1): 2
-✔ Selected image: tomcat:9.0-jdk17
-ℹ Preparing Host Bind-Mount Directory Structure in C:\tomcats\tomcat-prod...
-✔ Self-signed TLS certificate created in C:\tomcats\tomcat-prod\conf\ssl
-✔ Hardened XML templates successfully written into 'C:\tomcats\tomcat-prod\conf'.
-✔ Deployment SUCCESS! Container 'tomcat-prod' is running.
+ Select image to deploy [1-6] (default: 1): 1
+✔ Selected image: tomcat:9.0-jdk11
+
+========================================================
+ Deploying Hardened Tomcat Container: tomcat-lab
+========================================================
+ℹ Detected Container Engine: docker
+ℹ Step 1: Preparing Host Bind-Mount Directory Structure in C:\tomcats\tomcat-lab...
+ℹ Seeding hardened XML configuration templates into C:\tomcats\tomcat-lab\conf...
+✔ Hardened XML templates successfully written into 'C:\tomcats\tomcat-lab\conf'.
+ℹ Bootstrapping self-signed TLS material for instance 'tomcat-lab'...
+✔ Self-signed TLS certificate created in C:\tomcats\tomcat-lab\conf\ssl
+ℹ Step 2: Auditing XML in Host Directory (C:\tomcats\tomcat-lab\conf)...
+✔ Pre-flight XML audit on Host Directory passed (100% compliant).
+ℹ Step 3: Launching container 'tomcat-lab' (image: tomcat:9.0-jdk11) via docker...
+✔ Container started successfully (ID: a7e962a23e67)
+ℹ Step 4: Probing HTTP healthcheck endpoint: http://localhost:8080/
+✔ Tomcat HTTP Server is HEALTHY (Response status: 404)
+✔ HTTP healthcheck probe passed.
+✔ Tomcat instance 'tomcat-lab' is up, running, and fully hardened!
+
+ Endpoints:
+   - HTTP    : http://localhost:8080/
+   - HTTPS   : https://localhost:8443/
+
+ Host Bind Mounts (TC-ADR-0009):
+   - Base Dir : C:\tomcats
+   - Conf     : C:\tomcats\tomcat-lab\conf (Read-Only :ro)
+   - Webapps  : C:\tomcats\tomcat-lab\webapps
+   - Logs     : C:\tomcats\tomcat-lab\logs
 ```
 
 ---
