@@ -345,6 +345,7 @@ Pada mode **Process Isolation** (kinerja I/O disk NTFS 100% native), versi build
 
 ## 📚 References
 
+- [Panduan Lengkap Siklus Hidup Deployment, Operasi, dan Pembersihan Kontainer Tomcat dengan tcctl](complete-lifecycle-deployment-and-cleanup-guide.md)
 - [Microsoft Windows Container Base Images Documentation](https://learn.microsoft.com/en-us/virtualization/windows-containers/manage-images/container-base-images)
 - [Eclipse Temurin Official Docker Images](https://hub.docker.com/_/eclipse-temurin)
 - [Apache Tomcat Official Archive Downloads](https://archive.apache.org/dist/tomcat/)

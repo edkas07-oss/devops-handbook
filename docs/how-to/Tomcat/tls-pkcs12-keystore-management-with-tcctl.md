@@ -213,3 +213,11 @@ Jika instance Tomcat Anda sebelumnya diinisialisasi menggunakan format PEM dan i
 | `setup` | `--cert <path>` | File sertifikat publik PEM eksternal | - |
 | `setup` | `--key <path>` | File kunci privat PEM eksternal | - |
 | `setup` | `--server-xml <path>` | Path ke `server.xml` untuk inject konfigurasi | - |
+
+---
+
+## 4. Referensi Terkait
+
+- [Panduan Lengkap Siklus Hidup Deployment, Operasi, dan Pembersihan Kontainer Tomcat dengan tcctl](complete-lifecycle-deployment-and-cleanup-guide.md)
+- [TN-008: Implementasi Tata Kelola TLS PKCS#12 Keystore dan Auto-Detection pada Apache Tomcat Enterprise via tcctl](../../projects/tomcat/engineering-journal/platform-foundation-and-hardening/TN-008-pkcs12-keystore-governance-and-auto-detection.md)
+
