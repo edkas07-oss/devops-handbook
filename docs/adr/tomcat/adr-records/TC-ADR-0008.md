@@ -19,15 +19,22 @@ Apache Tomcat Enterprise menetapkan pola **Self-Destructing Ephemeral SSH Access
 
 ## 🌍 Context
 
-Untuk menjalankan model Pure GitOps ([TC-ADR-0007](TC-ADR-0007.md)), host target harus memiliki biner `tcctl` dan unit systemd timer yang terpasang:
+Untuk menjalankan model Pure GitOps ([TC-ADR-0007](TC-ADR-0007.md)), host target harus memiliki biner `tcctl` dan unit systemd timer yang terpasang. Dalam perancangannya, muncul dua pertanyaan arsitektur mendasar dari tim:
 
-1. **The Bootstrapping Paradox**:
-   - Pada VM baru yang dibangun dari Golden Image/Packer, biner `tcctl` dapat ditanam sejak awal.
-   - Namun pada armada VM eksisting (*brownfield*) yang sudah terbentuk di lingkungan perusahaan, operator harus masuk ke host target satu kali di awal (*Day-1*) untuk menanamkan biner dan mengaktifkan service.
+> **Pertanyaan 1**: *"Tapi lucunya adalah tcctl itu di deploy-nya sepertinya harus menggunakan CI/CD tradisional, kecuali sudah embedded di image VM. Tapi itu sulit karena VM sudah terbentuk (brownfield). Betul begitu?"*
+
+> **Pertanyaan 2**: *"Apakah ada mekanisme SSH yang disediakan hanya 1 kali penggunaannya? Soalnya kalau tidak, maka PR sekali harus menghapus key di semua host. Betulkah demikian?"*
+
+### Analisis Dilema Arsitektur:
+
+1. **The Chicken-and-Egg Bootstrapping Paradox (Greenfield vs Brownfield)**:
+   - Pada VM baru (*greenfield*), biner `tcctl` dapat langsung di-bake ke dalam *Golden Image* (Packer/AMI).
+   - Namun pada armada VM eksisting (*brownfield*) yang sudah lama beroperasi di enterprise, biner operator tidak bisa muncul secara mandiri tanpa ada intervensi awal.
+   - **Kesimpulan**: Diperlukan akses awal satu kali (*Day-1 Provisioning*) menyerupai mekanisme tradisional (SSH push / Ansible) untuk menanam biner operator. Namun intervensi ini **hanya terjadi 1 kali seumur hidup server**, bukan menjadi metode deployment harian (Day-2 Ongoing).
 2. **Risiko Tertinggalnya Kunci Statis (*Static Credential Leakage*)**:
-   - Jika administrator menambahkan SSH public key ke `~/.ssh/authorized_keys` di 50 server untuk keperluan bootstrap, kunci tersebut kerap tertinggal dan menjadi celah keamanan laten (*dormant backdoor*).
-3. **Beban Operasional Penghapusan Manual (PR Besar)**:
-   - Menghapus kunci statis dari 50 server secara manual setelah bootstrap selesai adalah pekerjaan yang memakan waktu dan rawan kelalaian manusia (*human error*).
+   - Jika administrator menambahkan SSH public key ke `~/.ssh/authorized_keys` di 50+ server untuk keperluan bootstrap, kunci tersebut kerap tertinggal dan menjadi celah keamanan laten (*dormant backdoor*).
+3. **Beban Operasional Penghapusan Manual (PR Besar yang Terbengkalai)**:
+   - Mengandalkan "PR sekali untuk menghapus key di semua host" secara manual setelah bootstrap selesai adalah pekerjaan yang memakan waktu dan rawan kelalaian manusia (*human error*).
 
 ---
 
@@ -35,11 +42,16 @@ Untuk menjalankan model Pure GitOps ([TC-ADR-0007](TC-ADR-0007.md)), host target
 
 Project memutuskan untuk mengadopsi pola **Self-Destructing Ephemeral SSH Access** untuk seluruh aktivitas Day-1 Bootstrapping dengan ketentuan:
 
-1. **Otomasi Pembersihan Diri (*Self-Purge Execution*)**:
-   - Skrip bootstrap atau playbook Ansible Day-1 diprogram untuk menyertakan instruksi pembersihan dirinya sendiri pada tahap akhir eksekusi:
+1. **Penandaan Tag Kunci Sementara**:
+   - Public key yang diinjeksi untuk bootstrap diberi tanda komentar metadata khusus:
+     ```text
+     ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... # ephemeral-day1-bootstrap
+     ```
+2. **Otomasi Pembersihan Diri (*Self-Purge Execution*)**:
+   - Skrip bootstrap atau playbook Ansible Day-1 diprogram untuk mengeksekusi pemusnahan dirinya sendiri pada baris paling akhir sebelum sesi SSH ditutup:
      ```bash
      # Menghapus baris kunci bootstrap dari authorized_keys sebelum koneksi berakhir
-     sed -i '/tcctl-bootstrap-key/d' ~/.ssh/authorized_keys
+     sed -i '/# ephemeral-day1-bootstrap/d' ~/.ssh/authorized_keys
      ```
    - Pada Ansible:
      ```yaml
@@ -49,12 +61,12 @@ Project memutuskan untuk mengadopsi pola **Self-Destructing Ephemeral SSH Access
          state: absent
          key: "{{ lookup('file', 'files/bootstrap_key.pub') }}"
      ```
-2. **Jaminan Waktu Hangus Instan**:
-   - Begitu proses `tcctl gitops init` selesai (~15-30 detik), akses SSH tersebut langsung hangus secara permanen. Kunci privat bootstrap yang ada di workstation operator tidak dapat digunakan lagi untuk login.
-3. **Zero Manual Cleanup**:
-   - Administrator tidak perlu membuat jadwal pembersihan atau login ulang ke host target. Host target secara mandiri berada dalam kondisi bersih (*clean state*).
-4. **Transisi Penuh ke GitOps**:
-   - Setelah kunci bootstrap terhapus, seluruh kendali operasional server resmi beralih 100% ke GitOps Pull Reconciler otonom (`tcctl gitops sync`).
+3. **Jaminan Waktu Hangus Instan**:
+   - Begitu proses `tcctl gitops init` selesai (~15-30 detik), akses SSH tersebut langsung hangus secara permanen. Kunci privat bootstrap yang ada di workstation operator tidak dapat digunakan lagi untuk login. Upaya koneksi kedua langsung ditolak (`Permission denied (publickey)`).
+4. **Zero Manual Cleanup & Zero Leftover Credentials**:
+   - Administrator tidak perlu membuat jadwal pembersihan atau PR terpisah untuk menghapus kunci di puluhan server. Host target secara mandiri berada dalam kondisi bersih (*clean state*).
+5. **Transisi Penuh ke GitOps (Day-2)**:
+   - Setelah kunci bootstrap terhapus, seluruh kendali operasional server resmi beralih 100% ke GitOps Pull Reconciler otonom (`tcctl gitops sync`). Host produksi tidak lagi membutuhkan port inbound SSH terbuka untuk rilis aplikasi.
 
 ---
 

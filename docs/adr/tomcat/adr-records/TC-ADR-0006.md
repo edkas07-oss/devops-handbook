@@ -19,10 +19,20 @@ Apache Tomcat Enterprise merefaktor mekanisme pembaruan *Zero-Downtime Rollout* 
 
 ## 🌍 Context
 
-Pada implementasi awal skrip shell dan `tcctl deploy bluegreen` ([TC-ADR-0004](TC-ADR-0004.md)):
-1. **Penyematan Akhiran Permanen yang Mengganggu**: Kontainer diwajibkan menggunakan akhiran `-blue` atau `-green`. Setelah rollout selesai, kontainer produksi aktif tetap bernama `<name>-blue` atau `<name>-green`. Hal ini menimbulkan kebingungan bagi tim monitoring dan operasi karena nama kontainer di `podman ps` terus berganti-ganti setiap siklus rilis.
-2. **Kebutuhan Identitas Stabil pada Multi-Instance**: Pada ekosistem enterprise yang menjalankan puluhan instance di host yang sama, setiap layanan membutuhkan identitas kontainer yang stabil dan bersih (`payment-service`, `auth-service`, `portal-hr`) untuk kemudahan pelacakan log, metrik Prometheus, dan integrasi reverse proxy.
-3. **Mekanisme Transisi yang Lebih Elegan**: Staging container hanya diperlukan selama beberapa detik ketika image baru dimuat dan diverifikasi kesehatannya sebelum mengambil alih port produksi utama.
+Pada implementasi awal skrip shell dan `tcctl deploy bluegreen` ([TC-ADR-0004](TC-ADR-0004.md)), muncul pertanyaan arsitektur mendasar:
+
+> **"Kenapa tidak pakai Blue-Green biasa dengan suffix permanen (-blue / -green)? Mengapa memilih Temporary Staging Rollout (<name>-staging -> <name>)?"**
+
+### Masalah Operasional Akibat Suffix Permanen:
+
+1. **Dashboard Monitoring & Prometheus Metrics Terpecah**:
+   - Jika kontainer berganti-ganti nama (`payment-blue` lalu rilis berikutnya `payment-green`), label `container_name` di Prometheus exporter berubah-ubah. Hal ini memecah time-series metrik, merusak dashboard Grafana, dan mewajibkan regex alerting yang rentan keliru (`container=~"payment-(blue|green)"`).
+2. **Beban Kognitif SRE Saat Insiden Malam Hari**:
+   - Operator yang melakukan investigasi darurat melalui `podman ps` harus memeriksa port binding reverse proxy untuk memastikan kontainer mana yang saat itu aktif melayani trafik pelanggan.
+3. **Konfigurasi Reverse Proxy Bolak-Balik**:
+   - Upstream Nginx / HAProxy harus terus-menerus dialihkan port-nya bolak-balik antara 8080 dan 8081 pada setiap rilis.
+4. **Kebutuhan Identitas Stabil pada Multi-Instance**:
+   - Pada ekosistem enterprise yang menjalankan puluhan instance di host yang sama, setiap layanan membutuhkan identitas kontainer yang stabil dan bersih (`payment-service`, `auth-service`, `portal-hr`) untuk kemudahan log aggregation (Fluentbit/Vector) dan audit kepatuhan.
 
 ---
 

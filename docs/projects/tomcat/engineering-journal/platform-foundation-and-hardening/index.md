@@ -44,7 +44,7 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 
 4. **[TN-004 — Design Pure Pull-Based GitOps, Temporary Staging Rollout, and Self-Destructing Bootstrap](TN-004-design-pure-pull-based-gitops-temporary-staging-rollout-and-self-destructing-bootstrap.md)**
 
-    Mencatat blueprint arsitektur transformasi operasional enterprise: refactoring zero-downtime rollout dengan temporary staging container (`<name>-staging`) dan promosi nama kanonikal (`<name>`), adopsi Pure Pull-Based GitOps otonom via `systemd --user timer`, dan penyelesaian paradoks Day-1 brownfield bootstrapping melalui self-destructing ephemeral SSH access.
+    Mencatat blueprint arsitektur transformasi operasional enterprise: rekaman tanya-jawab arsitektural mendalam (analisis Traditional CD vs GitOps CD, batas pemisah Git air-gap, peran modular `tcctl` pada Sisi CI vs CD/GitOps), refactoring zero-downtime rollout dengan temporary staging container (`<name>-staging`) dan promosi nama kanonikal (`<name>`), adopsi Pure Pull-Based GitOps otonom via `systemd --user timer`, serta penyelesaian paradoks Day-1 brownfield bootstrapping melalui self-destructing ephemeral SSH access.
 
 5. **[TN-005 — Verify Windows Container Runtime Provisioning and tcctl Operator Testing](TN-005-verify-windows-container-runtime-provisioning-and-tcctl-operator-testing.md)**
 

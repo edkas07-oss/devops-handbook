@@ -37,10 +37,35 @@ Berdasarkan [TC-ADR-0006](../../../adr/tomcat/adr-records/TC-ADR-0006.md), arsit
 
 ## 🚀 Arsitektur Pure Pull-Based GitOps (Day-2 Ongoing)
 
-Sesuai [TC-ADR-0007](../../../adr/tomcat/adr-records/TC-ADR-0007.md), siklus deployment berkelanjutan mengadopsi standar **Pure Pull-Based GitOps**:
+Sesuai [TC-ADR-0007](../../../adr/tomcat/adr-records/TC-ADR-0007.md), siklus deployment berkelanjutan mengadopsi standar **Pure Pull-Based GitOps**.
+
+### ⚖️ Traditional CD vs GitOps CD: Di Mana Kendali Orkestrasinya?
+
+| Dimensi Arsitektur | Traditional CI/CD (Push via SSH/Ansible) | GitOps CD (Pure Pull via `tcctl`) |
+| :--- | :--- | :--- |
+| **Lokasi Kendali Orkestrasi** | Menempel di CI Server (Jenkins) | Terdesentralisasi di Host Reconciler lokal |
+| **Kredensial di CI Server** | Menyimpan SSH keys / root password ke seluruh host | **Zero credentials** ke server produksi |
+| **Blast Radius Kompromi CI** | Sangat Luas (*Broad*): Peretas dapat menguasai seluruh VM | Terisolasi (*Narrow*): Hanya dapat mengubah commit di Git |
+| **Port Firewall Inbound** | Port 22 (SSH) wajib terbuka dari CI runner ke target | **Zero Inbound Ports**. Cukup outbound HTTPS (443) |
+| **Deteksi Deviasi (*Drift*)** | Tidak ada. Hanya berjalan saat dipicu rilis | **Continuous Self-Healing** setiap interval timer |
+| **Batas Pemisah (*Boundary*)** | Tidak ada pemisah, CI langsung masuk ke produksi | **Git sebagai Air Gap & Decoupling Boundary** |
+
+### 🛠️ Peran Modular `tcctl` pada Kedua Domain
+
+Biner operator `tcctl` dirancang secara modular melayani kedua sisi dengan batas tanggung jawab yang tegas:
+
+1. **Di Sisi CI (Quality Gates)**:
+   * `tcctl hardening audit`: Memastikan XML konfigurasi patuh 100% pada CIS Apache Tomcat Benchmark sebelum container image dibangun.
+   * `tcctl va scan`: Memastikan container image lolos batas ambang kerentanan Trivy.
+2. **Di Sisi CD / GitOps (Host Reconciliation)**:
+   * `tcctl apply -f <spec>`: Menerapkan kondisi deklaratif dari `tomcat-spec.yaml` ke runtime Podman lokal.
+   * `tcctl deploy rollout`: Melakukan zero-downtime swap menggunakan temporary staging container (tanpa akhiran -blue/-green).
+   * `tcctl monitoring health`: Memverifikasi kesehatan container pasca-deploy.
+
+### Prinsip Operasional Host Reconciler:
 
 1. **Git Sebagai Single Source of Truth**: Seluruh konfigurasi runtime dideklarasikan dalam file `tomcat-spec.yaml` di repositori Git terpusat.
-2. **Autonomous Host Reconciler**: Setiap host target menjalankan biner operator `tcctl gitops sync` secara berkala via `systemd --user timer` (default interval: 5 menit).
+2. **Autonomous Host Reconciler**: Setiap host target menjalankan biner operator `tcctl gitops sync` secara berkala via `systemd --user timer` (default interval: 5 menit dengan randomized jitter 30 detik).
 3. **Zero Inbound SSH Footprint**: Server target tidak membuka port SSH (Port 22) ke server CI (Jenkins / GitLab CI) atau Ansible Controller. Komunikasi murni berupa *outbound HTTPS pull* ke Git repository dan OCI Container Registry.
 4. **Automated Drift Healing**: Jika kontainer mengalami perubahan konfigurasi manual di luar Git atau berhenti secara tidak sengaja, reconciler secara otonom mengembalikan kondisi kontainer ke spesifikasi yang dideklarasikan di Git.
 

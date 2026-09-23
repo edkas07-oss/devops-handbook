@@ -63,6 +63,141 @@ Dokumen ini merangkum dan menjadi acuan bagi tiga Architecture Decision Records:
 
 ---
 
+## 💬 Rekaman Tanya Jawab & Diskusi Arsitektur (Architectural Q&A)
+
+Sesi perancangan arsitektur ini melibatkan diskusi kritis dan tanya-jawab mendalam untuk membedah dilema operasional nyata di lingkungan enterprise. Bagian ini mendokumentasikan secara lengkap pertanyaan strategis yang diajukan beserta analisis teknis solusinya agar mudah dipahami oleh seluruh tim rekayasa:
+
+---
+
+### ❓ Pertanyaan 1: "Artinya orkestrasinya tetap ada di CI?"
+
+Terkait pertanyaan mengenai letak kendali orkestrasi deployment, terdapat perbedaan mendasar antara **Traditional CD** dan **GitOps CD**:
+
+#### 1. Traditional CI/CD (Orkestrasi CD Menempel di CI Server)
+
+* **Mekanisme Kerja**:
+  * Pada model tradisional, Jenkins (CI) bertindak sebagai pemegang kendali orkestrasi deployment.
+  * Setelah tahapan build & test selesai, Jenkins yang login langsung via SSH atau memanggil Ansible untuk me-restart server satu per satu secara berurutan.
+* **Kelemahan Keamanan di Enterprise**:
+  * Jenkins harus menyimpan SSH keys / kredensial superuser ke seluruh server produksi.
+  * Jika server Jenkins disusupi peretas (misalnya melalui celah remote code execution pada plugin), seluruh armada server produksi dapat dikuasai seketika (*broad blast radius*).
+  * Seluruh server target wajib membuka port 22 (inbound SSH) langsung ke arah runner/worker CI.
+
+#### 2. GitOps CD (Orkestrasi CD Terpisah / Decoupled dari CI)
+
+* **Mekanisme Kerja**:
+  * Pada model GitOps, CI Server (Jenkins) **TIDAK PERNAH** menyentuh atau login ke server produksi.
+  * Tugas CI selesai setelah image OCI berhasil di-push ke container registry dan file konfigurasi deklaratif (`tomcat-spec.yaml`) di Git diperbarui versi tag-nya melalui commit/pull request otomatis.
+* **Pemisahan Batas & Keamanan (*Air Gap / Decoupling Boundary*)**:
+  * Git repository bertindak sebagai gerbang pemisah (*air gap / decoupling boundary*).
+  * Kendali orkestrasi CD berpindah sepenuhnya ke **CD Controller / Reconciler di host target**.
+  * Reconciler di host target yang secara otonom mendeteksi perubahan commit di Git dan mengeksekusi staggered rollout ke armada kontainer menggunakan biner operator `tcctl`.
+
+```
+Traditional CD:  [CI Server (Jenkins)] ──(SSH Push / Broad Blast Radius)──> [Server Prod 1..N]
+GitOps CD:       [CI Server (Jenkins)] ──(Commit Spec)──> [Git Repo] <──(HTTPS Pull)── [Host Reconciler (tcctl)]
+```
+
+#### 🛠️ Peran Modular `tcctl` pada Kedua Domain
+
+Biner operator `tcctl` dirancang secara modular agar melayani kedua domain dengan batas tanggung jawab yang tegas:
+
+| Domain Operasional | Subcommand `tcctl` | Tanggung Jawab & Fungsi |
+| :--- | :--- | :--- |
+| **Sisi CI (Quality Gates)** | `tcctl hardening audit` | Memvalidasi sintaks dan elemen `server.xml` agar patuh 100% pada CIS Apache Tomcat Benchmark sebelum image OCI di-build. |
+| | `tcctl va scan` | Memindai container image terhadap basis data CVE Trivy untuk memastikan tidak ada celah keamanan di atas batas ambang (*threshold*). |
+| **Sisi CD / GitOps (Host Reconciliation)** | `tcctl apply -f <spec>` | Menerapkan *desired state* deklaratif dari `tomcat-spec.yaml` ke runtime Podman lokal. |
+| | `tcctl deploy rollout` | Melakukan swap kontainer zero-downtime menggunakan *temporary staging container* (tanpa akhiran `-blue`/`-green`). |
+| | `tcctl monitoring health` | Memverifikasi ketersediaan dan indikator kesehatan kontainer pasca-rollout. |
+
+---
+
+### ❓ Pertanyaan 2: "Tapi lucunya adalah tcctl itu di deploy-nya sepertinya harus menggunakan CI/CD tradisional, kecuali sudah embedded di image VM. Tapi itu sulit karena VM sudah terbentuk (brownfield). Betul begitu?"
+
+Pertanyaan ini menyentuh dilema klasik dalam rekayasa platform: **Paradoks Ayam-dan-Telur (*The Chicken-and-Egg Bootstrap Paradox*)**.
+
+#### Analisis Dilema Brownfield vs Greenfield
+
+1. **Kondisi Ideal (Greenfield / Immutable Infrastructure)**:
+   * Pada infrastruktur baru, biner `tcctl` dan timer systemd dapat langsung ditanam ke dalam *Golden Image* (misal via Packer / AMI / OVA) sebelum VM dinyalakan. Saat VM pertama kali boot, sistem langsung 100% berstatus otonom.
+2. **Realita Lapangan Enterprise (Brownfield VMs)**:
+   * Pada puluhan server virtual yang sudah lama beroperasi dan tidak mungkin di-rebuild dari awal, biner operator tidak bisa tiba-tiba muncul di server secara mandiri.
+   * **Kesimpulan Pengamatan User 100% Benar**: Harus ada intervensi awal yang menyerupai mekanisme tradisional (SSH push / Ansible) untuk mengantarkan biner `tcctl` ke server tersebut pertama kali.
+
+#### Resolusi Paradoks: Memisahkan Day-1 dari Day-2
+
+Kunci dari arsitektur ini bukanlah menolak akses awal, melainkan **memisahkan siklus hidup infrastruktur menjadi dua fase tegas**:
+
+* **Day-1 (One-Time Bootstrap Event — Terjadi Sekali Seumur Hidup Server)**:
+  * Digunakan khusus untuk onboarding server: meletakkan biner `tcctl`, menyiapkan named volume, mengaktifkan linger user `tomcat`, dan menyalakan `systemd --user timer`.
+  * Begitu selesai, pintu akses Day-1 **langsung dihancurkan permanen**.
+* **Day-2 (Continuous Autonomous Operations — Berjalan Selamanya)**:
+  * Seluruh siklus deployment aplikasi, pembaruan versi, patching image, dan rotasi konfigurasi selanjutnya dilakukan **murni 100% via GitOps pull reconciler**.
+  * Tidak ada lagi push SSH harian yang membebani tim SRE dan mengekspos risiko keamanan.
+
+---
+
+### ❓ Pertanyaan 3: "Apakah ada mekanisme SSH yang disediakan hanya 1 kali penggunaannya? Soalnya kalau tidak, maka PR sekali harus menghapus key di semua host. Betulkah demikian?"
+
+Pertanyaan ini menyoroti risiko operasional nyata: jika administrator menaruh SSH key untuk kebutuhan bootstrap Day-1, menghapus kunci tersebut lewat tiket terpisah atau "PR sekali di masa depan" adalah praktik yang **sangat berisiko karena seringkali terlupakan atau terbengkalai**, meninggalkan *dormant backdoor* di server produksi.
+
+#### Solusi Arsitektur: Pola Self-Destructing Ephemeral SSH Access
+
+Kami merancang mekanisme di mana kredensial SSH Day-1 **memusnahkan dirinya sendiri secara atomik** tanpa membutuhkan intervensi manual atau PR susulan:
+
+1. **Penandaan Tag Kunci Sementara**:
+   Saat kunci publik diinjeksikan ke target host (misal via bastion atau sesi provisioning awal), baris kunci diberi metadata tag identifikasi:
+   ```text
+   ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... # ephemeral-day1-bootstrap
+   ```
+2. **Eksekusi Otomasi Bootstrap**:
+   Skrip `day1-bootstrap.sh` berjalan di server target: memasang biner `tcctl`, mengonfigurasi direktori volume, dan menyalakan timer GitOps.
+3. **Pemusnahan Diri Mandiri (*Self-Purge Execution*)**:
+   Pada instruksi paling akhir sebelum skrip selesai, skrip mengeksekusi penghapusan baris kuncinya sendiri:
+   ```bash
+   sed -i '/# ephemeral-day1-bootstrap/d' ~/.ssh/authorized_keys
+   ```
+4. **Verifikasi Hangus Seketika**:
+   * Sesi SSH aktif selesai dan terputus.
+   * Setiap upaya koneksi baru menggunakan private key yang sama langsung ditolak oleh sshd (`Permission denied (publickey)`).
+   * **Hasil**: Zero manual cleanup, zero leftover keys, dan tidak ada celah backdoor tertinggal.
+
+---
+
+### ❓ Pertanyaan 4: "Kenapa tidak pakai Blue-Green biasa dengan suffix permanen (-blue / -green)? Mengapa memilih Temporary Staging Rollout (<name>-staging -> <name>)?"
+
+Pada implementasi blue-green konvensional, kontainer mempertahankan akhiran permanen, misalnya `payment-blue` pada rilis ganjil dan `payment-green` pada rilis genap.
+
+#### Masalah Operasional Akibat Suffix Permanen:
+
+1. **Dashboard Monitoring & Prometheus Metrics Rusak**:
+   * Metrik diekspor dengan label `container_name="payment-blue"`. Pada rilis berikutnya, label berubah menjadi `container_name="payment-green"`.
+   * Query alerting dan visualisasi Grafana menjadi rumit karena metrik terpecah menjadi time-series yang berbeda atau memerlukan regex rumit (`container=~"payment-(blue|green)"`).
+2. **Beban Kognitif SRE Saat Insiden Malam Hari**:
+   * Operator yang login darurat saat insiden menjalankan `podman ps` dan harus memeriksa konfigurasi port proxy untuk mengetahui kontainer mana yang saat ini aktif melayani traffic pelanggan.
+3. **Konfigurasi Reverse Proxy Bolak-Balik**:
+   * Nginx / HAProxy upstream harus terus-menerus diubah arah port-nya bolak-balik antara 8080 dan 8081.
+
+#### Solusi: Temporary Staging Rollout dengan Promosi Kanonikal Atomik
+
+* Kontainer produksi aktif **SELALU** bernama kanonikal bersih: `<name>` (misal `payment-service`) dan binding di port utama (`8080`).
+* Kontainer baru diluncurkan sementara dengan nama `<name>-staging` di port staging (`9080`) hanya selama 15–30 detik untuk menjalani pre-flight healthcheck probe.
+* Begitu lolos, kontainer lama dihentikan, dan kontainer baru dipromosikan mengambil nama kanonikal `<name>` di port 8080. Kontainer staging dibersihkan.
+* SRE, Prometheus exporter, reverse proxy, dan log collector selalu melihat satu kontainer tunggal bernama stabil `payment-service`.
+
+---
+
+### ❓ Pertanyaan 5: "Bagaimana cara GitOps bekerja di lingkungan non-Kubernetes (Bare-Metal / VM) tanpa resource overhead k8s?"
+
+* **Tantangan**: Memasang cluster Kubernetes (k8s/k3s) pada puluhan VM dedicated hanya untuk menjalankan satu atau dua instance Tomcat adalah pemborosan resource CPU/Memory (*over-engineering*).
+* **Solusi**: Memanfaatkan biner operator Go mandiri (`tcctl`) berukuran ~15MB yang dipicu oleh timer bawaan Linux OS:
+  * Unit `systemd --user timer` berjalan di bawah user aplikasi non-root `tomcat` (tanpa butuh akses root).
+  * Timer berjalan setiap 5 menit dengan *randomized jitter* (30 detik) agar tidak terjadi lonjakan request (*thundering herd*) ke Git server internal.
+  * Reconciler menarik `tomcat-spec.yaml`, membandingkan *desired state* dengan kondisi Podman, dan secara mandiri menyembuhkan deviasi (*self-healing*) jika ada kontainer yang mati atau termodifikasi secara tidak sah.
+  * Seluruh armada VM tidak membutuhkan port masuk (inbound SSH 22 dapat ditutup di firewall), cukup akses keluar (*outbound HTTPS 443*) ke Git dan Registry internal.
+
+---
+
 ## 📐 Architecture & Design Blueprint
 
 ### 1. Arsitektur Dekopel CI dan Pure Pull-Based GitOps (Day-2)
