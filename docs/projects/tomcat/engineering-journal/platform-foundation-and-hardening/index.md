@@ -58,6 +58,10 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 
     Mencatat perakitan container image Windows Apache Tomcat di atas NanoServer (Java 11, 17, 21), integrasi distribusi offline via Gitea OCI Container Registry melalui SSH Reverse Tunnel, resolusi 6 kendala operasional (here-string indentation, Dockerfile backslash escape, OpenSSH environment caching, insecure registry path, dan Tomcat JRE requirement), serta verifikasi live deployment interaktif biner `tcctl.exe` dengan status HEALTHY (HTTP 8080 & HTTPS 8443).
 
+8. **[TN-008 — Implementasi Tata Kelola TLS PKCS#12 Keystore dan Auto-Detection pada Apache Tomcat Enterprise via tcctl](TN-008-pkcs12-keystore-governance-and-auto-detection.md)**
+
+    Mencatat transisi arsitektur kriptografi TLS ke standar industri enterprise PKCS#12 (`.p12` / `.pfx`), implementasi pustaka `software.sslmate.com/src/go-pkcs12` dengan kompatibilitas universal Java (8/11/17/21) & Windows Server, mekanisme auto-detection cerdas pada `conf/ssl/`, bootstrapping self-signed PKCS#12 secara default dengan kompatibilitas ganda (dual-format export), serta penyesuaian perintah `tcctl ssl [check, generate, setup]`.
+
 !!! note "Phase Output"
 
     Fase ini menghasilkan dua repositori operasional yang telah terverifikasi penuh:

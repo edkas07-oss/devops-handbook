@@ -8,3 +8,4 @@ arrange:
 - TN-005-verify-windows-container-runtime-provisioning-and-tcctl-operator-testing.md
 - TN-006-standardize-enterprise-drive-separation-docker-data-root-and-host-bind-mount-hierarchy.md
 - TN-007-build-windows-nanoserver-multi-java-gitea-registry-and-tcctl-verification.md
+- TN-008-pkcs12-keystore-governance-and-auto-detection.md
