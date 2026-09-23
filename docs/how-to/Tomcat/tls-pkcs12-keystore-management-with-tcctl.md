@@ -42,6 +42,26 @@ Konfigurasi pada `server.xml` otomatis terpasang:
              type="RSA" />
 ```
 
+**Deploy Result Summary:**
+```text
+✔ Tomcat instance 'tomcat-lab' is up, running, and fully hardened!
+
+ Runtime Environment:
+   - Container Image : tomcat:9.0-jdk11
+   - Tomcat Version  : Apache Tomcat/9.0.98
+   - Java / JDK      : 11.0.32+9 (Eclipse Adoptium)
+
+ Endpoints:
+   - HTTP    : http://localhost:8080/
+   - HTTPS   : https://localhost:8443/
+
+ Host Bind Mounts (TC-ADR-0009):
+   - Base Dir : C:\tomcats
+   - Conf     : C:\tomcats\tomcat-lab\conf (Read-Only :ro)
+   - Webapps  : C:\tomcats\tomcat-lab\webapps
+   - Logs     : C:\tomcats\tomcat-lab\logs
+```
+
 ---
 
 ### Skenario 2: Menggunakan Sertifikat Sendiri (Commercial / Corporate CA PKCS#12)

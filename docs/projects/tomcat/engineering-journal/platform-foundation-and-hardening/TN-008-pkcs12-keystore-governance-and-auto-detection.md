@@ -124,7 +124,36 @@ flowchart TD
     KeepXML --> CISAudit
     CISAudit --> RunContainer["Jalankan Container Engine (Docker/Podman)"]
     RunContainer --> HealthCheck["HTTP & HTTPS Probe Verification"]
+    HealthCheck --> DetectVersions["Inspeksi Runtime Version:<br/>Tomcat Version & Java/JDK Version"]
+    DetectVersions --> ResultSummary["Tampilkan Deploy Result Summary"]
 ```
+
+### 3.5 Pelaporan Runtime Environment pada Result Summary (`tcctl deploy`)
+
+Setelah verifikasi healthcheck HTTP (8080) lolos, `tcctl` secara otomatis menginspeksi log container (`VersionLoggerListener`) untuk mengekstraksi dan menampilkan versi runtime yang sedang aktif pada blok **Deploy Result Summary**:
+
+```text
+✔ Tomcat instance 'tomcat-lab' is up, running, and fully hardened!
+
+ Runtime Environment:
+   - Container Image : tomcat:9.0-jdk11
+   - Tomcat Version  : Apache Tomcat/9.0.98
+   - Java / JDK      : 11.0.32+9 (Eclipse Adoptium)
+
+ Endpoints:
+   - HTTP    : http://localhost:8080/
+   - HTTPS   : https://localhost:8443/
+
+ Host Bind Mounts (TC-ADR-0009):
+   - Base Dir : C:\tomcats
+   - Conf     : C:\tomcats\tomcat-lab\conf (Read-Only :ro)
+   - Webapps  : C:\tomcats\tomcat-lab\webapps
+   - Logs     : C:\tomcats\tomcat-lab\logs
+```
+
+Logika deteksi:
+1. **Inspeksi Log Kontainer**: Membaca baris `Server version name:` dan `JVM Version:` serta `JVM Vendor:` dari keluaran `VersionLoggerListener`.
+2. **Fallback Parsing Citra Kontainer**: Jika buffer log belum terisi, versi diinferensi secara cerdas dari tag citra kontainer (misal `tomcat:9.0-jdk11` $\rightarrow$ `Apache Tomcat/9.0`, `OpenJDK 11`).
 
 ---
 
@@ -136,9 +165,9 @@ Seluruh paket pengujian unit dieksekusi tanpa cache (`go test -count=1 -v ./...`
 
 | Paket Pengujian | Uji Kasus | Hasil |
 |---|---|---|
-| `internal/ssl` | `TestGenerateAndCheckPKCS12`<br/>`TestDefaultPasswordPKCS12AutoDetect`<br/>`TestEnableHTTPSConnectorPKCS12` | **PASS (0.126s)** |
+| `internal/ssl` | `TestGenerateAndCheckPKCS12`<br/>`TestDefaultPasswordPKCS12AutoDetect`<br/>`TestEnableHTTPSConnectorPKCS12` | **PASS (0.115s)** |
 | `internal/hardening` | `TestDetectCertMode`<br/>`TestApplyHardenedTemplatesPKCS12AndAudit`<br/>`TestApplyHardenedTemplatesPEMAndAudit` | **PASS (0.003s)** |
-| `internal/orchestrator` | `TestFilterTomcatImages`<br/>`TestPromptImageSelectionWithReader`<br/>`TestResolveDefaultBaseDir`<br/>`TestProvisionHostDirectories` (PKCS#12 + PEM dual verify)<br/>`TestDeployConfigAndRolloutConfigBaseDir` | **PASS (0.092s)** |
+| `internal/orchestrator` | `TestFilterTomcatImages`<br/>`TestPromptImageSelectionWithReader`<br/>`TestResolveDefaultBaseDir`<br/>`TestProvisionHostDirectories` (PKCS#12 + PEM dual verify)<br/>`TestDeployConfigAndRolloutConfigBaseDir`<br/>`TestParseVersionLoggerOutput`<br/>`TestFallbackParseFromImage` | **PASS (0.059s)** |
 | `internal/gitops` | `TestDefaultSpecTemplate`<br/>`TestValidationErrors`<br/>`TestStateSaveAndLoad` | **PASS (0.003s)** |
 
 ### 4.2 Cross-Compilation Multi-Platform
@@ -153,7 +182,7 @@ Binary `tcctl.exe` dideploy ke server `win-lab` (`184.194.25.77`) dan diverifika
 
 ```powershell
 PS C:\Users\Administrator> C:\Users\Administrator\tcctl.exe version
-tcctl v1.0.0 (commit: 1f5e1fc, built: 2026-09-23T14:34:37Z, windows/amd64)
+tcctl v1.0.0 (commit: 380a191, built: 2026-09-23T14:42:52Z, windows/amd64)
 ```
 
 Verifikasi pembuatan TLS material mandiri:
