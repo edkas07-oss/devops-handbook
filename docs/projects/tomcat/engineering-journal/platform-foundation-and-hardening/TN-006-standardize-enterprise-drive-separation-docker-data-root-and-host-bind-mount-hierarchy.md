@@ -47,7 +47,7 @@ Pengujian manual onboarding dilakukan pada VM Windows Server yang baru diinstal 
   1. *Perintah `Set-Content` pada `sshd_config`:* Berkas `C:\ProgramData\ssh\sshd_config` dibuat tanpa pemutusan pewarisan ACL, sehingga mewarisi izin baca/tulis untuk grup `BUILTIN\Users`. OpenSSH mendeteksi ini sebagai celah keamanan fatal (*insecure configuration*) dan menolak beroperasi.
   2. *Deadlock Dependensi `ssh-agent`:* Perintah `sc.exe config sshd depend= ssh-agent` memaksa SCM menunggu `ssh-agent`. Jika `ssh-agent` gagal aktif atau dalam status non-running, SCM mengalami *startup deadlock*.
 * **Solusi Kanonikal:**
-  1. Menjalankan skrip `bootstrap-windows-host.ps1` secara utuh sebagai satu berkas `.ps1` (bukan copy-paste baris ke prompt interaktif).
+  1. Menjalankan skrip `setup_openssh_win_bootstrap.ps1` (tersedia di `tcctl/scripts/bootstrap/setup_openssh_win_bootstrap.ps1`) secara utuh sebagai satu berkas `.ps1` (bukan copy-paste baris ke prompt interaktif).
   2. Mengunci ACL pada seluruh berkas konfigurasi dan host keys hanya untuk SID `S-1-5-18` (SYSTEM) dan `S-1-5-32-544` (Administrators).
   3. Melepas ikatan dependensi `ssh-agent`: `sc.exe config sshd depend= /`.
 
@@ -91,7 +91,7 @@ Pengujian manual onboarding dilakukan pada VM Windows Server yang baru diinstal 
 * **Temuan Operasional:**
   Skrip Day-1 sebelumnya memuat pemasangan MinGit, Trivy Scanner, dan registrasi Scheduled Task `tcctl-gitops-reconciler`. Pada fase **Manual UAT**, komponen tersebut tidak diperlukan dan hanya menambah waktu tunggu pengujian serta memperbesar footprint sistem.
 * **Solusi Kanonikal:**
-  Mengeliminasi MinGit, Trivy, dan Scheduled Task dari `day1-bootstrap.ps1`. Skrip difokuskan murni pada 6 langkah inti:
+  Mengeliminasi MinGit, Trivy, dan Scheduled Task dari `day1_bootstrap.ps1`. Skrip difokuskan murni pada 6 langkah inti:
   1. Validasi Administrator
   2. Verifikasi status OpenSSH (Read-Only)
   3. Aktivasi fitur Windows Containers & deteksi reboot
@@ -190,7 +190,7 @@ Machine PATH verified containing:
   - C:\Program Files\tcctl
 ```
 
-### 4. Checklist Status Akhir `day1-bootstrap.ps1`
+### 4. Checklist Status Akhir `day1_bootstrap.ps1`
 ```text
 ================================================================================
          APACHE TOMCAT ENTERPRISE — TAHAP 1 BOOTSTRAPPING SELESAI               

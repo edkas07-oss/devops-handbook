@@ -151,7 +151,7 @@ Kami merancang mekanisme di mana kredensial SSH Day-1 **memusnahkan dirinya send
    ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... # ephemeral-day1-bootstrap
    ```
 2. **Eksekusi Otomasi Bootstrap**:
-   Skrip `day1-bootstrap.sh` berjalan di server target: memasang biner `tcctl`, mengonfigurasi direktori volume, dan menyalakan timer GitOps.
+   Skrip `day1_bootstrap.sh` berjalan di server target: memasang biner `tcctl`, mengonfigurasi direktori volume, dan menyalakan timer GitOps.
 3. **Pemusnahan Diri Mandiri (*Self-Purge Execution*)**:
    Pada instruksi paling akhir sebelum skrip selesai, skrip mengeksekusi penghapusan baris kuncinya sendiri:
    ```bash
@@ -439,7 +439,7 @@ flowchart LR
 3. **Fase 3 (Implementasi Paket `internal/gitops` pada `tcctl`)**:
    - Paket `internal/gitops` mengimplementasikan: parser `tomcat-spec.yaml` (`gopkg.in/yaml.v3`), state persistence (`state.json`), `tcctl gitops init`, `tcctl gitops sync`, `tcctl gitops status`, dan unit generator `systemd --user timer`.
 4. **Fase 4 (Otomasi Day-1 Ephemeral Bootstrap)**:
-   - Skrip `scripts/bootstrap/day1-bootstrap.sh` dan Ansible playbook `scripts/bootstrap/day1-bootstrap.yml` dengan instruksi pemusnahan kunci mandiri (`sed -i '/ephemeral-day1-bootstrap/d' ~/.ssh/authorized_keys`).
+   - Skrip `scripts/bootstrap/day1_bootstrap.sh` dan Ansible playbook `scripts/bootstrap/day1_bootstrap.yml` dengan instruksi pemusnahan kunci mandiri (`sed -i '/ephemeral-day1-bootstrap/d' ~/.ssh/authorized_keys`).
 5. **Fase 5 (Pengujian Live Runtime & Verifikasi)**:
    - Seluruh skenario telah teruji live pada Rootless Podman (rollout nol-downtime, deteksi drift dan self-healing otomatis, serta pembersihan kunci SSH).
 

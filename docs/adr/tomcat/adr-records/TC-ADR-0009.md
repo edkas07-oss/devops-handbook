@@ -147,3 +147,13 @@ Muncul kekhawatiran umum bahwa Bind Mount memiliki penalti performa I/O dibandin
 
 ### Kompromi / Pertimbangan:
 - Administrator host harus memastikan izin akses NTFS pada folder `<BaseDir>` dapat dibaca dan ditulis oleh konteks pengguna runtime kontainer (`ContainerUser` atau `ContainerAdministrator`). Logika ini ditangani secara otomatis oleh `tcctl deploy run`.
+
+---
+
+## 📦 Implementation & Operational Artifacts
+
+Implementasi dari keputusan arsitektur ini didukung oleh komponen-komponen berikut:
+- **`tcctl/scripts/bootstrap/day1_bootstrap.ps1`**: Mengonfigurasi Docker Engine `data-root` secara otomatis ke `D:\docker` (jika drive `D:\` tersedia) dan menyiapkan direktori induk `D:\tomcats`.
+- **`tcctl/scripts/bootstrap/setup_openssh_win_bootstrap.ps1`**: Mempersiapkan prasyarat OpenSSH Server dan izin ACL Windows sebelum bootstrapping.
+- **`tcctl deploy run`**: Menerima parameter `--base-dir <Path>` untuk memetakan bind mounts `<BaseDir>\<instance>\[conf, webapps, logs]` ke kontainer Tomcat.
+- **[TN-006](../../projects/tomcat/engineering-journal/platform-foundation-and-hardening/TN-006-standardize-enterprise-drive-separation-docker-data-root-and-host-bind-mount-hierarchy.md)**: Catatan teknis investigasi dan verifikasi live pembagian drive dan hierarki bind-mount.

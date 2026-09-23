@@ -108,3 +108,14 @@ sequenceDiagram
 
 ### Negative / Trade-offs
 - Jika eksekusi bootstrap terputus sebelum mencapai baris penghapusan (misal putus koneksi mendadak), kunci mungkin masih tersisa. Hal ini dimitigasi dengan membungkus skrip ke dalam trap sinyal Bash (`trap 'cleanup' EXIT`).
+
+---
+
+## 📦 Implementation & Operational Artifacts
+
+Implementasi dan otomasi prinsip bootstrapping ini dikelola dalam repositori `tcctl`:
+- **`tcctl/scripts/bootstrap/day1_bootstrap.sh`**: Skrip Bash untuk Linux host onboarding dengan pembersihan mandiri tag kunci sementara (`# ephemeral-day1-bootstrap`).
+- **`tcctl/scripts/bootstrap/day1_bootstrap.yml`**: Ansible playbook untuk fleet-wide Linux bootstrapping.
+- **`tcctl/scripts/bootstrap/day1_bootstrap.ps1`**: Skrip PowerShell untuk Day-1 Windows Server container runtime bootstrapping dengan prinsip SSH coexistence.
+- **`tcctl/scripts/bootstrap/setup_openssh_win_bootstrap.ps1`**: Skrip PowerShell inisialisasi awal capability OpenSSH Server dan penguncian ACL Windows sebelum provisi Day-1.
+- **`tcctl/scripts/bootstrap/install_docker.ps1`**: Installer Docker CE untuk Windows Server offline/SCP.

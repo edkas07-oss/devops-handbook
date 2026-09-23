@@ -176,10 +176,10 @@ docker volume create tomcat-app_conf
 
 <div class="procedure-step" markdown>
 
-### 5. Otomasi Day-1 Windows Bootstrapper (`day1-bootstrap.ps1`) & Model Koeksistensi SSH
+### 5. Otomasi Day-1 Windows Bootstrapper (`day1_bootstrap.ps1`) & Model Koeksistensi SSH
 
 Untuk menyatukan seluruh langkah provisioning manual di atas ke dalam otomasi enterprise yang andal (*repeatable*), dikembangkan skrip bootstrapper PowerShell:  
-📂 `tcctl/scripts/bootstrap/day1-bootstrap.ps1` (didokumentasikan dalam `tcctl/scripts/bootstrap/README.md`).
+📂 `tcctl/scripts/bootstrap/day1_bootstrap.ps1` (didokumentasikan dalam `tcctl/scripts/bootstrap/README.md`).
 
 #### Keputusan Arsitektur: Model Koeksistensi SSH (*SSH Coexistence Model*)
 Dalam lingkungan armada server bersama (*shared enterprise hosts*), host Windows sering kali digunakan bersama oleh beberapa aplikasi dan pipeline CI/CD tradisional (seperti Jenkins SSH agent, Ansible controller, atau monitoring fleet).
@@ -187,9 +187,9 @@ Dalam lingkungan armada server bersama (*shared enterprise hosts*), host Windows
 - **Kunci permanen milik CI/CD lain di `authorized_keys` dan `administrators_authorized_keys` dijaga 100% utuh**.
 - **Untuk Apache Tomcat Enterprise**: Operasional Day-2 mencapai status otonom murni (*zero-inbound SSH*) karena rekonsiliasi dan self-healing dipicu secara lokal oleh **Windows Scheduled Task (`tcctl-gitops-reconciler`)** yang berjalan periodik setiap 5 menit, bukan lagi dipicu melalui remote push SSH.
 
-#### Hasil Verifikasi Eksekusi `day1-bootstrap.ps1` di Server Windows:
+#### Hasil Verifikasi Eksekusi `day1_bootstrap.ps1` di Server Windows:
 ```powershell
-.\scripts\bootstrap\day1-bootstrap.ps1 `
+.\scripts\bootstrap\day1_bootstrap.ps1 `
     -GitOpsRepo "http://localhost:3000/gitadm/tomcat-gitops.git" `
     -GitOpsBranch "main" `
     -SyncIntervalMinutes 5
@@ -360,7 +360,7 @@ flowchart TD
 | **CLI Tooling PATH** | `git --version`, `trivy --version` | **SUCCESS** | Git 2.47.1 dan Trivy 0.74.0 terdaftar di system PATH. |
 | **Audit CIS Hardening** | `.\bin\tcctl.exe hardening audit --conf ../tomcat/conf` | **SUCCESS** | 9/9 rules passed (**100% COMPLIANT**). |
 | **SSL Certificate Governance** | `.\bin\tcctl.exe ssl check --volume tomcat-app_conf` | **SUCCESS** | Masa aktif 364 hari, CN: localhost, status: **PASS [OK]**. |
-| **Windows Day-1 Bootstrapper** | `.\scripts\bootstrap\day1-bootstrap.ps1` | **SUCCESS** | Otomasi 8 tahap selesai, task scheduler `tcctl-gitops-reconciler` aktif (**Ready**). |
+| **Windows Day-1 Bootstrapper** | `.\scripts\bootstrap\day1_bootstrap.ps1` | **SUCCESS** | Otomasi 8 tahap selesai, task scheduler `tcctl-gitops-reconciler` aktif (**Ready**). |
 | **SSH Coexistence Governance** | Audit service `sshd` & firewall port 22 | **PRESERVED** | Layanan OpenSSH tetap Running & Automatic untuk pipeline CI/CD proyek lain. |
 
 ---
