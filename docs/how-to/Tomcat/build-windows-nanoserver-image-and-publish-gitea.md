@@ -159,7 +159,11 @@ Metode ini memungkinkan host production lain melakukan `docker pull` secara lang
 2. **Izinkan Insecure Registry HTTP** (di PowerShell host Windows):
    Karena registry internal menggunakan HTTP (bukan HTTPS publik), daftarkan ke `daemon.json`:
    ```powershell
-   $configPath = "C:\ProgramData\docker\config\daemon.json"
+   $configDir = "C:\ProgramData\docker\config"
+   if (-not (Test-Path $configDir)) {
+       New-Item -ItemType Directory -Force -Path $configDir | Out-Null
+   }
+   $configPath = "$configDir\daemon.json"
    $json = if (Test-Path $configPath) { Get-Content $configPath -Raw | ConvertFrom-Json } else { @{} }
    $json | Add-Member -NotePropertyName "insecure-registries" -NotePropertyValue @("localhost:3000") -Force
    $json | ConvertTo-Json | Set-Content $configPath -Encoding ASCII
