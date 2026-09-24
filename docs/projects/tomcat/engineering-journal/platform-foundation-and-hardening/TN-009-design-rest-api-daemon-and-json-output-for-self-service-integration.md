@@ -297,3 +297,19 @@ Daemon dijalankan pada `http://127.0.0.1:8089` dengan proteksi API Key `SecretTo
 
 Semua panggilan API berjalan sepenuhnya in-memory dengan jejak memori <20MB RAM, membuktikan kesiapan integrasi penuh ke portal Backstage / IDP enterprise.
 
+### 8.4 Verifikasi Live Windows Server (`win-lab`)
+Biner `bin/tcctl.exe` ditransfer ke host Windows Server (`win-lab:C:\Users\Administrator\tcctl.exe`) dan diverifikasi fungsionalitasnya:
+1. **Dual-Channel Audit (`tcctl.exe hardening audit`)**:
+   - Command: `C:\Users\Administrator\tcctl.exe hardening audit --conf C:\tomcats\tomcat-lab\conf --json-out C:\temp\audit.json`
+   - Hasil: 9 Passed, 0 Failed (100% CIS Compliance), terminal output ANSI utuh, dan `C:\temp\audit.json` terekspor sesuai skema standar.
+2. **Dual-Channel SSL Check (`tcctl.exe ssl check`)**:
+   - Command: `C:\Users\Administrator\tcctl.exe ssl check --keystore C:\tomcats\tomcat-lab\conf\ssl\keystore.p12 --password changeit --json-out C:\temp\ssl.json`
+   - Hasil: Masa berlaku tersisa 364 hari, status `OK`, dan `C:\temp\ssl.json` terekspor dengan metadata PKCS#12 lengkap.
+3. **REST API Daemon Windows (`tcctl.exe serve`)**:
+   - Daemon dijalankan pada port `8089` (`host 127.0.0.1`, API Key `SecretToken123`).
+   - Probe liveness `/healthz` terverifikasi (`status: OK`).
+   - Gate otentikasi tanpa API Key mengembalikan `HTTP 401 Unauthorized`.
+   - Endpoint `/api/v1/ssl/check` mengembalikan JSON status keystore secara instan.
+   - Endpoint `POST /api/v1/hardening/audit` memproses direktori Tomcat Windows dan mengembalikan 100% kepatuhan CIS.
+
+
