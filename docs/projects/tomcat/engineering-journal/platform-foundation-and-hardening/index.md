@@ -27,6 +27,7 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 | **Observability & Deploy** | Synthetic HTTP health probe, JMX metrics parser, dan Blue-Green deployment runner dengan automated rollback. | Completed |
 | **Pure GitOps & Staging Rollout** | Arsitektur Pure Pull-Based GitOps (`tcctl gitops sync` via `systemd --user timer`), refactoring temporary staging container rollout (`<name>-staging` -> `<name>`), dan Day-1 self-destructing bootstrap key. | Design Accepted |
 | **Windows Container & Operator Testing** | Provisioning Windows Containers di Windows Server 2022 AWS, instalasi Docker CE v27.5.1, Tooling PATH, dan validasi live `tcctl.exe` (Audit CIS & SSL check). | Completed |
+| **REST API Daemon & JSON Output** | Desain arsitektur standardisasi JSON output (`--json-out`) dan embedded REST API daemon (`tcctl serve`) untuk integrasi aplikasi Self-Service Portal / IDP. | Design Accepted |
 
 ## 📄 Technical Notes
 
@@ -61,6 +62,10 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 8. **[TN-008 — Implementasi Tata Kelola TLS PKCS#12 Keystore dan Auto-Detection pada Apache Tomcat Enterprise via tcctl](TN-008-pkcs12-keystore-governance-and-auto-detection.md)**
 
     Mencatat transisi arsitektur kriptografi TLS ke standar industri enterprise PKCS#12 (`.p12` / `.pfx`), implementasi pustaka `software.sslmate.com/src/go-pkcs12` dengan kompatibilitas universal Java (8/11/17/21) & Windows Server, mekanisme auto-detection cerdas pada `conf/ssl/`, bootstrapping self-signed PKCS#12 secara default dengan kompatibilitas ganda (dual-format export), serta penyesuaian perintah `tcctl ssl [check, generate, setup]`.
+
+9. **[TN-009 — Desain Arsitektur REST API Daemon dan Standardisasi JSON Output pada tcctl untuk Integrasi Aplikasi Self-Service](TN-009-design-rest-api-daemon-and-json-output-for-self-service-integration.md)**
+
+    Mencatat cetak biru transformasi `tcctl` dari kakas CLI manual menjadi Platform Service & Automation Engine: standardisasi output JSON non-destruktif (`--json-out`) yang menjaga integritas tampilan visual terminal, arsitektur embedded HTTP REST API daemon (`tcctl serve`) dengan otentikasi API Key, pemetaan skema endpoint `/api/v1` untuk deployment, hardening, SSL, dan monitoring, serta panduan integrasi background service pada Windows Service dan Linux systemd.
 
 !!! note "Phase Output"
 

@@ -9,3 +9,4 @@ arrange:
 - TN-006-standardize-enterprise-drive-separation-docker-data-root-and-host-bind-mount-hierarchy.md
 - TN-007-build-windows-nanoserver-multi-java-gitea-registry-and-tcctl-verification.md
 - TN-008-pkcs12-keystore-governance-and-auto-detection.md
+- TN-009-design-rest-api-daemon-and-json-output-for-self-service-integration.md
