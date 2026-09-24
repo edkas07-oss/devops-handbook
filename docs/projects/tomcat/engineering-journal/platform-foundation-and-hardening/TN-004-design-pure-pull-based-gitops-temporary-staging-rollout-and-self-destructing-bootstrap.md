@@ -333,6 +333,284 @@ Manifes GitOps harus bersifat seringkas dan sedeklaratif mungkin (*Minimalist & 
 
 ---
 
+### ❓ Pertanyaan 10: "Bagaimana pengelolaan memori JVM (Heap Size, GC, dan JVM Options) di dalam kontainer, dan bagaimana cara memodifikasinya?"
+
+Pada lingkungan bare-metal atau VM konvensional, JVM umumnya dialokasikan menggunakan parameter statis seperti `-Xms4g -Xmx4g`. Namun di dalam kontainer (Docker/OCI), JVM berjalan di dalam isolasi batasan sumber daya (*resource limits*) yang dikendalikan oleh Linux cgroups atau Windows Job Objects.
+Jika alokasi memori JVM tidak dirancang dengan tepat, kontainer berisiko tinggi mengalami **OOMKilled (Exit Code 137)** mendadak dari kernel OS tanpa pesan error atau jejak stack trace pada log Apache Tomcat!
+
+#### 1. Anatomi Memori JVM: Bahaya Fatal Menyamakan Heap dengan Memory Limit Kontainer
+
+Kesalahan paling umum dalam kontainerisasi Java adalah menyetel `-Xmx` sama dengan memory limit kontainer (misalnya: limit kontainer = 4 GB, lalu disetel `-Xmx4g`).
+
+JVM **bukan hanya Heap**! Struktur konsumsi memori JVM terdiri dari:
+1. **Heap Memory** (`-Xmx`): Tempat seluruh objek instansiasi aplikasi Java dialokasikan dan dikelola oleh Garbage Collector.
+2. **Non-Heap Memory**:
+   * **Metaspace** (`-XX:MaxMetaspaceSize`): Memuat metadata kelas (*class metadata*), konstanta, dan metode (*method bytecode*).
+   * **Thread Stack** (`-Xss`): Setiap thread Java yang aktif mengonsumsi alokasi memori off-heap (default 1 MB per thread pada OS 64-bit). Jika Tomcat melayani 200 worker threads (`maxThreads="200"`), maka memori off-heap yang dikonsumsi thread stack saja mencapai **200 MB**!
+   * **Code Cache**: Memori tempat Just-In-Time (JIT) Compiler menyimpan kompilasi kode native machine.
+   * **Direct Byte Buffers & NIO**: Buffer memori native yang dialokasikan langsung di luar JVM Heap untuk I/O jaringan berkecepatan tinggi oleh Tomcat Connector (NIO/APR).
+   * **Garbage Collector & JVM Internal Overhead**: Struktur data internal untuk melacak object graph dan card tables.
+
+```
+Total Memory Kontainer (e.g. 4.0 GB)
+┌───────────────────────────────────────────────────────────────┐
+│                                                               │
+│  ┌───────────────────────────────────┐  ┌──────────────────┐  │
+│  │                                   │  │ Non-Heap:        │  │
+│  │          Java Heap Memory         │  │ • Metaspace      │  │
+│  │          (Max 70% - 75%)          │  │ • Thread Stacks  │  │
+│  │                                   │  │ • Code Cache     │  │
+│  │       -XX:MaxRAMPercentage=75.0   │  │ • Direct Buffers │  │
+│  │               (~3.0 GB)           │  │ • OS Overhead    │  │
+│  │                                   │  │ (25% - 30%)      │  │
+│  └───────────────────────────────────┘  └──────────────────┘  │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
+```
+
+> [!CAUTION]
+> **Golden Rule Alokasi JVM di Kontainer**:
+> Heap maksimum (`-Xmx` atau `MaxRAMPercentage`) **hanya boleh dialokasikan 70% – 75%** dari total batas memori kontainer! Sisa 25% – 30% wajib dialokasikan untuk memori Non-Heap dan overhead OS kontainer. Jika Heap disetel mendekati 100%, lonjakan alokasi off-heap atau thread baru akan memicu kernel OS membunuh kontainer secara seketika (*OOMKilled Exit Code 137*).
+
+#### 2. Dynamic Memory Sizing via Container Awareness (`-XX:+UseContainerSupport`)
+
+Mulai OpenJDK 8u191+ dan secara default pada OpenJDK 11+, JVM dilengkapi kapabilitas membaca limit memori cgroups/Job Object secara native:
+* Hindari menyetel nilai statis (seperti `-Xmx4g`), karena jika limit kontainer diubah di masa depan (misal di `tomcat-spec.yaml` dinaikkan dari 4 GB menjadi 8 GB), JVM tidak akan memanfaatkan kapasitas tambahan tersebut tanpa modifikasi manual.
+* Gunakan persentase dinamis:
+  ```bash
+  -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=75.0 -XX:MinRAMPercentage=75.0
+  ```
+  Dengan konfigurasi ini, jika limit kontainer pada `tomcat-spec.yaml` disetel 4 GB, Heap otomatis dialokasikan ~3.0 GB. Jika limit dinaikkan menjadi 8 GB, JVM otomatis menyesuaikan Heap menjadi ~6.0 GB tanpa perlu memodifikasi Dockerfile atau image kontainer.
+
+#### 3. Lokasi Modifikasi JVM Options: `CATALINA_OPTS` vs `JAVA_OPTS`
+
+Dalam Apache Tomcat, terdapat pemisahan tegas antara variabel lingkungan JVM:
+* **Gunakan `CATALINA_OPTS` (Bukan `JAVA_OPTS`)**:
+  * `JAVA_OPTS` dieksekusi pada *setiap* pemanggilan perintah Java di Tomcat, termasuk perintah `bin/shutdown.sh` / `bin/shutdown.bat` dan utilitas internal seperti `bin/version.sh`. Jika `-Xmx` besar ditaruh di `JAVA_OPTS`, skrip shutdown akan mencoba mengalokasikan Heap besar hanya untuk mengirim sinyal stop, yang berpotensi gagal akibat limit memori kontainer sudah habis.
+  * `CATALINA_OPTS` **hanya** dieksekusi saat server Tomcat dijalankan (`catalina.sh run` / `catalina.bat run`).
+
+* **Mekanisme Penerapan**:
+  1. **Melalui Skrip `setenv` Bawaan Tomcat**:
+     * Pada Linux: `<CATALINA_HOME>/bin/setenv.sh`
+       ```bash
+       export CATALINA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+       ```
+     * Pada Windows: `<CATALINA_HOME>/bin/setenv.bat`
+       ```cmd
+       set "CATALINA_OPTS=-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+       ```
+  2. **Melalui Environment Variable pada Manifes GitOps (`tomcat-spec.yaml`)**:
+     Operator dapat mendefinisikan flag JVM langsung pada manifes deklaratif, yang diteruskan oleh `tcctl` ke kontainer:
+     ```yaml
+     container:
+       env:
+         CATALINA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+     ```
+  3. **Fail-Fast Resiliency**:
+     Parameter `-XX:+ExitOnOutOfMemoryError` atau `-XX:+CrashOnOutOfMemoryError` wajib disertakan agar saat terjadi OutOfMemory, proses JVM langsung dihentikan seketika. Hal ini memungkinkan reconciler otonom `tcctl` mendeteksi bahwa kontainer mati dan langsung memicu *auto-healing / self-recovery*.
+
+---
+
+### ❓ Pertanyaan 11: "Mengapa JDK 8 tidak dianjurkan untuk kontainer modern, dan apakah JDK 11 LTS masih layak untuk Apache Tomcat 9?"
+
+#### 1. Mengapa JDK 8 Ditinggalkan / Tidak Dianjurkan untuk Kontainer Modern:
+Meskipun JDK 8 memiliki riwayat adopsi yang sangat luas di masa lalu, penggunaannya pada platform kontainer modern menghadapi hambatan teknis serius:
+1. **Ukuran Base Image Windows yang Masif (ServerCore vs. NanoServer)**:
+   JDK 8 membutuhkan pustaka Win32 API lengkap yang tidak tersedia di Windows NanoServer. Akibatnya, image Windows Container untuk JDK 8 wajib menggunakan base image **Windows ServerCore** dengan ukuran masif (**4.5 GB – 5.0 GB**). Bandingkan dengan JDK 11 Headless yang dapat berjalan di atas **Windows NanoServer** dengan ukuran hanya **~250 MB – 300 MB**! Ukuran ServerCore yang besar memperlambat pipeline CI, memboroskan bandwidth registry, dan memperlama proses cold pull di host target.
+2. **Keterbatasan Dukungan Kontainer (cgroups & CPU Quota)**:
+   Meskipun rilis akhir (8u191+) mem-backport `-XX:+UseContainerSupport`, implementasinya belum stabil terhadap cgroups v2, multi-socket core detection, dan CPU quota throttling. JVM sering salah membaca jumlah core fisik host alih-alih alokasi CPU limit kontainer, menyebabkan pemborosan thread Garbage Collection (*GC thrashing*).
+3. **Garbage Collector Usang**:
+   Default GC pada JDK 8 adalah *Parallel GC* yang berorientasi throughput tetapi menghasilkan waktu jeda (*Stop-The-World pause*) yang panjang. Fitur G1GC pada Java 8 belum optimal dan mengonsumsi overhead memori off-heap yang tinggi.
+4. **Protokol Kriptografi Usang**:
+   JDK 8 tidak mendukung TLS 1.3 secara native, menyulitkan kepatuhan terhadap standar audit keamanan perbankan dan industri (CIS-Benchmark / PCI-DSS v4.0).
+
+#### 2. Mengapa JDK 11 LTS adalah "Sweet Spot" dan Sangat Ideal untuk Tomcat 9:
+Bagi arsitektur enterprise yang menstandarisasi **Apache Tomcat 9.0**, JDK 11 LTS adalah pilihan paling optimal (*Sweet Spot*) karena alasan-alasan fundamental berikut:
+1. **Kompatibilitas Penuh Namespace `javax.*` (Zero Breaking Changes)**:
+   Apache Tomcat 9 mengimplementasikan spesifikasi Java EE 8 (Servlet 4.0, JSP 2.3) yang menggunakan namespace paket `javax.*`. Mulai Tomcat 10+ (Jakarta EE 9/10 dan Spring Boot 3), seluruh ekosistem Java bermigrasi ke namespace baru `jakarta.*`. Aplikasi legacy enterprise yang bergantung pada paket `javax.*` dapat berjalan stabil di atas JDK 11 pada Tomcat 9 tanpa memerlukan refactoring kode ataupun perubahan dependensi.
+2. **Dukungan Penuh Windows NanoServer**:
+   OpenJDK 11 mendukung distribusi headless murni yang dapat berjalan langsung di atas Windows Server 2022 NanoServer, memangkas footprint image dari 5 GB menjadi < 400 MB (pengurangan ukuran >90%).
+3. **Siklus Hidup Dukungan Vendor (Long-Term Support)**:
+   Distribusi OpenJDK enterprise terkemuka (Eclipse Adoptium/Temurin, Red Hat OpenJDK, Amazon Corretto, Azul Zulu) memberikan komitmen *Extended Support* dan pembaruan patch keamanan untuk OpenJDK 11 hingga setidaknya **Oktober 2027** (bahkan beberapa vendor menyediakan dukungan berbayar hingga 2028-2030).
+4. **Kapabilitas Kontainer Matang**:
+   Mendukung penuh cgroups v1 dan v2, pembacaan CPU quota yang akurat, default G1GC yang hemat memori, string deduplication, dan dukungan penuh TLS 1.3 native.
+
+| Kriteria Evaluasi | OpenJDK 8 | **OpenJDK 11 LTS (Sweet Spot)** | OpenJDK 17 / 21 LTS |
+| :--- | :--- | :--- | :--- |
+| **Target Pasangan Tomcat** | Tomcat 8.5 / 9.0 | **Tomcat 9.0 (Rekomendasi)** | Tomcat 10.1 / 11.0 |
+| **Java EE Namespace** | `javax.*` | **`javax.*` (100% kompatibel legacy)** | `jakarta.*` (Wajib refactor paket) |
+| **Ukuran Windows Image** | ServerCore (~4.5 GB - 5.0 GB) | **NanoServer (~250 MB - 350 MB)** | NanoServer (~250 MB - 350 MB) |
+| **Container Awareness** | Terbatas (Backport 8u191+) | **Native & Matang (cgroups v1/v2)** | Native & Optimal |
+| **Default Garbage Collector** | Parallel GC (STW pauses lama) | **G1GC (Low pause, stabil)** | G1GC / ZGC Generational |
+| **Dukungan TLS 1.3** | Tidak native (perlu tweak) | **Native out-of-the-box** | Native out-of-the-box |
+| **Vendor Support Window** | Berakhir / Limited | **Aktif s/d Oktober 2027+** | Aktif s/d 2029 - 2031 |
+
+---
+
+### ❓ Pertanyaan 12: "Siapa yang mengeksekusi `docker build` untuk Windows Container, dan bagaimana portabilitas workflow CI di Gitea Actions, GitLab CI, dan Bitbucket Pipelines?"
+
+#### 1. Eksekusi `docker build` untuk Windows Container
+* **Arsitektur Kernel Kontainer**:
+  Sebuah Windows Container **tidak dapat di-build ataupun dieksekusi di atas host/kernel Linux**. Windows Container membutuhkan subsistem kernel Windows Server (Windows Server Silos / Hyper-V Container isolation).
+* **Siapa yang Menjalankan `docker build`?**:
+  Proses `docker build` dan pengujian kontainer dijalankan oleh **Dedicated Windows CI Runner / Build Agent** (misalnya VM Windows Server 2022 yang terpasang Docker CE / Mirantis Container Runtime dan menjalankan agent runner CI).
+* **Peran Server CI (Gitea / GitLab / Bitbucket)**:
+  Server CI (yang umumnya berjalan di Linux VM atau Kubernetes) hanya bertindak sebagai *orchestrator / web dispatcher*. Saat menerima pemicu commit kode, server CI mendispatch pekerjaan build ke Windows Runner melalui routing tag (misal: `tags: [windows, docker]`). Windows Runner lokal tersebut yang memanggil `docker build`, `tcctl.exe hardening audit`, dan `docker push` ke image registry internal.
+
+#### 2. Portabilitas Workflow Antara Gitea Actions, GitLab CI, dan Bitbucket Pipelines
+* **Apakah file workflow otomatis terbaca lintas platform?**
+  **Tidak.** Format file dan sintaks struktur YAML bersifat spesifik untuk masing-masing platform CI:
+  * Gitea Actions / GitHub Actions: `.gitea/workflows/<name>.yaml` (menggunakan hierarki `jobs.<id>.steps[].run`).
+  * GitLab CI: `.gitlab-ci.yml` (menggunakan hierarki `stages:`, `<job_name>:`, `script:`).
+  * Bitbucket Pipelines: `bitbucket-pipelines.yml` (menggunakan hierarki `pipelines: default: - step: script:`).
+* **Prinsip Engine-Agnostic Core CLI**:
+  Meskipun "wrapper" sintaks YAML berbeda, **perintah inti CLI yang dijalankan di dalamnya adalah 100% IDENTIK dan PORTABEL**. Seluruh logika validasi keamanan, audit CIS-Benchmark, scan kerentanan, dan build kontainer dibungkus di dalam CLI tool (`docker`, `tcctl.exe`, `git`), bukan di-hardcode ke dalam fitur spesifik platform CI.
+
+#### 3. Komparasi Sintaks Workflow Lintas Platform
+
+Berikut perbandingan implementasi pipeline CI yang mengeksekusi urutan build, audit keamanan dengan `tcctl.exe`, dan promosi ke GitOps repository:
+
+=== "Gitea Actions / GitHub Actions (`.gitea/workflows/ci.yaml`)"
+
+    ```yaml
+    name: Windows Container CI
+    on:
+      push:
+        branches: [ main ]
+    jobs:
+      build-and-promote:
+        runs-on: [ windows, docker ]
+        steps:
+          - name: Checkout Source Code
+            uses: actions/checkout@v4
+
+          - name: Build Windows Container Image
+            run: |
+              docker build -t registry.corp.internal:5000/payment-service:${{ github.sha }} .
+
+          - name: Audit Hardening CIS-Benchmark
+            run: |
+              tcctl.exe hardening audit --target localhost:8080 --output audit-report.json
+
+          - name: Push Container Image
+            run: |
+              docker push registry.corp.internal:5000/payment-service:${{ github.sha }}
+
+          - name: Promote to GitOps Manifest
+            run: |
+              git clone http://gitadm:${{ secrets.GIT_TOKEN }}@git.corp.internal/gitadm/tomcat-gitops.git gitops-repo
+              cd gitops-repo
+              powershell -Command "(Get-Content tomcat-spec.yaml) -replace 'tag: .*', 'tag: \"${{ github.sha }}\"' | Set-Content tomcat-spec.yaml"
+              git commit -am "chore(release): promote payment-service to ${{ github.sha }}"
+              git push origin main
+    ```
+
+=== "GitLab CI (`.gitlab-ci.yml`)"
+
+    ```yaml
+    stages:
+      - build
+      - test
+      - publish
+      - promote
+
+    variables:
+      IMAGE_TAG: $CI_REGISTRY_IMAGE/payment-service:$CI_COMMIT_SHORT_SHA
+
+    build_image:
+      stage: build
+      tags:
+        - windows
+        - docker
+      script:
+        - docker build -t $IMAGE_TAG .
+
+    audit_security:
+      stage: test
+      tags:
+        - windows
+        - docker
+      script:
+        - tcctl.exe hardening audit --target localhost:8080 --output audit-report.json
+
+    push_image:
+      stage: publish
+      tags:
+        - windows
+        - docker
+      script:
+        - docker push $IMAGE_TAG
+
+    promote_gitops:
+      stage: promote
+      tags:
+        - windows
+      script:
+        - git clone http://oauth2:$GITOPS_ACCESS_TOKEN@gitlab.corp.internal/platform/tomcat-gitops.git gitops-repo
+        - cd gitops-repo
+        - powershell -Command "(Get-Content tomcat-spec.yaml) -replace 'tag: .*', 'tag: \"$CI_COMMIT_SHORT_SHA\"' | Set-Content tomcat-spec.yaml"
+        - git commit -am "chore(release): promote payment-service to $CI_COMMIT_SHORT_SHA"
+        - git push origin main
+      only:
+        - main
+    ```
+
+=== "Bitbucket Pipelines (`bitbucket-pipelines.yml`)"
+
+    ```yaml
+    pipelines:
+      branches:
+        main:
+          - step:
+              name: Build and Security Audit
+              runs-on:
+                - self.hosted
+                - windows
+                - docker
+              script:
+                - docker build -t registry.corp.internal:5000/payment-service:$BITBUCKET_COMMIT .
+                - tcctl.exe hardening audit --target localhost:8080 --output audit-report.json
+                - docker push registry.corp.internal:5000/payment-service:$BITBUCKET_COMMIT
+          - step:
+              name: Promote to GitOps Repository
+              runs-on:
+                - self.hosted
+                - windows
+              script:
+                - git clone http://x-token-auth:$GITOPS_TOKEN@bitbucket.org/platform/tomcat-gitops.git gitops-repo
+                - cd gitops-repo
+                - powershell -Command "(Get-Content tomcat-spec.yaml) -replace 'tag: .*', 'tag: \"$BITBUCKET_COMMIT\"' | Set-Content tomcat-spec.yaml"
+                - git commit -am "chore(release): promote payment-service to $BITBUCKET_COMMIT"
+                - git push origin main
+    ```
+
+---
+
+### ❓ Pertanyaan 13: "Jika CI sudah ada di Gitea/GitLab/Bitbucket dan GitOps ditangani oleh `tcctl`, apakah Ansible masih diperlukan? Apakah fungsinya hanya untuk Day-1?"
+
+**Konfirmasi Arsitektur**:
+**Tepat sekali.** Dalam paradigma arsitektur *Pure Pull-Based GitOps*, Ansible **tidak lagi digunakan untuk operasional harian aplikasi (Day-2 Continuous Operations)**.
+
+#### 1. Demarkasi Tanggung Jawab yang Tegas: Day-1 vs. Day-2
+
+| Kategori | **Day-1 Machine Provisioning (Ansible)** | **Day-2 Continuous Lifecycle (Pure Pull-Based GitOps via `tcctl`)** |
+| :--- | :--- | :--- |
+| **Fokus & Siklus** | Inisialisasi mesin baru (*One-time initial machine bootstrap*). | Operasional berkelanjutan (*Continuous application lifecycle & self-healing*). |
+| **Aktivitas Utama** | • Install Docker Engine / Mirantis Runtime pada VM baru.<br>• Buat struktur direktori sistem (`C:\Program Files\tcctl`).<br>• Letakkan biner `tcctl.exe` dan konfigurasi awal `config.yaml`.<br>• Eksekusi `tcctl gitops init` (mendaftarkan Scheduled Task / systemd timer).<br>• Konfigurasi firewall lokal awal. | • Memeriksa repositori manifes GitOps secara berkala (polling REST API).<br>• Deteksi *drift* konfigurasi antara Git dan status runtime kontainer.<br>• Melakukan staging rollout dan pre-flight health probe.<br>• Melakukan zero-downtime swap kontainer aktif.<br>• Memulihkan kontainer secara otomatis jika terjadi insiden (*self-healing*). |
+| **Kebutuhan Akses Jaringan** | **Inbound SSH (Port 22)** dibuka sementara hanya pada saat setup awal. | **Zero Inbound Port** (Hanya Outbound HTTPS Port 443 ke Git Server dan Image Registry). |
+| **Manajemen Kredensial** | **Ephemeral SSH Key**: Kunci SSH sementara yang **langsung dimusnahkan (*self-destruct*)** setelah bootstrap selesai sesuai [TC-ADR-0008](file:///home/eddywiyatno/git/devops-handbook/docs/adr/tomcat/adr-records/TC-ADR-0008.md). | Read-only Git Token atau Deploy Key (HTTPS) tersimpan di file konfigurasi lokal host. |
+| **Metode Eksekusi** | Push-based terpusat dari Ansible Control Node. | Pull-based otonom dari dalam masing-masing host target. |
+
+#### 2. Mengapa Ansible Tidak Digunakan untuk Day-2 Operations?
+1. **Menghilangkan Ketergantungan SSH Terpusat (Eliminasi Blast Radius)**:
+   Jika Day-2 mengandalkan Ansible (push-based), maka Ansible Control Node harus menyimpan private SSH key dengan akses root/Administrator ke seluruh ratusan server produksi. Jika server Ansible disusupi (*compromised*), seluruh armada infrastruktur jatuh ke tangan penyerang. Dengan Pure Pull-Based GitOps, server target tidak membuka port SSH inbound sama sekali.
+2. **Mencegah Configuration Drift Berkelanjutan**:
+   Ansible hanya berjalan saat dieksekusi secara manual oleh operator atau dipicu oleh webhook. Jika ada perubahan konfigurasi manual di host target di luar jadwal Ansible, penyimpangan (*drift*) tersebut tidak terdeteksi. Sebaliknya, agent `tcctl` GitOps berjalan otonom setiap 5 menit di host lokal, mendeteksi setiap anomali, dan langsung merekonsiliasi kontainer kembali ke status yang dideklarasikan di Git.
+3. **Kepatuhan Audit Keamanan (CIS-Benchmark)**:
+   Setelah proses Day-1 oleh Ansible selesai dan diverifikasi, port SSH 22 pada host Windows Server produksi dapat ditutup secara permanen di firewall. Mesin beroperasi dalam status *Zero Inbound Attack Surface*, yang merupakan standar tertinggi dalam arsitektur keamanan Zero Trust.
+
+---
+
 ## 📐 Architecture & Design Blueprint
 
 ### 1. Arsitektur Dekopel CI dan Pure Pull-Based GitOps (Day-2)
