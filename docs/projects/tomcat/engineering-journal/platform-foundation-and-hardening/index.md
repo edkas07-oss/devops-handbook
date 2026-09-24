@@ -25,7 +25,7 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 | **Engine Runtime Named Volumes** | Decoupling state menggunakan named volume (`_conf:ro,Z`, `_webapps:Z`, `_logs:Z`). Auto-seeding templates & offline host mountpoint inspection terverifikasi. | Completed |
 | **Vulnerability Assessment** | Trivy security scanner integration (`scripts/scan.sh` & `tcctl va scan`) dengan automated quality gate. | Completed |
 | **Observability & Deploy** | Synthetic HTTP health probe, JMX metrics parser, dan Blue-Green deployment runner dengan automated rollback. | Completed |
-| **Pure GitOps & Staging Rollout** | Arsitektur Pure Pull-Based GitOps (`tcctl gitops sync` via `systemd --user timer`), refactoring temporary staging container rollout (`<name>-staging` -> `<name>`), dan Day-1 self-destructing bootstrap key. | Design Accepted |
+| **Pure GitOps & Staging Rollout** | Arsitektur Pure Pull-Based GitOps (`tcctl gitops sync` via `systemd --user timer` di Linux & Windows Task Scheduler), refactoring temporary staging container rollout (`<name>-staging` -> `<name>`), dan Day-1 self-destructing bootstrap key. | Completed |
 | **Windows Container & Operator Testing** | Provisioning Windows Containers di Windows Server 2022 AWS, instalasi Docker CE v27.5.1, Tooling PATH, dan validasi live `tcctl.exe` (Audit CIS & SSL check). | Completed |
 | **REST API Daemon & JSON Output** | Standardisasi output JSON non-destruktif (`--json-out`) dan embedded REST API daemon (`tcctl serve` :8089) untuk integrasi aplikasi Self-Service Portal / IDP. | Completed |
 
@@ -45,7 +45,7 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 
 4. **[TN-004 — Design Pure Pull-Based GitOps, Temporary Staging Rollout, and Self-Destructing Bootstrap](TN-004-design-pure-pull-based-gitops-temporary-staging-rollout-and-self-destructing-bootstrap.md)**
 
-    Mencatat blueprint arsitektur transformasi operasional enterprise: rekaman tanya-jawab arsitektural mendalam (analisis Traditional CD vs GitOps CD, batas pemisah Git air-gap, peran modular `tcctl` pada Sisi CI vs CD/GitOps), refactoring zero-downtime rollout dengan temporary staging container (`<name>-staging`) dan promosi nama kanonikal (`<name>`), adopsi Pure Pull-Based GitOps otonom via `systemd --user timer`, serta penyelesaian paradoks Day-1 brownfield bootstrapping melalui self-destructing ephemeral SSH access.
+    Mencatat implementasi dan pembuktian langsung transformasi operasional enterprise: rekaman tanya-jawab arsitektural mendalam, eliminasi dependensi eksternal MinGit via Gitea REST API HTTP pull, standardisasi direktori `C:/Program Files/tcctl/gitops` dengan normalisasi forward-slash, otomasi penjadwalan Windows Task Scheduler / systemd user timer, refactoring zero-downtime canary rollout dengan temporary staging container (`<name>-staging`) dan promosi nama kanonikal (`<name>`), serta verifikasi live drift detection dan self-healing.
 
 5. **[TN-005 — Verify Windows Container Runtime Provisioning and tcctl Operator Testing](TN-005-verify-windows-container-runtime-provisioning-and-tcctl-operator-testing.md)**
 

@@ -198,6 +198,141 @@ Pada implementasi blue-green konvensional, kontainer mempertahankan akhiran perm
 
 ---
 
+### ❓ Pertanyaan 6: "Apakah biner MinGit di server target berbahaya, dan apakah mekanisme git pull via CLI adalah yang terbaik saat ini?"
+
+Pertanyaan ini muncul saat mengevaluasi dependensi biner di lingkungan Windows Server (`win-lab`) yang belum memiliki kakas `git` terpasang.
+
+#### 1. Penilaian Keamanan MinGit
+* **Secara Keamanan (Security): TIDAK BERBAHAYA**. MinGit (*Minimal Git*) adalah paket resmi yang dirilis langsung oleh tim pengembang **Git for Windows** (didistribusikan via repositori resmi `git-for-windows/git` di GitHub). MinGit bukan malware atau aplikasi pihak ketiga yang meragukan, melainkan biner Git resmi tanpa antarmuka GUI (~30 MB) yang dirancang untuk otomasi server/CI.
+* **Dari Sisi Desain Sistem Enterprise: MEMBEBANI HOST**. Memasang MinGit di host target menambah dependensi OS sekunder, membutuhkan ekstraksi file, pembaruan Machine PATH, serta berpotensi memicu kendala konfigurasi bawaan seperti *circular include loop* pada `etc/gitconfig` (seperti yang tercatat pada [TN-005](TN-005-verify-windows-container-runtime-provisioning-and-tcctl-operator-testing.md)).
+
+#### 2. Keunggulan Arsitektur HTTP / REST API Pull (ArgoCD-Style)
+Dalam filosofi GitOps, server target bertindak murni sebagai **konsumen pasif (*Read-Only Consumer*)**. Host produksi tidak pernah membuat commit, tidak melakukan merge, dan tidak mem-push branch. Oleh karena itu, memanggil biner `git.exe` eksternal adalah bentuk *over-dependency*.
+
+Pendekatan paling elegan dan berstandar *cloud-native* adalah reconciler `tcctl` melakukan **Direct HTTP / REST API Fetch** langsung ke Gitea:
+1. **Deteksi Deviasi / Commit Baru**: `GET /api/v1/repos/{owner}/{repo}/commits?limit=1&sha={branch}`
+2. **Download Manifes Terbaru**: `GET /{owner}/{repo}/raw/branch/{branch}/tomcat-spec.yaml`
+
+```text
+Model Konvensional:  [Host Reconciler] ──(exec git.exe CLI)──> [Git Repo] (Wajib MinGit di Host)
+Model Cloud-Native:  [Host Reconciler (tcctl)] ──(Direct HTTP GET)──> [Gitea REST API] (Zero External Dependency)
+```
+
+**Hasil Evaluasi**: Biner `tcctl` menjadi **Single Static Binary Mandiri (Zero Dependency)** tanpa membutuhkan instalasi MinGit pada Windows maupun Linux.
+
+---
+
+### ❓ Pertanyaan 7: "Jika menggunakan REST API Gitea, di mana letak user menset URL Git reponya?"
+
+User tidak perlu menyusun path API yang rumit. Pengalaman operator tetap konsisten dan intuitif menggunakan format Git URL standar:
+
+1. **Input Saat Inisialisasi (`tcctl gitops init`)**:
+   Operator cukup menentukan URL Git repository biasa pada perintah inisialisasi awal:
+   ```bash
+   tcctl gitops init --repo http://localhost:3000/gitadm/tomcat-gitops.git --branch main
+   ```
+2. **Penyimpanan Profil Lokal (`gitops-config.json`)**:
+   Karena di server target tidak dibentuk folder `.git`, `tcctl` mencatat konfigurasi repository ke file lokal:
+   `~/.config/tcctl/gitops/gitops-config.json` (Linux) atau `C:\Users\Administrator\.config\tcctl\gitops\gitops-config.json` (Windows):
+   ```json
+   {
+     "repo_url": "http://localhost:3000/gitadm/tomcat-gitops.git",
+     "branch": "main",
+     "spec_file": "tomcat-spec.yaml"
+   }
+   ```
+3. **Konversi Otomatis ke REST API**:
+   Saat reconciler berjalan berkala via timer, `tcctl` secara otomatis mem-parse URL Git tersebut menjadi endpoint REST API Gitea:
+   * Base Host: `http://localhost:3000`
+   * Owner: `gitadm`
+   * Repo: `tomcat-gitops`
+   * Commit Endpoint: `http://localhost:3000/api/v1/repos/gitadm/tomcat-gitops/commits?limit=1&sha=main`
+   * Raw Spec Endpoint: `http://localhost:3000/gitadm/tomcat-gitops/raw/branch/main/tomcat-spec.yaml`
+
+---
+
+### ❓ Pertanyaan 8: "Jika menggunakan Git CI seperti GitHub Actions atau Gitea Actions, di mana letak inputnya tanpa intervensi manual di server?"
+
+Pada alur produksi enterprise, **tidak ada operator yang mengetik perintah `tcctl` secara manual di server**. Seluruh siklus rilis dikendalikan otomatis oleh pemisahan dua fase:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Dev as Developer
+    participant AppRepo as Application Repo (Git)
+    participant CI as Gitea Actions / GitHub Actions
+    participant Reg as Container Registry (OCI)
+    participant GitOpsRepo as Manifest Repo (tomcat-gitops)
+    participant Target as Host Production (tcctl Reconciler)
+
+    Dev->>AppRepo: git push code aplikasi baru
+    AppRepo->>CI: Trigger Workflow CI Otomatis
+    Note over CI: 1. Build Artifact & Hardened Image<br/>2. Scan Keamanan (tcctl va & Trivy)
+    CI->>Reg: Push image baru (e.g. tomcat:9.0-jdk11 atau v1.2.0)
+    
+    rect rgb(235, 245, 255)
+    Note over CI,GitOpsRepo: [INPUT OTOMATIS CI KE GITOPS]
+    CI->>GitOpsRepo: CI mengupdate tag image di tomcat-spec.yaml<br/>(Git commit & push otomatis via Bot Token)
+    end
+
+    Note over Target,GitOpsRepo: [REKONSILIASI OTONOM BERKALA]
+    Target->>GitOpsRepo: Task Scheduler / Timer memanggil tcctl gitops sync
+    Target->>GitOpsRepo: Deteksi Commit SHA baru via Gitea REST API
+    Target->>Reg: Pull image baru
+    Target->>Target: Zero-Downtime Rollout (:9080 staging -> :8080 canonical)
+```
+
+#### Contoh Implementasi Workflow CI (`.gitea/workflows/release.yaml`):
+```yaml
+name: Build, Test & GitOps Promotion
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Kode
+        uses: actions/checkout@v4
+
+      - name: Build & Push Image
+        run: |
+          docker build -t localhost:3000/gitadm/payment-service:${{ github.sha }} .
+          docker push localhost:3000/gitadm/payment-service:${{ github.sha }}
+
+      - name: Promosikan ke GitOps Manifest Repo (Automated Input)
+        run: |
+          git clone http://gitadm:${{ secrets.GITEA_TOKEN }}@localhost:3000/gitadm/tomcat-gitops.git gitops-repo
+          cd gitops-repo
+          sed -i 's/tag: .*/tag: "${{ github.sha }}"/' tomcat-spec.yaml
+          git config user.name "gitea-actions[bot]"
+          git config user.email "bot@internal.corp"
+          git commit -am "chore(release): promote payment-service to ${{ github.sha }}"
+          git push origin main
+```
+
+**Keuntungan Enterprise**:
+* **Zero Inbound SSH**: CI server tidak pernah memegang kunci SSH ke armada host produksi.
+* **Audit Trail 100% di Git**: Setiap pergantian versi tercatat siapa yang build dan commit SHA rilisnya.
+* **Instant Rollback**: Jika versi baru bermasalah di produksi, cukup klik **"Revert"** pada commit terakhir di Web UI Gitea, maka seluruh armada host target otomatis rollback dalam 5 menit tanpa perlu menyentuh server.
+
+---
+
+### ❓ Pertanyaan 9: "Mengapa konfigurasi network dan storage tidak perlu ditentukan manual pada tomcat-spec.yaml?"
+
+Manifes GitOps harus bersifat seringkas dan sedeklaratif mungkin (*Minimalist & Opinionated Defaults*):
+1. **Pemisahan Network**:
+   Menentukan nama network secara statis (seperti `devops-lab`) menimbulkan kerapuhan lintas platform. Pada Windows, driver network adalah Host Networking Service (HNS) NAT default (`nat`), sedangkan di Linux adalah bridge default. Dengan mengosongkan segmen `network`, operator `tcctl` membiarkan container engine mengaitkan kontainer ke network default bawaan runtime secara transparan (sama persis seperti mekanisme pada proyek `tomcat-monitoring`).
+2. **Otomasi Storage**:
+   Sesuai [TC-ADR-0009](file:///home/eddywiyatno/git/devops-handbook/docs/adr/tomcat/adr-records/TC-ADR-0009.md), penyimpanan kontainer diturunkan secara deterministik dari `containerName`:
+   * Pada Windows: Host Bind-Mount terstruktur otomatis dibentuk di `<BaseDir>\<containerName>\[conf, webapps, logs]` (misal `C:\tomcats\payment-service\`).
+   * Pada Linux: Engine Named Volumes otomatis dibentuk sebagai `<containerName>_conf:ro,Z`, `<containerName>_webapps:Z`, dan `<containerName>_logs:Z`.
+   Menghilangkan blok `storage:` dari YAML membuat manifes portabel dan bebas dari konfigurasi redundan.
+
+---
+
 ## 📐 Architecture & Design Blueprint
 
 ### 1. Arsitektur Dekopel CI dan Pure Pull-Based GitOps (Day-2)
@@ -311,46 +446,37 @@ File manifes yang disimpan di repositori GitOps (misalnya `git@git.corp/infra/to
 ```yaml
 version: "1.0"
 metadata:
-  application: "core-payment-service"
+  application: "payment-service"
   environment: "production"
   tier: "backend"
 
 spec:
   # Konfigurasi Image OCI
   image:
-    repository: "registry.corp.internal/tomcat/hardened-app"
-    tag: "10.1.24-dist-v1.4.2"
+    repository: "tomcat"
+    tag: "9.0-jdk11"
     pullPolicy: "IfNotPresent"
 
-  # Konfigurasi Instance & Jaringan
+  # Konfigurasi Runtime Kanonikal
   runtime:
-    containerName: "payment-service"      # Nama kanonikal bersih
+    containerName: "payment-service"      # Nama kanonikal bersih tanpa suffix
     httpPort: 8080                       # Port produksi utama
-    stagingPort: 9080                    # Port sementara saat rollout
-    httpsPort: 8443
-    memoryLimit: "2048m"
-    cpuLimit: "2.0"
+    stagingPort: 9080                    # Port sementara saat rollout nol-downtime
+    httpsPort: 8443                      # Native TLS HTTPS connector
 
-  # Engine Runtime Named Volumes (Rootless Podman compliant)
-  storage:
-    configVolume: "payment_conf"
-    webappsVolume: "payment_webapps"
-    logsVolume: "payment_logs"
-    volumePermissions:
-      dirMode: "0755"
-      fileMode: "0644"
-
-  # Pre-Flight Readiness & Smoke Test
+  # Pre-Flight Readiness & Health Probe
   healthCheck:
     path: "/"
     expectedStatus: 200
-    initialDelaySeconds: 5
     timeoutSeconds: 60
-    intervalSeconds: 3
 
   # Target Rollback Policy
   autoRollback: true
 ```
+
+> [!NOTE]
+> **Minimalist Specification Pattern**: Blok `storage:` dan `network:` sengaja tidak didefinisikan secara manual. Operator `tcctl` secara deterministik menurunkan konfigurasi storage dari `containerName` (Host Bind-Mount `C:\tomcats\<containerName>` pada Windows per TC-ADR-0009 atau Engine Named Volumes pada Linux) serta membiarkan container runtime menggunakan default network engine (tanpa hardcoded `devops-lab`).
+
 
 ### 2. Spesifikasi Autonomous Host Reconciler (`tcctl gitops`)
 
@@ -483,6 +609,305 @@ Hasil observasi:
 
 ### 5. Self-Destructing Ephemeral Key Proof
 Uji coba pembersihan kunci sementara pada file `authorized_keys` membuktikan bahwa baris bertanda `# ephemeral-day1-bootstrap` berhasil terhapus secara atomik, sementara kunci permanen milik administrator dan workstation tetap utuh tanpa modifikasi.
+
+### 6. Windows Server 2022 Live Verification (Zero-Dependency & Program Files Layout)
+
+Pengujian end-to-end GitOps otonom fase 3 dilakukan secara langsung pada node target **Windows Server 2022 (`win-lab`)** dengan runtime **Docker CE v27.5.1** dan image terverifikasi `tomcat:9.0-jdk11` (dibangun dari NanoServer LTSC2022 + Eclipse Temurin JDK 11 pada TN-007).
+
+#### A. Desain Arsitektur Khusus Host Windows
+1. **Zero External Git CLI Dependency (Tanpa MinGit)**:
+   Host Windows lab tidak memerlukan instalasi `git.exe` atau MinGit portable. Reconciler `tcctl` secara native memanfaatkan Gitea REST API (`/api/v1/repos/<owner>/<repo>/commits` dan raw spec fetch `/raw/branch/<branch>/<spec>`) untuk deteksi revisi commit dan sinkronisasi manifes secara instan melalui HTTP.
+2. **Unified Directory Layout**:
+   Biner operator dan manifes GitOps ditempatkan secara terpusat dan rapi di dalam:
+   - Root direktori: `C:/Program Files/tcctl/`
+   - Biner eksekusi: `C:/Program Files/tcctl/tcctl.exe`
+   - GitOps working directory: `C:/Program Files/tcctl/gitops/` (`gitops-config.json`, `state.json`, `tomcat-spec.yaml`)
+3. **Forward Slash Path Normalization**:
+   Seluruh path pada konfigurasi, argumen, dan volume mount di Windows dinormalisasi menggunakan garis miring (`/`), mencegah *backslash escape parsing corruption* (`\t`, `\u`, dll.) pada format JSON, YAML, maupun perintah Docker CLI.
+4. **Autonomous Windows Task Scheduler**:
+   Reconciler otonom diregistrasikan ke Windows Task Scheduler dengan nama `tcctl-gitops-reconciler` menggunakan PowerShell `Register-ScheduledTask`, beroperasi secara periodik setiap 5 menit di bawah akun `SYSTEM`.
+5. **Streamlined Opinionated Manifest**:
+   Manifes `tomcat-spec.yaml` disederhanakan tanpa blok `network:` dan `storage:`. Storage host bind-mount otomatis diturunkan ke `C:/tomcats/<container_name>` sesuai TC-ADR-0009.
+
+#### B. Rekaman Eksekusi: Initial GitOps Initialization (`tcctl gitops init`)
+```powershell
+PS C:\Users\Administrator> & "C:/Program Files/tcctl/tcctl.exe" gitops init --repo http://localhost:3000/gitadm/tomcat-gitops.git --branch main --timer
+
+========================================================
+ Initializing Autonomous GitOps Environment (tcctl gitops init)
+========================================================
+
+ℹ GitOps Working Directory: C:/Program Files/tcctl/gitops
+✔ Saved GitOps configuration profile (gitops-config.json)
+ℹ Fetching manifest 'tomcat-spec.yaml' directly via Gitea REST API...
+✔ Successfully fetched 'tomcat-spec.yaml' via Gitea REST API!
+ℹ Found existing spec at C:/Program Files/tcctl/gitops/tomcat-spec.yaml
+✔ Registered Windows Scheduled Task 'tcctl-gitops-reconciler' (Every 5 minutes)
+✔ GitOps initialization completed successfully!
+
+Next Steps:
+  1. Review and edit specification:
+     C:/Program Files/tcctl/gitops/tomcat-spec.yaml
+  2. Test immediate reconciliation:
+     tcctl gitops sync --spec C:/Program Files/tcctl/gitops/tomcat-spec.yaml
+  3. View reconciler status:
+     tcctl gitops status --dir C:/Program Files/tcctl/gitops
+```
+
+#### C. Rekaman Eksekusi: Drift Detection & Self-Healing
+Kontainer produksi `payment-service` dihentikan secara manual (`docker stop payment-service`) untuk mensimulasikan kegagalan sistem atau intervensi operator liar:
+
+```powershell
+PS C:\Users\Administrator> & "C:/Program Files/tcctl/tcctl.exe" gitops sync
+
+========================================================
+ Executing GitOps Autonomous Reconciliation (tcctl gitops sync)
+========================================================
+
+ℹ Specification File : C:/Program Files/tcctl/gitops/tomcat-spec.yaml
+ℹ Working Directory  : C:/Program Files/tcctl/gitops
+ℹ GitOps config detected (http://localhost:3000/gitadm/tomcat-gitops.git). Checking remote updates via Gitea REST API...
+ℹ Remote Git HEAD (API): d29d9d6 ("chore(spec): streamline manifest to minimalist pattern with tomcat:9.0-jdk11")
+ℹ Desired Container  : payment-service (Image: tomcat:9.0-jdk11)
+⚠ Drift or Update Detected: Container is not running (stopped or missing)
+
+========================================================
+ Executing Zero-Downtime Rollout for 'payment-service'
+========================================================
+
+ℹ Container Engine: docker
+ℹ No running container found with canonical name 'payment-service'.
+ℹ Performing direct initial deployment of canonical instance...
+
+========================================================
+ Deploying Hardened Tomcat Container: payment-service
+========================================================
+
+ℹ Detected Container Engine: docker
+ℹ Step 1: Preparing Host Bind-Mount Directory Structure in C:/tomcats/payment-service...
+ℹ Step 2: Auditing XML in Host Directory (C:/tomcats/payment-service/conf)...
+✔ Pre-flight XML audit on Host Directory passed (100% compliant).
+ℹ Step 3: Launching container 'payment-service' (image: tomcat:9.0-jdk11) via docker...
+✔ Container started successfully (ID: 64cfc00c1b03)
+ℹ Step 4: Probing HTTP healthcheck endpoint: http://localhost:8080/
+✔ Tomcat HTTP Server is HEALTHY (Response status: 404)
+✔ HTTP healthcheck probe passed.
+✔ Tomcat instance 'payment-service' is up, running, and fully hardened!
+
+ Runtime Environment:
+   - Container Image : tomcat:9.0-jdk11
+   - Tomcat Version  : Apache Tomcat/9.0.98
+   - Java / JDK      : 11.0.32+9 (Eclipse Adoptium)
+
+ Endpoints:
+   - HTTP    : http://localhost:8080/
+   - HTTPS   : https://localhost:8443/
+
+ Host Bind Mounts (TC-ADR-0009):
+   - Base Dir : C:/tomcats
+   - Conf     : C:/tomcats/payment-service/conf (Read-Only :ro)
+   - Webapps  : C:/tomcats/payment-service/webapps
+   - Logs     : C:/tomcats/payment-service/logs
+
+✔ Autonomous GitOps Reconciliation Completed! Instance 'payment-service' is in desired state.
+```
+
+#### D. Rekaman Eksekusi: Zero-Downtime Canary Rollout via Temporary Staging
+Setelah pengembang mempromosikan commit `8c23789` pada repositori GitOps (`tomcat:9.0-jdk11` -> `tomcat:9.0-jdk11-v2`), rekonsiliasi dijalankan:
+
+```powershell
+PS C:\Users\Administrator> & "C:/Program Files/tcctl/tcctl.exe" gitops sync
+
+========================================================
+ Executing GitOps Autonomous Reconciliation (tcctl gitops sync)
+========================================================
+
+ℹ Specification File : C:/Program Files/tcctl/gitops/tomcat-spec.yaml
+ℹ Working Directory  : C:/Program Files/tcctl/gitops
+ℹ GitOps config detected (http://localhost:3000/gitadm/tomcat-gitops.git). Checking remote updates via Gitea REST API...
+ℹ Remote Git HEAD (API): 8c23789 ("feat(deploy): promote payment-service image to tomcat:9.0-jdk11-v2")
+ℹ New remote commit or missing spec detected. Fetching latest tomcat-spec.yaml from Gitea...
+✔ Updated 'C:/Program Files/tcctl/gitops/tomcat-spec.yaml' from Gitea repository.
+ℹ Desired Container  : payment-service (Image: tomcat:9.0-jdk11-v2)
+⚠ Drift or Update Detected: Image version mismatch (Running: tomcat:9.0-jdk11, Desired: tomcat:9.0-jdk11-v2)
+
+========================================================
+ Executing Zero-Downtime Rollout for 'payment-service'
+========================================================
+
+ℹ Container Engine: docker
+ℹ Active Canonical Instance: payment-service (Port: 8080)
+ℹ Temporary Staging Name   : payment-service-staging (Port: 9080)
+ℹ Phase 1: Launching temporary staging container 'payment-service-staging' on port 9080...
+
+========================================================
+ Deploying Hardened Tomcat Container: payment-service-staging
+========================================================
+
+ℹ Detected Container Engine: docker
+ℹ Step 1: Preparing Host Bind-Mount Directory Structure in C:/tomcats/payment-service-staging...
+ℹ Bootstrapping self-signed TLS material (PKCS#12) for instance 'payment-service-staging'...
+✔ Self-signed TLS keystore (PKCS#12) created in C:/tomcats/payment-service-staging/conf/ssl
+ℹ Seeding hardened XML configuration templates (PKCS12 mode) into C:/tomcats/payment-service-staging/conf...
+✔ Hardened XML templates successfully written into 'C:/tomcats/payment-service-staging/conf'.
+ℹ Step 2: Auditing XML in Host Directory (C:/tomcats/payment-service-staging/conf)...
+✔ Pre-flight XML audit on Host Directory passed (100% compliant).
+ℹ Step 3: Launching container 'payment-service-staging' (image: tomcat:9.0-jdk11-v2) via docker...
+✔ Container started successfully (ID: 70977c3fbe38)
+ℹ Step 4: Probing HTTP healthcheck endpoint: http://localhost:9080/
+✔ Tomcat HTTP Server is HEALTHY (Response status: 404)
+✔ HTTP healthcheck probe passed.
+✔ Tomcat instance 'payment-service-staging' is up, running, and fully hardened!
+
+ Runtime Environment:
+   - Container Image : tomcat:9.0-jdk11-v2
+   - Tomcat Version  : Apache Tomcat/9.0.98
+   - Java / JDK      : 11.0.32+9 (Eclipse Adoptium)
+
+ Endpoints:
+   - HTTP    : http://localhost:9080/
+
+ Host Bind Mounts (TC-ADR-0009):
+   - Base Dir : C:/tomcats
+   - Conf     : C:/tomcats/payment-service-staging/conf (Read-Only :ro)
+   - Webapps  : C:/tomcats/payment-service-staging/webapps
+   - Logs     : C:/tomcats/payment-service-staging/logs
+
+✔ Phase 1: Staging container 'payment-service-staging' passed health probe (200 OK).
+ℹ Phase 2: Draining and stopping previous canonical instance 'payment-service'...
+✔ Previous instance 'payment-service' stopped and removed.
+ℹ Phase 3: Promoting new version to canonical name 'payment-service' on primary port 8080...
+
+========================================================
+ Deploying Hardened Tomcat Container: payment-service
+========================================================
+
+ℹ Detected Container Engine: docker
+ℹ Step 1: Preparing Host Bind-Mount Directory Structure in C:/tomcats/payment-service...
+ℹ Step 2: Auditing XML in Host Directory (C:/tomcats/payment-service/conf)...
+✔ Pre-flight XML audit on Host Directory passed (100% compliant).
+ℹ Step 3: Launching container 'payment-service' (image: tomcat:9.0-jdk11-v2) via docker...
+✔ Container started successfully (ID: 73fc5765d6d3)
+ℹ Step 4: Probing HTTP healthcheck endpoint: http://localhost:8080/
+✔ Tomcat HTTP Server is HEALTHY (Response status: 404)
+✔ HTTP healthcheck probe passed.
+✔ Tomcat instance 'payment-service' is up, running, and fully hardened!
+
+ Runtime Environment:
+   - Container Image : tomcat:9.0-jdk11-v2
+   - Tomcat Version  : Apache Tomcat/9.0.98
+   - Java / JDK      : 11.0.32+9 (Eclipse Adoptium)
+
+ Endpoints:
+   - HTTP    : http://localhost:8080/
+   - HTTPS   : https://localhost:8443/
+
+ Host Bind Mounts (TC-ADR-0009):
+   - Base Dir : C:/tomcats
+   - Conf     : C:/tomcats/payment-service/conf (Read-Only :ro)
+   - Webapps  : C:/tomcats/payment-service/webapps
+   - Logs     : C:/tomcats/payment-service/logs
+
+✔ Zero-Downtime Rollout completed! Active instance: 'payment-service' (clean canonical name, no suffix) on port 8080
+✔ Autonomous GitOps Reconciliation Completed! Instance 'payment-service' is in desired state.
+```
+
+#### E. Rekaman Eksekusi: Reconciler Status & Structured JSON Export
+Status rekonsiliasi dan timer diperiksa menggunakan perintah:
+
+```powershell
+PS C:\Users\Administrator> & "C:/Program Files/tcctl/tcctl.exe" gitops status --json-out "C:/temp/gitops-status.json"
+
+========================================================
+ Apache Tomcat Enterprise — GitOps Reconciler Status
+========================================================
+
+ℹ GitOps Directory : C:/Program Files/tcctl/gitops
+ℹ Spec File        : C:/Program Files/tcctl/gitops/tomcat-spec.yaml
+
+ 📦 GitOps Repository (REST API Mode):
+    - Remote URL : http://localhost:3000/gitadm/tomcat-gitops.git
+    - Branch     : main
+    - Last Commit: 8c23789
+
+ 📄 Desired Specification (payment-service):
+    - Desired Image : tomcat:9.0-jdk11-v2
+    - Container Name: payment-service
+    - HTTP Port     : 8080
+    - Config Volume : payment-service_conf
+
+ 🔄 Reconciler State (state.json):
+    - Last Sync Time : 2026-09-24 05:46:05 UTC
+    - Last Sync Status: SYNCED
+    - Last Synced Rev: 8c23789
+
+ 🐳 Live Container Runtime (docker):
+    - payment-service	Up 28 seconds	tomcat:9.0-jdk11-v2	0.0.0.0:8080->8080/tcp, 0.0.0.0:8443->8443/tcp
+
+ ⏱️  Windows Scheduled Task:
+    - tcctl-gitops-reconciler: Ready
+
+✔ GitOps status JSON exported to C:/temp/gitops-status.json
+```
+
+File JSON terekspor di `C:/temp/gitops-status.json` dengan format standar TN-009:
+```json
+{
+  "timestamp": "2026-09-24T05:46:29Z",
+  "directory": "C:/Program Files/tcctl/gitops",
+  "spec_file": "C:/Program Files/tcctl/gitops/tomcat-spec.yaml",
+  "git": {
+    "remote_url": "http://localhost:3000/gitadm/tomcat-gitops.git",
+    "branch": "main",
+    "commit": "8c23789"
+  },
+  "spec": {
+    "Version": "1.0",
+    "Metadata": {
+      "Application": "payment-service",
+      "Environment": "production",
+      "Tier": "backend"
+    },
+    "Spec": {
+      "Image": {
+        "Repository": "tomcat",
+        "Tag": "9.0-jdk11-v2",
+        "PullPolicy": "IfNotPresent"
+      },
+      "Runtime": {
+        "ContainerName": "payment-service",
+        "HTTPPort": 8080,
+        "StagingPort": 9080,
+        "HTTPSPort": 8443
+      },
+      "Storage": {
+        "ConfigVolume": "payment-service_conf",
+        "WebappsVolume": "payment-service_webapps",
+        "LogsVolume": "payment-service_logs"
+      },
+      "HealthCheck": {
+        "Path": "/",
+        "ExpectedStatus": 200,
+        "TimeoutSeconds": 60
+      },
+      "AutoRollback": true
+    }
+  },
+  "state": {
+    "lastSyncTime": "2026-09-24T05:46:05.4946233Z",
+    "lastCommit": "8c23789",
+    "commitMessage": "feat(deploy): promote payment-service image to tomcat:9.0-jdk11-v2",
+    "image": "tomcat:9.0-jdk11-v2",
+    "containerName": "payment-service",
+    "httpPort": 8080,
+    "httpsPort": 8443,
+    "syncStatus": "SYNCED"
+  },
+  "live_container": "payment-service\tUp 28 seconds\ttomcat:9.0-jdk11-v2\t0.0.0.0:8080->8080/tcp, 0.0.0.0:8443->8443/tcp",
+  "timer_active": true,
+  "timer_status": "Ready"
+}
+```
 
 ---
 
