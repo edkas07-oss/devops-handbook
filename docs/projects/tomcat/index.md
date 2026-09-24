@@ -91,4 +91,5 @@ Dokumentasi project ini diorganisasikan ke dalam beberapa topik utama:
 * [**Vulnerability Assessment**](vulnerability-assessment/index.md): Alur scanning, tooling VA, dan kepatuhan standar CIS.
 * [**Update Management**](update-management/index.md): Prosedur patch management, zero-downtime blue-green switch, dan rollback.
 * [**SSL Management**](ssl-management/index.md): Tata kelola sertifikat, integrasi reverse proxy, native PEM connector, dan alert expiry.
+* [**Self-Service & REST API Integration Guide**](../../how-to/Tomcat/tcctl-rest-api-and-json-self-service-guide.md): Panduan integrasi Developer Portal / IDP menggunakan output JSON terstandarisasi dan daemon REST API embedded (:8089).
 * [**Engineering Journal**](engineering-journal/platform-foundation-and-hardening/index.md): Catatan teknis rekayasa, ADR, dan evolusi platform (TN-001 hingga TN-009).
