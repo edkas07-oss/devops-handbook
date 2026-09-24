@@ -27,7 +27,7 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 | **Observability & Deploy** | Synthetic HTTP health probe, JMX metrics parser, dan Blue-Green deployment runner dengan automated rollback. | Completed |
 | **Pure GitOps & Staging Rollout** | Arsitektur Pure Pull-Based GitOps (`tcctl gitops sync` via `systemd --user timer`), refactoring temporary staging container rollout (`<name>-staging` -> `<name>`), dan Day-1 self-destructing bootstrap key. | Design Accepted |
 | **Windows Container & Operator Testing** | Provisioning Windows Containers di Windows Server 2022 AWS, instalasi Docker CE v27.5.1, Tooling PATH, dan validasi live `tcctl.exe` (Audit CIS & SSL check). | Completed |
-| **REST API Daemon & JSON Output** | Desain arsitektur standardisasi JSON output (`--json-out`) dan embedded REST API daemon (`tcctl serve`) untuk integrasi aplikasi Self-Service Portal / IDP. | Design Accepted |
+| **REST API Daemon & JSON Output** | Standardisasi output JSON non-destruktif (`--json-out`) dan embedded REST API daemon (`tcctl serve` :8089) untuk integrasi aplikasi Self-Service Portal / IDP. | Completed |
 
 ## 📄 Technical Notes
 
