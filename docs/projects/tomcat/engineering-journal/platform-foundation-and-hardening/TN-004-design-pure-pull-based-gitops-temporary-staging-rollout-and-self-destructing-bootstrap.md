@@ -913,6 +913,7 @@ File JSON terekspor di `C:/temp/gitops-status.json` dengan format standar TN-009
 
 ## 🔗 Related Documentation
 
+- [tcctl Build & Installation Guide (INSTALL.md)](file:///home/eddywiyatno/git/tcctl/INSTALL.md)
 - [TC-ADR-0006: Refactor Zero-Downtime Rollout to Temporary Staging Containers](../../../../adr/tomcat/adr-records/TC-ADR-0006.md)
 - [TC-ADR-0007: Adoption of Pure Pull-Based GitOps via Autonomous Host Reconciler](../../../../adr/tomcat/adr-records/TC-ADR-0007.md)
 - [TC-ADR-0008: Zero-Touch Day-1 Host Bootstrapping via Self-Destructing Ephemeral SSH Access](../../../../adr/tomcat/adr-records/TC-ADR-0008.md)
