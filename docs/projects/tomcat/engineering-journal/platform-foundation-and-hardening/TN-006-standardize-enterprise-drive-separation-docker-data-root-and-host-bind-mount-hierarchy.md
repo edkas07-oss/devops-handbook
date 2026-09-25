@@ -51,6 +51,27 @@ Pengujian manual onboarding dilakukan pada VM Windows Server yang baru diinstal 
   2. Mengunci ACL pada seluruh berkas konfigurasi dan host keys hanya untuk SID `S-1-5-18` (SYSTEM) dan `S-1-5-32-544` (Administrators).
   3. Melepas ikatan dependensi `ssh-agent`: `sc.exe config sshd depend= /`.
 
+#### Matriks Kompatibilitas OpenSSH Server: Windows Server 2019 vs 2022
+
+| Dimensi | Windows Server 2019 (Fresh / EC2 RTM) | Windows Server 2022 (LTSC) |
+| :--- | :--- | :--- |
+| **OS Build** | `17763.1` (RTM tanpa Cumulative Update) | `20348.xxx` (LTSC) |
+| **Versi Inbox OpenSSH** | `7.7p1` (2018, unpatched) | `8.6p1+` (modern, patched) |
+| **Startup Layanan `sshd`** | ❌ Gagal dengan **Error 1053** (silent crash SCM) | ✅ Langsung aktif normal |
+| **Solusi Remediasi** | Upgrade via **Win32-OpenSSH v10 MSI** | Langsung jalankan skrip bootstrap |
+
+> [!NOTE]
+> **Prosedur Upgrade Win32-OpenSSH v10 pada Windows Server 2019 RTM:**
+> Jika menghadapi image WS2019 lama tanpa patch kumulatif, unduh paket resmi MSI dari PowerShell/Win32-OpenSSH:
+> ```powershell
+> $msiUrl = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/10.0.0.0p2-Preview/OpenSSH-Win64-v10.0.0.0.msi"
+> Invoke-WebRequest -Uri $msiUrl -OutFile "$env:TEMP\OpenSSH-Win64.msi" -UseBasicParsing
+> msiexec /i "$env:TEMP\OpenSSH-Win64.msi" /qn
+> Start-Sleep -Seconds 8
+> & "C:\Program Files\OpenSSH\sshd.exe" -V
+> ```
+> Paket MSI ini mendaftarkan biner bersih di `C:\Program Files\OpenSSH` yang bebas dari bug crash SCM Error 1053.
+
 ---
 
 ### 2. Investigasi Masalah 2: Penolakan Otentikasi SSH Client (`Too many authentication failures`)
@@ -215,6 +236,51 @@ Machine PATH verified containing:
  Status: READY FOR TAHAP 2 (Day-2 Operations)
 ================================================================================
 ```
+
+### 5. Rekam Jejak Alur Pengujian Remote Manual 10 Langkah (Manual UAT Workflow via SSH/SCP)
+
+Berikut adalah 10 langkah pemanggilan remote via SSH dan SCP dari workstation Linux yang dieksekusi selama masa pengujian manual awal untuk membuktikan kesiapan host Windows:
+
+1. **Pemeriksaan Direktori Instalasi:**
+   ```bash
+   ssh -o IdentitiesOnly=yes -i <key.pem> Administrator@<server-ip> "Test-Path 'C:\Program Files\tcctl'"
+   ```
+2. **Pembuatan Direktori Instalasi:**
+   ```bash
+   ssh -o IdentitiesOnly=yes -i <key.pem> Administrator@<server-ip> "New-Item -ItemType Directory -Force -Path 'C:\Program Files\tcctl'"
+   ```
+3. **Penyalinan Biner `tcctl.exe`:**
+   ```bash
+   scp -o IdentitiesOnly=yes -i <key.pem> bin/tcctl.exe Administrator@<server-ip>:"C:/Program Files/tcctl/tcctl.exe"
+   ```
+4. **Verifikasi Versi Biner:**
+   ```bash
+   ssh -o IdentitiesOnly=yes -i <key.pem> Administrator@<server-ip> 'tcctl version'
+   ```
+5. **Pemeriksaan Direktori Sementara `C:\temp`:**
+   ```bash
+   ssh -o IdentitiesOnly=yes -i <key.pem> Administrator@<server-ip> "Test-Path 'C:\temp'"
+   ```
+6. **Pembuatan Direktori `C:\temp`:**
+   ```bash
+   ssh -o IdentitiesOnly=yes -i <key.pem> Administrator@<server-ip> "New-Item -ItemType Directory -Path 'C:\temp'"
+   ```
+7. **Penyalinan Skrip Prasyarat Tooling `install_host_tools.ps1`:**
+   ```bash
+   scp -o IdentitiesOnly=yes -i <key.pem> scripts/bootstrap/install_host_tools.ps1 Administrator@<server-ip>:C:/temp/install_host_tools.ps1
+   ```
+8. **Eksekusi Instalasi Prasyarat Tooling (MinGit & Trivy):**
+   ```bash
+   ssh -o IdentitiesOnly=yes -i <key.pem> Administrator@<server-ip> 'powershell.exe -ExecutionPolicy Bypass -File "C:\temp\install_host_tools.ps1"'
+   ```
+9. **Clone Repositori In-Host (via SSH Reverse Tunnel Port 3000):**
+   ```bash
+   ssh -R 3000:localhost:3000 -o IdentitiesOnly=yes -i <key.pem> Administrator@<server-ip> 'git clone http://localhost:3000/gitadm/tcctl.git C:\tcctl; git -C C:\tcctl checkout lab'
+   ```
+10. **Eksekusi Bootstrapper Runtime Kontainer (`day1_bootstrap.ps1`):**
+    ```bash
+    ssh -o IdentitiesOnly=yes -i <key.pem> Administrator@<server-ip> 'powershell.exe -ExecutionPolicy Bypass -File "C:\tcctl\scripts\bootstrap\day1_bootstrap.ps1" -AutoReboot'
+    ```
 
 ---
 
