@@ -20,26 +20,27 @@ flowchart TD
 
     subgraph Fase 2: Provisioning & Deploy via tcctl
         C --> D["tcctl deploy run (Interaktif)"]
-        D --> E["Buat Host Bind-Mount C:\tomcats\<instance>"]
-        E --> F["Seed Hardened XML & Bootstrap PKCS#12 Keystore"]
-        F --> G["Pre-flight CIS Static XML Audit"]
+        D --> E["Buat Host Bind-Mount C:\tomcats\<instance> [bin, conf, webapps, logs]"]
+        E --> F["Auto-seed setenv.bat, Seed XML & Bootstrap PKCS#12"]
+        F --> G["Pre-flight CATALINA_OPTS Ingestion & CIS Static Audit"]
         G --> H["Launch Container & HTTP/HTTPS Health Probe"]
         H --> I["Display Runtime Environment (Tomcat & JDK Version)"]
     end
 
-    subgraph Fase 3: Operasi & Verifikasi
-        I --> J["tcctl hardening audit (9/9 CIS Rules)"]
-        I --> K["tcctl ssl check (Keystore Expiry & SANs)"]
-        I --> L["Uji Akses HTTP 8080 & HTTPS 8443"]
+    subgraph Fase 3: Operasi, JVM Tuning & Rollout
+        I --> J["Kustomisasi JVM Heap di setenv.bat (Host)"]
+        J --> K["Zero-Downtime Rollout (tcctl deploy rollout)"]
+        K --> L["tcctl hardening audit (9/9 CIS Rules)"]
+        K --> M["tcctl ssl check (Keystore Expiry & SANs)"]
     end
 
     subgraph Fase 4: Teardown, Cleanup & Reset
-        J & K & L --> M{"Ingin Ulang / Reset?"}
-        M -->|Hapus Kontainer| N["docker stop & docker rm"]
-        M -->|Hapus Direktori Host| O["Remove-Item C:\tomcats\<instance>"]
-        M -->|Hapus Citra Docker| P["docker rmi & docker image prune"]
-        N & O & P --> Q["Clean Slate: Siap Deploy Ulang dari Nol"]
-        Q --> D
+        L & M --> N{"Ingin Ulang / Reset?"}
+        N -->|Hapus Kontainer| O["docker stop & docker rm"]
+        N -->|Hapus Direktori Host| P["Remove-Item C:\tomcats\<instance>"]
+        N -->|Hapus Citra Docker| Q["docker rmi & docker image prune"]
+        O & P & Q --> R["Clean Slate: Siap Deploy Ulang dari Nol"]
+        R --> D
     end
 ```
 
@@ -153,20 +154,26 @@ Operator akan disuguhkan menu pemilihan citra otomatis dari registri lokal:
 ```
 
 ### 4.2 Alur Otomatis yang Dilakukan `tcctl`
-1. **Host Bind-Mount Provisioning**:
-   - Mempersiapkan hierarki folder di `C:\tomcats\tomcat-lab\[conf, webapps, logs, conf\ssl]`.
-2. **Bootstrapping Keystore PKCS#12**:
+1. **Host Bind-Mount Provisioning (TC-ADR-0009 / TC-ADR-0010)**:
+   - Mempersiapkan hierarki folder di `C:\tomcats\tomcat-lab\[bin, conf, webapps, logs, conf\ssl]`.
+2. **Auto-Seeding `setenv.bat` & Pre-Flight Ingestion `CATALINA_OPTS` (TC-ADR-0010)**:
+   - Otomatis men-generate template `C:\tomcats\tomcat-lab\bin\setenv.bat` (dan `setenv.sh`) dengan opsi container-aware:
+     ```cmd
+     set "CATALINA_OPTS=-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -XX:+UseG1GC -XX:+UseStringDeduplication -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Jakarta -Djava.awt.headless=true"
+     ```
+   - `tcctl` mengekstrak opsi `CATALINA_OPTS` dari file host sebelum kontainer diluncurkan dan menginjeksikannya via variabel lingkungan (`-e CATALINA_OPTS=...`), serta me-mount `bin/` ke `C:\usr\local\tomcat\bin\custom:ro` untuk menjaga biner internal Tomcat dari *directory shadowing*.
+3. **Bootstrapping Keystore PKCS#12**:
    - Otomatis men-generate self-signed keystore `C:\tomcats\tomcat-lab\conf\ssl\keystore.p12` (password default: `changeit`).
    - Mengekspor format PEM ganda (`cert.pem`, `server.crt`) untuk kemudahan inspeksi tooling eksternal.
-3. **Hardened XML Seeding & Auto-Detection**:
+4. **Hardened XML Seeding & Auto-Detection**:
    - Menyuntikkan template XML hardened CIS Benchmark ke `C:\tomcats\tomcat-lab\conf\`.
    - Mengonfigurasi `server.xml` untuk membaca `conf/ssl/keystore.p12` dengan protokol TLSv1.2 dan TLSv1.3.
-4. **Pre-flight Static CIS XML Audit**:
+5. **Pre-flight Static CIS XML Audit**:
    - Memindai konfigurasi XML di host sebelum kontainer diluncurkan (harus 100% compliant).
-5. **Peluncuran Kontainer Docker**:
+6. **Peluncuran Kontainer Docker**:
    - Menjalankan kontainer dengan user `ContainerUser`.
    - Melakukan bind-mount `conf/` sebagai **Read-Only (`:ro`)** demi mencegah perubahan konfigurasi tak sah saat runtime.
-6. **Healthcheck & Runtime Environment Reporting**:
+7. **Healthcheck & Runtime Environment Reporting**:
    - Memverifikasi HTTP endpoint `http://localhost:8080/`.
    - Mengekstrak versi Tomcat dan JDK/JVM langsung dari log kontainer (`VersionLoggerListener`).
 
@@ -176,15 +183,13 @@ Operator akan disuguhkan menu pemilihan citra otomatis dari registri lokal:
  Deploying Hardened Tomcat Container: tomcat-lab
 ========================================================
 ℹ Detected Container Engine: docker
-ℹ Step 1: Preparing Host Bind-Mount Directory Structure in C:\tomcats\tomcat-lab...
-ℹ Bootstrapping self-signed TLS material (PKCS#12) for instance 'tomcat-lab'...
-✔ Self-signed TLS keystore (PKCS#12) created in C:\tomcats\tomcat-lab\conf\ssl
-ℹ Seeding hardened XML configuration templates (PKCS12 mode) into C:\tomcats\tomcat-lab\conf...
-✔ Hardened XML templates successfully written into 'C:\tomcats\tomcat-lab\conf'.
-ℹ Step 2: Auditing XML in Host Directory (C:\tomcats\tomcat-lab\conf)...
+ℹ Step 1: Preparing Host Bind-Mount Directory Structure in C:/tomcats/tomcat-lab...
+✔ Environment configuration templates (setenv) verified in 'C:/tomcats/tomcat-lab/bin'.
+ℹ Step 2: Auditing XML in Host Directory (C:/tomcats/tomcat-lab/conf)...
 ✔ Pre-flight XML audit on Host Directory passed (100% compliant).
+ℹ Loaded JVM options from host setenv (C:/tomcats/tomcat-lab/bin): -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -XX:+UseG1GC -XX:+UseStringDeduplication -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Jakarta -Djava.awt.headless=true
 ℹ Step 3: Launching container 'tomcat-lab' (image: tomcat:9.0-jdk11) via docker...
-✔ Container started successfully (ID: 8fa7e962a23e)
+✔ Container started successfully (ID: 2041af9c8135)
 ℹ Step 4: Probing HTTP healthcheck endpoint: http://localhost:8080/
 ✔ Tomcat HTTP Server is HEALTHY (Response status: 404)
 ✔ HTTP healthcheck probe passed.
@@ -200,15 +205,74 @@ Operator akan disuguhkan menu pemilihan citra otomatis dari registri lokal:
    - HTTPS   : https://localhost:8443/
 
  Host Bind Mounts (TC-ADR-0009):
-   - Base Dir : C:\tomcats
-   - Conf     : C:\tomcats\tomcat-lab\conf (Read-Only :ro)
-   - Webapps  : C:\tomcats\tomcat-lab\webapps
-   - Logs     : C:\tomcats\tomcat-lab\logs
+   - Base Dir : C:/tomcats
+   - Bin      : C:/tomcats/tomcat-lab/bin (Environment & setenv)
+   - Conf     : C:/tomcats/tomcat-lab/conf (Read-Only :ro)
+   - Webapps  : C:/tomcats/tomcat-lab/webapps
+   - Logs     : C:/tomcats/tomcat-lab/logs
 ```
 
 ---
 
-## 5. Fase 4: Verifikasi Operasional & Audit Keamanan
+## 5. Fase 4: Tata Kelola Memori Java (JVM Tuning) & Zero-Downtime Rollout
+
+Bagian ini menjelaskan cara administrator mengubah konfigurasi memori Java (Heap Size, GC, Timezone) dan menerapkannya ke produksi tanpa *downtime* menggunakan `tcctl deploy rollout`.
+
+### 5.1 Menyesuaikan Parameter Java pada Host (`setenv.bat`)
+Administrator tidak perlu masuk ke dalam kontainer atau me-rebuild citra Docker. Cukup buka dan edit berkas `setenv.bat` pada host:
+
+```powershell
+# Lokasi berkas konfigurasi environment di host:
+C:\tomcats\tomcat-lab\bin\setenv.bat
+```
+
+**Contoh Modifikasi Kustom (Menambah Heap & Custom Properties):**
+```cmd
+@echo off
+rem ==============================================================================
+rem Apache Tomcat Environment Configuration (Auto-generated by tcctl)
+rem ==============================================================================
+
+if not "%JAVA_HOME%" == "" set "JRE_HOME=%JAVA_HOME%"
+set "JAVA_HOME="
+
+if "%CATALINA_OPTS%" == "" (
+    set "CATALINA_OPTS=-XX:MaxRAMPercentage=80.0 -XX:InitialRAMPercentage=50.0 -XX:+UseG1GC -XX:+UseStringDeduplication -Dcustom.property=prod-value -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Jakarta -Djava.awt.headless=true"
+)
+```
+
+> [!TIP]
+> **Mengapa `-XX:MaxRAMPercentage` Sangat Direkomendasikan?**  
+> Pada kontainer, penggunaan nilai tetap seperti `-Xmx2g` berisiko memicu *Out Of Memory Killer (OOM)* jika batas memori kontainer diubah. Dengan `-XX:MaxRAMPercentage=75.0` atau `80.0`, JVM secara cerdas menyesuaikan ukuran heap secara proporsional terhadap batas memori Docker container (`--memory`).
+
+### 5.2 Menerapkan Perubahan melalui Zero-Downtime Rollout (`tcctl deploy rollout`)
+Untuk menerapkan opsi JVM baru atau memperbarui versi citra Tomcat/Java tanpa downtime:
+
+```powershell
+C:\Users\Administrator\tcctl.exe deploy rollout `
+  --name tomcat-lab `
+  --image tomcat:9.0-jdk21 `
+  --port 8080 `
+  --staging-port 9080 `
+  --base-dir C:/tomcats
+```
+
+**Alur Otomatis yang Terjadi:**
+1. **Host Configuration Cloned**: `tcctl` menyalin seluruh isi `bin/` (termasuk `setenv.bat` yang sudah Anda edit) dan `conf/` ke direktori sementara `C:\tomcats\tomcat-lab-staging\`.
+2. **Launch Staging Container**: Menjalankan kontainer sementara `tomcat-lab-staging` pada port 9080 dengan citra baru (`tomcat:9.0-jdk21`) dan memuat `CATALINA_OPTS` kustom.
+3. **Health Probe Verification**: Memastikan kontainer staging merespons HTTP probe port 9080 secara sehat (*200 OK / 404 Healthy*).
+4. **Atomic Promotion & Drain**: Menghentikan kontainer lama pada port 8080 dan mempromosikan versi baru ke nama kanonikal `tomcat-lab` di port primer 8080.
+5. **Ephemeral Staging Cleanup**: Direktori sementara `C:\tomcats\tomcat-lab-staging` otomatis dihapus dari host sehingga filesystem tetap bersih.
+
+**Verifikasi Hasil di dalam Container:**
+```powershell
+docker exec tomcat-lab cmd /c "echo %CATALINA_OPTS%"
+```
+
+---
+
+## 6. Fase 5: Verifikasi Operasional & Audit Keamanan
+
 
 ### 5.1 Audit Hardening CIS Benchmark
 Untuk memverifikasi kepatuhan seluruh aturan keamanan XML Tomcat kapan saja:
@@ -249,7 +313,7 @@ docker restart tomcat-lab
 
 ---
 
-## 6. Fase 5: Prosedur Lengkap Teardown, Pembersihan (Cleanup), Reset & Mengulang
+## 7. Fase 6: Prosedur Lengkap Teardown, Pembersihan (Cleanup), Reset & Mengulang
 
 Bagian ini menjelaskan secara rinci cara menghentikan kontainer, membersihkan direktori data host, menghapus citra Docker (`docker rmi`), serta mengulang deployment dari awal secara bersih (*clean slate*).
 
@@ -267,7 +331,7 @@ graph TD
     J --> K[4. Deploy Ulang via tcctl deploy run]
 ```
 
-### 6.1 Menghentikan dan Menghapus Kontainer (`docker stop` & `docker rm`)
+### 7.1 Menghentikan dan Menghapus Kontainer (`docker stop` & `docker rm`)
 
 Sebelum menghapus file bind-mount di host, **kontainer wajib dihentikan dan dihapus terlebih dahulu** agar proses kontainer melepaskan kunci file (*file lock*) pada Windows NTFS.
 
@@ -302,12 +366,12 @@ docker ps -a --filter "name=tomcat-lab"
 
 ---
 
-### 6.2 Membersihkan Direktori Host Bind-Mount (`C:\tomcats\<instance>`)
+### 7.2 Membersihkan Direktori Host Bind-Mount (`C:\tomcats\<instance>`)
 
 Setelah kontainer terhapus, direktori data pada host dapat dibersihkan.
 
 #### Opsi 1: Menghapus Seluruh Instance (Total Reset)
-Gunakan opsi ini jika ingin menghapus seluruh data termasuk konfigurasi, sertifikat SSL, aplikasi webapps, dan file log:
+Gunakan opsi ini jika ingin menghapus seluruh data termasuk konfigurasi, sertifikat SSL, aplikasi webapps, file log, dan pengaturan JVM `bin/`:
 
 ```powershell
 Remove-Item -Recurse -Force "C:\tomcats\tomcat-lab"
@@ -323,7 +387,7 @@ Remove-Item -Recurse -Force "C:\tomcats\tomcat-lab\conf"
 
 ---
 
-### 6.3 Menghapus Citra Kontainer Docker (`docker rmi`)
+### 7.3 Menghapus Citra Kontainer Docker (`docker rmi`)
 
 Menghapus citra kontainer diperlukan saat Anda memperbarui Dockerfile, mengganti versi Java dasar, atau ingin menghemat kapasitas disk pada drive Windows.
 
@@ -370,7 +434,7 @@ docker builder prune -f
 
 ---
 
-### 6.4 Skrip Otomasi Reset Penuh & Uji Ulang (All-in-One Reset Script)
+### 7.4 Skrip Otomasi Reset Penuh & Uji Ulang (All-in-One Reset Script)
 
 Salin dan jalankan skrip PowerShell berikut jika Anda ingin mereset lingkungan lab secara total dan mengulang deployment dari kondisi nol (*clean slate*):
 
@@ -409,7 +473,7 @@ Write-Host "--- Siklus Reset & Re-deploy Selesai! ---" -ForegroundColor Green
 
 ---
 
-## 7. Troubleshooting & Kendala Umum (FAQ)
+## 8. Troubleshooting & Kendala Umum (FAQ)
 
 ### 1. Error: `port is already allocated` saat Deploy Ulang
 - **Penyebab**: Kontainer sebelumnya belum dihapus atau port 8080/8443 masih digunakan oleh proses Windows lain.
@@ -437,11 +501,14 @@ Write-Host "--- Siklus Reset & Re-deploy Selesai! ---" -ForegroundColor Green
 
 ---
 
-## 8. Ringkasan Perintah Penting (Cheat Sheet)
+## 9. Ringkasan Perintah Penting (Cheat Sheet)
 
 | Kebutuhan Operasional | Perintah PowerShell / Docker |
 |---|---|
 | **Deploy Instance** | `tcctl.exe deploy run --name tomcat-lab --port 8080 --https-port 8443` |
+| **Edit JVM Heap / Options** | `notepad C:\tomcats\tomcat-lab\bin\setenv.bat` |
+| **Zero-Downtime Rollout** | `tcctl.exe deploy rollout --name tomcat-lab --image tomcat:9.0-jdk21 --port 8080 --staging-port 9080` |
+| **Cek Active CATALINA_OPTS** | `docker exec tomcat-lab cmd /c "echo %CATALINA_OPTS%"` |
 | **Audit Hardening (CIS)** | `tcctl.exe hardening audit --conf C:\tomcats\tomcat-lab\conf` |
 | **Audit Compliance (JSON)** | `tcctl.exe va audit --conf C:\tomcats\tomcat-lab\conf --json report.json` |
 | **Cek Sertifikat (PKCS#12)** | `tcctl.exe ssl check --cert C:\tomcats\tomcat-lab\conf\ssl\keystore.p12` |
@@ -453,3 +520,4 @@ Write-Host "--- Siklus Reset & Re-deploy Selesai! ---" -ForegroundColor Green
 | **Prune Build Cache** | `docker builder prune -f` |
 | **Lihat Log Kontainer** | `docker logs -f tomcat-lab` |
 | **Lihat Log Versi Tomcat** | `docker logs tomcat-lab \| Select-String "Server version", "JVM Version"` |
+
