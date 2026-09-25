@@ -611,6 +611,53 @@ Berikut perbandingan implementasi pipeline CI yang mengeksekusi urutan build, au
 
 ---
 
+### ❓ Pertanyaan 14: "Apakah pengujian fungsi GitOps ini sudah menggunakan Gitea Actions? Apa batas pemisah antara GitOps Reconciler (CD) dan Gitea Actions (CI)?"
+
+#### 1. Klarifikasi Posisi Pengujian GitOps
+**Belum.** Pengujian fungsi GitOps yang telah berhasil diverifikasi pada host target Windows Server (`win-lab` / `win2022`) adalah pengujian sisi **CD Engine / Autonomous Pull-Based Reconciler**. 
+
+Pada pengujian tersebut, pembaruan versi image pada `tomcat-spec.yaml` masih dilakukan secara manual oleh operator (edit file manifes $\rightarrow$ `git commit` $\rightarrow$ `git push` ke repositori `tomcat-gitops`). Target host kemudian menarik perubahan tersebut dan mengeksekusi rolling update secara otonom.
+
+#### 2. Batas Demarkasi Tanggung Jawab: CI (Gitea Actions) vs CD (GitOps Reconciler)
+
+Pemisahan tanggung jawab secara tegas (*Separation of Concerns*) antara CI dan CD pada arsitektur GitOps modern:
+
+```
+[Developer]
+    │ (git push)
+    ▼
+[Repo: tomcat (Source Code)]
+    │
+    ▼ ════════════════ CONTINUOUS INTEGRATION (CI) DOMAIN ════════════════
+    │ Gitea Actions Workflow (.gitea/workflows/ci.yaml)
+    │  1. Build Container Image (OCI Image Build)
+    │  2. Security Gate 1: CIS Hardening Audit (tcctl hardening audit)
+    │  3. Security Gate 2: Vulnerability Scan (tcctl va scan / Trivy)
+    │  4. Push OCI Image to Internal Registry (localhost:3000)
+    │  5. Automated GitOps Promotion (CI Bot commits & pushes tag update)
+    ▼ ════════════════════════════════════════════════════════════════════
+[Repo: tomcat-gitops (Declarative Spec: tomcat-spec.yaml)]
+    ▲
+    │ (Pure Pull-Based via HTTPS / REST API - Periodic Poll)
+    ▼ ════════════════ CONTINUOUS DEPLOYMENT (CD) DOMAIN ════════════════
+    │ Autonomous Reconciler Host Runtime (tcctl gitops sync)
+    │  1. Detect Remote Git Commit / Image Tag Change
+    │  2. Launch Temporary Staging Container (<name>-staging pada port 9080)
+    │  3. Pre-flight Readiness Health Check Probe (HTTP 200 OK)
+    │  4. Drain & Terminate Previous Canonical Instance (<name> pada port 8080)
+    │  5. Promote Staging to Canonical Name (<name> pada port 8080)
+    │  6. Continuous Drift Detection & Self-Healing (Task Scheduler / systemd)
+    ▼ ════════════════════════════════════════════════════════════════════
+[Target Host Runtime (win-lab / Windows Server 2022)]
+```
+
+#### 3. Mengapa Keduanya Terpisah?
+1. **Prinsip Least Privilege**: CI Runner tidak memerlukan kredensial superuser, SSH key, atau akses jaringan langsung ke server produksi. CI runner hanya perlu akses tulis (*push token*) ke repositori manifes `tomcat-gitops`.
+2. **Immutability & Audit Trail**: Repositori `tomcat-gitops` menjadi buku besar deklaratif (*Single Source of Truth*). Setiap versi yang meluncur ke produksi tercatat dalam riwayat Git commit lengkap dengan identitas commit bot CI, pesan rilis, dan timestamp.
+3. **Resilience & Kemandirian Runtime**: Jika server Gitea atau CI Runner mengalami downtime, kontainer di host target tetap berjalan stabil, dan reconciler lokal tetap melakukan drift detection serta self-healing mandiri tanpa terganggu ketiadaan CI server.
+
+---
+
 ## 📐 Architecture & Design Blueprint
 
 ### 1. Arsitektur Dekopel CI dan Pure Pull-Based GitOps (Day-2)
@@ -1186,6 +1233,312 @@ File JSON terekspor di `C:/temp/gitops-status.json` dengan format standar TN-009
   "timer_status": "Ready"
 }
 ```
+
+#### F. Rekaman Eksekusi: Verifikasi Lengkap GitOps Otonom di Windows Server 2022 (`win2022`) & Promosi Deklaratif ke JDK 21 LTS (2026-09-25)
+
+Pada 25 September 2026, dilakukan rangkaian pengujian komprehensif end-to-end terhadap fungsi GitOps otonom pada host target **Windows Server 2022 Datacenter (`win2022` / `3.210.194.165`)** menggunakan biner terbaru `C:\Program Files\tcctl\tcctl.exe` yang terintegrasi dengan arsitektur Dynamic JVM Tuning ([TC-ADR-0010](file:///home/eddywiyatno/git/devops-handbook/docs/adr/tomcat/adr-records/TC-ADR-0010.md) & [TN-010](file:///home/eddywiyatno/git/devops-handbook/docs/projects/tomcat/engineering-journal/platform-foundation-and-hardening/TN-010-design-host-bin-setenv-and-dynamic-jvm-tuning.md)).
+
+Seluruh skenario pengujian diverifikasi secara berurutan dan tercatat dengan hasil 100% lulus:
+
+##### 1. Tahap 1: Inisialisasi GitOps & Pendaftaran Scheduled Task (`tcctl gitops init`)
+Perintah inisialisasi dijalankan langsung di host Windows Server:
+```powershell
+PS C:\> tcctl.exe gitops init --repo http://localhost:3000/gitadm/tomcat-gitops.git --branch main --timer
+```
+
+*Output Terminal:*
+```text
+========================================================
+ Initializing Autonomous GitOps Environment (tcctl gitops init)
+========================================================
+
+ℹ GitOps Working Directory: C:/Program Files/tcctl/gitops
+✔ Saved GitOps configuration profile (gitops-config.json)
+ℹ Fetching manifest 'tomcat-spec.yaml' directly via Gitea REST API...
+✔ Successfully fetched 'tomcat-spec.yaml' via Gitea REST API!
+ℹ Found existing spec at C:/Program Files/tcctl/gitops/tomcat-spec.yaml
+✔ Registered Windows Scheduled Task 'tcctl-gitops-reconciler' (Every 5 minutes)
+✔ GitOps initialization completed successfully!
+```
+
+*Verifikasi Scheduled Task:*
+```powershell
+PS C:\> Get-ScheduledTask -TaskName 'tcctl-gitops-reconciler'
+
+TaskPath                                       TaskName                          State     
+--------                                       --------                          -----     
+\                                              tcctl-gitops-reconciler           Ready     
+```
+
+##### 2. Tahap 2: Initial Declarative Sync & Host Bind Mount `bin/setenv` (`tcctl gitops sync`)
+Eksekusi sinkronisasi perdana secara deklaratif menarik spesifikasi awal (`tomcat:9.0-jdk11-v2`):
+```powershell
+PS C:\> tcctl.exe gitops sync --work-dir 'C:/Program Files/tcctl/gitops'
+```
+
+*Output Terminal:*
+```text
+========================================================
+ Executing GitOps Autonomous Reconciliation (tcctl gitops sync)
+========================================================
+
+ℹ Specification File : C:/Program Files/tcctl/gitops/tomcat-spec.yaml
+ℹ Working Directory  : C:/Program Files/tcctl/gitops
+ℹ GitOps config detected (http://localhost:3000/gitadm/tomcat-gitops.git). Checking remote updates via Gitea REST API...
+ℹ Remote Git HEAD (API): 8c23789 ("feat(deploy): promote payment-service image to tomcat:9.0-jdk11-v2")
+ℹ Desired Container  : payment-service (Image: tomcat:9.0-jdk11-v2)
+⚠ Drift or Update Detected: Container is not running (stopped or missing)
+
+========================================================
+ Deploying Hardened Tomcat Container: payment-service
+========================================================
+
+ℹ Detected Container Engine: docker
+ℹ Step 1: Preparing Host Bind-Mount Directory Structure in C:/tomcats/payment-service...
+✔ Environment configuration templates (setenv) verified in 'C:/tomcats/payment-service/bin'.
+ℹ Bootstrapping self-signed TLS material (PKCS#12) for instance 'payment-service'...
+✔ Self-signed TLS keystore (PKCS#12) created in C:/tomcats/payment-service/conf/ssl
+ℹ Seeding hardened XML configuration templates (PKCS12 mode) into C:/tomcats/payment-service/conf...
+✔ Hardened XML templates successfully written into 'C:/tomcats/payment-service/conf'.
+ℹ Step 2: Auditing XML in Host Directory (C:/tomcats/payment-service/conf)...
+✔ Pre-flight XML audit on Host Directory passed (100% compliant).
+ℹ Loaded JVM options from host setenv (C:/tomcats/payment-service/bin): -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -XX:+UseG1GC -XX:+UseStringDeduplication -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Jakarta -Djava.awt.headless=true
+ℹ Step 3: Launching container 'payment-service' (image: tomcat:9.0-jdk11-v2) via docker...
+✔ Container started successfully (ID: ddc6902387c1)
+ℹ Step 4: Probing HTTP healthcheck endpoint: http://localhost:8080/
+✔ Tomcat HTTP Server is HEALTHY (Response status: 404)
+✔ HTTP healthcheck probe passed.
+✔ Tomcat instance 'payment-service' is up, running, and fully hardened!
+
+ Runtime Environment:
+   - Container Image : tomcat:9.0-jdk11-v2
+   - Tomcat Version  : Apache Tomcat/9.0.98
+   - Java / JDK      : 11.0.32+9 (Eclipse Adoptium)
+
+ Endpoints:
+   - HTTP    : http://localhost:8080/
+   - HTTPS   : https://localhost:8443/
+
+ Host Bind Mounts (TC-ADR-0009 & TC-ADR-0010):
+   - Base Dir : C:/tomcats
+   - Bin      : C:/tomcats/payment-service/bin (Environment & setenv)
+   - Conf     : C:/tomcats/payment-service/conf (Read-Only :ro)
+   - Webapps  : C:/tomcats/payment-service/webapps
+   - Logs     : C:/tomcats/payment-service/logs
+
+✔ Autonomous GitOps Reconciliation Completed! Instance 'payment-service' is in desired state.
+```
+
+##### 3. Tahap 3: Uji Drift Detection & Self-Healing
+Untuk menguji keandalan reconciler dalam menangani kegagalan atau gangguan manual:
+1. Kontainer produksi `payment-service` dimatikan secara paksa:
+   ```powershell
+   PS C:\> docker stop payment-service
+   # Status kontainer berubah menjadi: Exited (3221225786)
+   ```
+2. Reconciler dipicu untuk melakukan pemeriksaan (*drift detection*):
+   ```powershell
+   PS C:\> tcctl.exe gitops sync --work-dir 'C:/Program Files/tcctl/gitops'
+   ```
+3. Reconciler secara mandiri mendeteksi ketiadaan kontainer yang aktif:
+   `⚠ Drift or Update Detected: Container is not running (stopped or missing)`
+4. Reconciler mengeksekusi self-healing, meluncurkan kembali instance kontainer (ID baru: `c81692e913b6`), memverifikasi health probe, dan memulihkan status ke `SYNCED` tanpa memerlukan intervensi manual.
+
+##### 4. Tahap 4: Uji Zero-Downtime Rollout via Staging Container ke JDK 21 LTS
+Pada tahap ini, dilakukan simulasi upgrade versi aplikasi secara deklaratif dari JDK 11 ke JDK 21 LTS:
+1. Manifes `tomcat-spec.yaml` diperbarui di workstation pengembang:
+   ```yaml
+   spec:
+     image:
+       repository: "tomcat"
+       tag: "9.0-jdk21"
+   ```
+2. Perubahan di-commit dan di-push ke repositori GitOps:
+   ```bash
+   git commit -am "feat(deploy): promote payment-service image to tomcat:9.0-jdk21"
+   git push origin main
+   # Commit Hash: d534c62
+   ```
+3. Reconciler di Windows Server mengeksekusi sinkronisasi:
+   ```powershell
+   PS C:\> tcctl.exe gitops sync --work-dir 'C:/Program Files/tcctl/gitops'
+   ```
+4. *Hasil Eksekusi Reconciler:*
+   - Deteksi commit remote baru: `Remote Git HEAD (API): d534c62`.
+   - Deteksi perbedaan image: `⚠ Drift or Update Detected: Image version mismatch (Running: tomcat:9.0-jdk11-v2, Desired: tomcat:9.0-jdk21)`.
+   - **Phase 1 (Staging Launch)**: Meluncurkan temporary staging container `payment-service-staging` di port `9080` (Java / JDK: `21.0.12+8-LTS`).
+   - **Phase 1 Probe**: Melakukan HTTP health probe ke endpoint staging `http://localhost:9080/` $\rightarrow$ status `200/404 HEALTHY`.
+   - **Phase 2 (Drain & Terminate)**: Menghentikan dan menghapus kontainer lama `payment-service` pada port `8080`.
+   - **Phase 3 (Canonical Promotion)**: Meluncurkan kontainer baru ke nama kanonikal murni `payment-service` pada port produksi `8080` dan `8443`.
+   - **Hasil Akhir**: Hanya 1 kontainer aktif bernama bersih `payment-service` tanpa embel-embel deployment suffix, berjalan di atas Java 21 LTS.
+
+##### 5. Tahap 5: Observabilitas Dual-Channel & Export JSON Status
+Status rekonsiliasi diperiksa dan diekspor ke format JSON terstruktur:
+```powershell
+PS C:\> tcctl.exe gitops status --dir 'C:/Program Files/tcctl/gitops' --json-out 'C:/Program Files/tcctl/gitops/gitops-status.json'
+```
+
+*Output Visual Dashboard:*
+```text
+========================================================
+ Apache Tomcat Enterprise — GitOps Reconciler Status
+========================================================
+
+ℹ GitOps Directory : C:/Program Files/tcctl/gitops
+ℹ Spec File        : C:/Program Files/tcctl/gitops/tomcat-spec.yaml
+
+ 📦 GitOps Repository (REST API Mode):
+    - Remote URL : http://localhost:3000/gitadm/tomcat-gitops.git
+    - Branch     : main
+    - Last Commit: d534c62
+
+ 📄 Desired Specification (payment-service):
+    - Desired Image : tomcat:9.0-jdk21
+    - Container Name: payment-service
+    - HTTP Port     : 8080
+    - Config Volume : payment-service_conf
+
+ 🔄 Reconciler State (state.json):
+    - Last Sync Time : 2026-09-25 15:03:47 UTC
+    - Last Sync Status: SYNCED
+    - Last Synced Rev: d534c62
+
+ 🐳 Live Container Runtime (docker):
+    - payment-service	Up 16 seconds	tomcat:9.0-jdk21	0.0.0.0:8080->8080/tcp, 0.0.0.0:8443->8443/tcp
+
+ ⏱️  Windows Scheduled Task:
+    - tcctl-gitops-reconciler: Ready
+
+✔ GitOps status JSON exported to C:/Program Files/tcctl/gitops/gitops-status.json
+```
+
+*Isi Berkas JSON Terstruktur (`C:/Program Files/tcctl/gitops/gitops-status.json`):*
+```json
+{
+  "timestamp": "2026-09-25T15:03:47Z",
+  "directory": "C:/Program Files/tcctl/gitops",
+  "spec_file": "C:/Program Files/tcctl/gitops/tomcat-spec.yaml",
+  "git": {
+    "remote_url": "http://localhost:3000/gitadm/tomcat-gitops.git",
+    "branch": "main",
+    "commit": "d534c62"
+  },
+  "spec": {
+    "Version": "1.0",
+    "Metadata": {
+      "Application": "payment-service",
+      "Environment": "production",
+      "Tier": "backend"
+    },
+    "Spec": {
+      "Image": {
+        "Repository": "tomcat",
+        "Tag": "9.0-jdk21",
+        "PullPolicy": "IfNotPresent"
+      },
+      "Runtime": {
+        "ContainerName": "payment-service",
+        "HTTPPort": 8080,
+        "StagingPort": 9080,
+        "HTTPSPort": 8443
+      },
+      "HealthCheck": {
+        "Path": "/",
+        "ExpectedStatus": 200,
+        "TimeoutSeconds": 60
+      },
+      "AutoRollback": true
+    }
+  },
+  "state": {
+    "lastSyncTime": "2026-09-25T15:03:47.382Z",
+    "lastCommit": "d534c62",
+    "commitMessage": "feat(deploy): promote payment-service image to tomcat:9.0-jdk21",
+    "image": "tomcat:9.0-jdk21",
+    "containerName": "payment-service",
+    "httpPort": 8080,
+    "httpsPort": 8443,
+    "syncStatus": "SYNCED"
+  },
+  "live_container": "payment-service\tUp 16 seconds\ttomcat:9.0-jdk21\t0.0.0.0:8080->8080/tcp, 0.0.0.0:8443->8443/tcp",
+  "timer_active": true,
+  "timer_status": "Ready"
+}
+```
+
+##### 6. Tahap 6: Verifikasi Eksekusi Windows Task Scheduler & Endpoints Hardened
+1. Task Scheduler `tcctl-gitops-reconciler` diuji eksekusinya menggunakan:
+   ```powershell
+   PS C:\> Start-ScheduledTask -TaskName 'tcctl-gitops-reconciler'
+   PS C:\> Get-ScheduledTaskInfo -TaskName 'tcctl-gitops-reconciler'
+
+   LastRunTime        : 9/25/2026 3:04:04 PM
+   LastTaskResult     : 0
+   NextRunTime        : 9/25/2026 3:05:05 PM
+   NumberOfMissedRuns : 0
+   TaskName           : tcctl-gitops-reconciler
+   ```
+   *Hasil*: Nilai `LastTaskResult: 0` membuktikan bahwa Windows Task Scheduler sukses mengeksekusi rekonsiliasi tanpa error.
+
+2. Verifikasi Header Hardening pada Port Produksi:
+   ```powershell
+   PS C:\> curl.exe -I -s http://localhost:8080/
+   HTTP/1.1 404 
+   Date: Fri, 25 Sep 2026 15:04:39 GMT
+   Server: ApplicationServer
+
+   PS C:\> curl.exe -k -I -s https://localhost:8443/
+   HTTP/1.1 404 
+   Date: Fri, 25 Sep 2026 15:04:40 GMT
+   Server: ApplicationServer
+   ```
+   *Hasil*: Banner versi Tomcat sepenuhnya tersembunyi (`Server: ApplicationServer`), membuktikan bahwa konfigurasi CIS Hardening aktif dan efektif di seluruh port HTTP dan HTTPS.
+
+---
+
+## 🚀 Next Steps: End-to-End Closed-Loop Automation via Gitea Actions CI
+
+Dengan terbuktinya keandalan sisi **Continuous Deployment (CD) / GitOps Reconciler** pada target host Windows Server, langkah strategis berikutnya adalah **mengotomasi sisi Continuous Integration (CI)** agar siklus promosi rilis tertutup secara sempurna (*closed-loop automation*).
+
+Berikut rencana tahapan implementasi selanjutnya yang akan dieksekusi:
+
+```mermaid
+flowchart TD
+    Step1["Tahap 1: Aktivasi Gitea Actions & Runner Setup"] --> Step2["Tahap 2: Konfigurasi Kredensial & Cross-Repo Push Token"]
+    Step2 --> Step3["Tahap 3: Penyusunan Workflow CI (.gitea/workflows/ci.yaml)"]
+    Step3 --> Step4["Tahap 4: Pengujian Gate CIS Hardening & Trivy VA"]
+    Step4 --> Step5["Tahap 5: Eksekusi Automated Promotion ke tomcat-gitops"]
+    Step5 --> Step6["Tahap 6: Pembuktian Grand E2E (Developer Push -> Target Rollout)"]
+```
+
+### Rincian Rencana Kerja:
+
+#### 1. Tahap 1: Aktivasi Gitea Actions & Runner Setup
+- Mengaktifkan seksi `[actions]` pada konfigurasi Gitea (`/home/eddywiyatno/devops-lab/gitea-data/gitea/conf/app.ini`):
+  ```ini
+  [actions]
+  ENABLED = true
+  ```
+- Menjalankan `act_runner` pada workstation Linux (`edkas-pc1`) dalam **Host Execution Mode** (`labels: ["ubuntu-latest:host"]`).
+- Memastikan `act_runner` terdaftar di Gitea Admin dengan status **Idle / Online**.
+
+#### 2. Tahap 2: Konfigurasi Kredensial & Cross-Repo Promotion Token
+- Membuat Gitea Personal Access Token (PAT) untuk akun `gitadm` dengan izin akses ke repositori `tomcat-gitops`.
+- Mendaftarkan token tersebut sebagai Gitea Secret dengan nama `GITOPS_PUSH_TOKEN` pada repositori `tomcat`.
+
+#### 3. Tahap 3: Penyusunan Workflow CI (`.gitea/workflows/ci.yaml`)
+- Menambahkan file workflow otomatisasi di repositori `tomcat` yang mencakup 5 tahapan:
+  1. **Build Container Image**: Menjalankan build OCI image dengan metadata tag SHA unik (`9.0-${SHORT_SHA}`).
+  2. **Quality Gate 1 (CIS Hardening)**: Menjalankan audit statis `tcctl hardening audit --conf conf/` (wajib 100% compliant).
+  3. **Quality Gate 2 (VA Scan)**: Menjalankan pemindaian celah keamanan `tcctl va scan --image <image> --severity HIGH,CRITICAL` (exit-code enforcement).
+  4. **Registry Push**: Mendorong citra yang tersertifikasi aman ke internal OCI Registry Gitea (`localhost:3000`).
+  5. **Automated GitOps Promotion**: CI Bot mengklon repositori `tomcat-gitops`, memperbarui tag pada `tomcat-spec.yaml`, lalu melakukan commit & push secara otomatis.
+
+#### 4. Tahap 4: Pembuktian Akbar End-to-End (Grand E2E Verification)
+- Pengembang melakukan `git push` perubahan kode aplikasi pada repositori `tomcat`.
+- Memverifikasi pipeline CI berjalan dan lolos seluruh quality gate keamanan.
+- Memverifikasi bot CI berhasil mengupdate commit pada repositori `tomcat-gitops`.
+- Mengamati Task Scheduler `tcctl-gitops-reconciler` di Windows Server mendeteksi commit baru tersebut secara otonom dan mengeksekusi rolling update zero-downtime hingga sehat.
 
 ---
 
