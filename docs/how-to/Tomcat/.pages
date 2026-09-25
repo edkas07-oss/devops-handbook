@@ -4,6 +4,7 @@ title: Tomcat
 
 arrange:
 
+- pure-pull-based-gitops-and-ci-promotion-guide.md
 - tcctl-rest-api-and-json-self-service-guide.md
 - complete-lifecycle-deployment-and-cleanup-guide.md
 - tls-pkcs12-keystore-management-with-tcctl.md
