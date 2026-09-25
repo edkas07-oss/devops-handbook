@@ -10,3 +10,4 @@ arrange:
 - TN-007-build-windows-nanoserver-multi-java-gitea-registry-and-tcctl-verification.md
 - TN-008-pkcs12-keystore-governance-and-auto-detection.md
 - TN-009-design-rest-api-daemon-and-json-output-for-self-service-integration.md
+- TN-010-implement-host-bin-setenv-and-container-aware-dynamic-jvm-tuning.md

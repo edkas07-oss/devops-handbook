@@ -28,6 +28,7 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 | **Pure GitOps & Staging Rollout** | Arsitektur Pure Pull-Based GitOps (`tcctl gitops sync` via `systemd --user timer` di Linux & Windows Task Scheduler), refactoring temporary staging container rollout (`<name>-staging` -> `<name>`), dan Day-1 self-destructing bootstrap key. | Completed |
 | **Windows Container & Operator Testing** | Provisioning Windows Containers di Windows Server 2022 AWS, instalasi Docker CE v27.5.1, Tooling PATH, dan validasi live `tcctl.exe` (Audit CIS & SSL check). | Completed |
 | **REST API Daemon & JSON Output** | Standardisasi output JSON non-destruktif (`--json-out`) dan embedded REST API daemon (`tcctl serve` :8089) untuk integrasi aplikasi Self-Service Portal / IDP. | Completed |
+| **Host Environment & Dynamic JVM Tuning** | Standarisasi direktori host `bin/`, auto-seeding `setenv.bat`/`setenv.sh`, pre-flight injeksi `CATALINA_OPTS`, serta sinkronisasi dan pembersihan direktori staging pada zero-downtime rollout. | Completed |
 
 ## 📄 Technical Notes
 
@@ -67,6 +68,10 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 
     Mencatat cetak biru transformasi `tcctl` dari kakas CLI manual menjadi Platform Service & Automation Engine: standardisasi output JSON non-destruktif (`--json-out`) yang menjaga integritas tampilan visual terminal, arsitektur embedded HTTP REST API daemon (`tcctl serve`) dengan otentikasi API Key, pemetaan skema endpoint `/api/v1` untuk deployment, hardening, SSL, dan monitoring, serta panduan integrasi background service pada Windows Service dan Linux systemd.
 
+10. **[TN-010 — Implement Host bin/setenv Configuration, Container-Aware Dynamic JVM Tuning, and Live Zero-Downtime Rollout Verification on Windows Server](TN-010-implement-host-bin-setenv-and-container-aware-dynamic-jvm-tuning.md)**
+
+    Mencatat standarisasi tata kelola memori Java per instans melalui host bind-mount `bin/`, auto-seeding template `setenv.bat`/`setenv.sh` dengan container-aware memory flags (`-XX:MaxRAMPercentage=75.0`, G1GC), pemecahan batasan Windows Containers via pre-flight parser `CATALINA_OPTS` & custom mount, integrasi kloning direktori staging pada zero-downtime rollout dengan pembersihan otomatis (*ephemeral staging cleanup*), serta verifikasi live pada Windows Server 2022 dan 2019.
+
 !!! note "Phase Output"
 
     Fase ini menghasilkan dua repositori operasional yang telah terverifikasi penuh:
@@ -86,6 +91,7 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 - **Clean Container Naming**: Penggunaan suffix `-blue`/`-green` secara permanen membingungkan operator dan sistem monitoring. Mekanisme temporary staging container (`<name>-staging`) memungkinkan promosi nama kanonikal (`<name>`) secara mulus pasca-verifikasi readiness probe.
 - **Windows Containers Network & Storage Portability**: Arsitektur Windows Containers menggunakan driver jaringan NAT HNS (bukan bridge) dan direktori volume fisik pada `C:\ProgramData\docker\volumes\<name>\_data`. Biner `tcctl.exe` terbukti mampu menginspeksi dan memverifikasi kriptografi volume secara offline pada Windows.
 - **Enterprise Drive Separation & Native NTFS Bind I/O**: Memisahkan partisi OS (`C:\`) dan partisi data (`D:\docker` dan `D:\tomcats`) melindungi Windows Server dari disk space exhaustion akibat citra kontainer multi-gigabyte. Pada Windows Server Process Isolation, Host Bind Mount dieksekusi langsung oleh filter driver NTFS kernel tanpa overhead virtualisasi, memberikan kecepatan I/O identik dengan named volume namun jauh lebih mudah diakses oleh operator.
+- **Container-Aware JVM Tuning & Ephemeral Staging Lifecycle**: Hindari alokasi heap statis (`-Xmx`) pada kontainer; gunakan `-XX:MaxRAMPercentage=75.0` agar alokasi memori beradaptasi dinamis terhadap cgroup limits. Untuk menghindari batasan single-file mount Windows dan directory shadowing biner Tomcat, operator CLI mengekstrak `CATALINA_OPTS` dari `setenv.bat` di host dan menginjeksikannya via runtime environment. Selama zero-downtime rollout, folder kustom `bin/` wajib dikloning ke direktori staging dan direktori sementara tersebut harus dihapus secara otomatis pasca-promosi untuk menjaga integritas disk.
 
 ## 🔗 Related Documentation
 
@@ -104,4 +110,6 @@ Membangun fondasi platform Apache Tomcat Enterprise yang aman, terstandarisasi, 
 - [TC-ADR-0007: Adoption of Pure Pull-Based GitOps via Autonomous Host Reconciler](../../../../adr/tomcat/adr-records/TC-ADR-0007.md)
 - [TC-ADR-0008: Zero-Touch Day-1 Host Bootstrapping via Self-Destructing Ephemeral SSH Access](../../../../adr/tomcat/adr-records/TC-ADR-0008.md)
 - [TC-ADR-0009: Enterprise Drive Separation and Transparent Host Bind-Mount Hierarchy](../../../../adr/tomcat/adr-records/TC-ADR-0009.md)
+- [TC-ADR-0010: Host Environment Configuration Architecture (bin/setenv) and Dynamic JVM Tuning](../../../../adr/tomcat/adr-records/TC-ADR-0010.md)
+
 
