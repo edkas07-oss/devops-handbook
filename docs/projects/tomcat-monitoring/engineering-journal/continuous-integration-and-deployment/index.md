@@ -200,6 +200,10 @@ flowchart TD
 
     Mendokumentasikan otomatisasi provisi node Linux dari jarak jauh via SSH (`bootstrap-linux-host-remote.sh` dan `bootstrap-linux-host.sh`), inspeksi runtime yang ada (skip install jika sehat), instalasi default Podman dengan fallback otomatis ke Docker Engine pada Amazon Linux 2023, penguatan 2GB Swap memory, serta aktivasi systemd user session lingering (`TASK-TM-037`).
 
+25. **[TN-025 — Elevate tmctl to Super Operator with Integrated Agent, Pure Pull-Based GitOps, and Embedded REST API Daemon](TN-025-elevate-tmctl-to-super-operator-with-integrated-agent-gitops-and-rest-api.md)**
+
+    Mendokumentasikan konsolidasi radikal seluruh ekosistem Tomcat Monitoring dari 5 repositori terpisah menjadi satu biner Super Operator tunggal `tmctl` yang memiliki kesetaraan fitur penuh (*1-to-1 parity*) dengan `tcctl`. Mencakup absorpsi host telemetry daemon (`tmctl agent`), mesin Pure Pull-Based GitOps deklaratif (`tmctl gitops`) dengan integrasi native OS schedulers, evaluasi crash triage heuristik dan synthetic alert probe (`tmctl diagnostic`), serta server REST API ringan (`tmctl serve`) (`TM-ADR-0032`).
+
 
 ---
 

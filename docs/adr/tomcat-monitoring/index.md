@@ -41,6 +41,9 @@ konsekuensi keputusan arsitektur yang memengaruhi implementasi project.
 | [**TM-ADR-0027**](adr-records/TM-ADR-0027.md){: target="_blank" } | Adopt Container Engine Socket API and Unified Cross-Platform Tooling for Multi-OS Orchestration | Tomcat Monitoring | Platform Portability, Multi-OS Orchestration, and Tooling Architecture | Accepted | 2026-09-13 |
 | [**TM-ADR-0028**](adr-records/TM-ADR-0028.md){: target="_blank" } | Adopt Cloud-Native Remote Fleet Orchestration, Multi-Engine Socket API Portability, and AWS Free Tier Integration | Tomcat Monitoring | Hybrid-Cloud Infrastructure, Deployment Orchestration, and Fleet Portability | Accepted | 2026-09-14 |
 | [**TM-ADR-0029**](adr-records/TM-ADR-0029.md){: target="_blank" } | Adopt Multi-OS Flexible Deployment Topology, Granular Component Selection, and TLS Lifecycle Governance | Tomcat Monitoring | Deployment Topology, CI/CD Parametrization, Multi-OS Portability, and Security Lifecycle | Accepted | 2026-09-16 |
+| [**TM-ADR-0030**](adr-records/TM-ADR-0030.md){: target="_blank" } | Standardize Host Workspace Directory to `tm_home`, Two-Tier Storage Architecture, Parameterized Drive Mounting, and Pure Container Logging Model | Tomcat Monitoring | Storage Architecture, Cross-Platform Directory Standards, and Logging Lifecycle | Accepted | 2026-09-17 |
+| [**TM-ADR-0031**](adr-records/TM-ADR-0031.md){: target="_blank" } | Granular Least-Privilege NTFS Volume Access Controls for Non-Admin Windows Containers, Configuration Namespace Alignment, and Diagnostic Runtime Integrity | Tomcat Monitoring | Windows Container Security, Least-Privilege Storage ACLs, Multi-OS Runtime Isolation, and Toolchain Integrity | Accepted | 2026-09-18 |
+| [**TM-ADR-0032**](adr-records/TM-ADR-0032.md){: target="_blank" } | Consolidation of Fragmented Observability Landscape into tmctl Super Operator, Pure Pull-Based GitOps Engine, and Host Telemetry Agent Absorption | Tomcat Monitoring | Observability Architecture, Tooling Consolidation, GitOps Automation, and Host Lifecycle Governance | Accepted | 2026-09-26 |
 
 
 ## 🗺️ ADR Mapping
@@ -78,6 +81,7 @@ konsekuensi keputusan arsitektur yang memengaruhi implementasi project.
 | TM-ADR-0029 | Adopt Multi-OS Flexible Deployment Topology, Granular Component Selection, and TLS Lifecycle Governance | CI/CD TN-018 |
 | TM-ADR-0030 | Standardize Host Workspace Directory to `tm_home`, Two-Tier Storage Architecture, Parameterized Drive Mounting, and Pure Container Logging Model | CI/CD TN-019 |
 | TM-ADR-0031 | Granular Least-Privilege NTFS Volume Access Controls for Non-Admin Windows Containers, Configuration Namespace Alignment, and Diagnostic Runtime Integrity | CI/CD TN-020 |
+| TM-ADR-0032 | Consolidation of Fragmented Observability Landscape into tmctl Super Operator, Pure Pull-Based GitOps Engine, and Host Telemetry Agent Absorption | CI/CD TN-025 |
 
 
 ## 📝 Summary
